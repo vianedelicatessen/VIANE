@@ -16,9 +16,10 @@ STATUSES = ['Pago pendiente','Pago recibido','Pedido confirmado','En preparació
 app = Flask(__name__)
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=80*1024*1024)
-# Set these environment variables before deploying publicly.
-ADMIN_EMAIL = os.environ.get('vianedelicatessen@gmail.com', 'vianedelicatessen@gmail.com').strip().lower()
-ADMIN_PASSWORD = os.environ.get('erisson30@@', '')
+
+# Credenciales de Administrador corregidas y listas
+ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com').strip().lower()
+ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', 'erisson01@')
 
 
 def db():
@@ -41,6 +42,114 @@ def init_db():
           'brand_name':'VIANE DELICATESSEN','logo':'','whatsapp':'18296759640','instagram':'vianedelicatessen',
           'background_type':'color','background_value':'#FFFDF5','review_url':'','tips_message':'¡Gracias por apoyar a VIANE Delicatessen!'
         }
+        for k,v in defaults.items(): c.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)',(k,v))
+        count = c.execute('SELECT COUNT(*) FROM products').fetchone()[0]
+        if not count:
+            samples=[('Desayuno Sorpresa VIP Viane','desayunos',3500,'Desayuno especial personalizado. Confirma disponibilidad y detalles por WhatsApp.','',0),('Bandeja Romántica','bandejas',4200,'Bandeja premium personalizada para sorprender.','',0),('Picaderas para Cumpleaños','picaderas',4500,'Variedad de bocadillos para compartir.','',0)]
+            for p in samples: c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)',(*p,datetime.now(timezone.utc).isoformat()))
+init_db()
+
+def now(): return datetime.now(timezone.utc).isoformat()
+def asdict(row): return dict(row) if row else None
+def setting_map():
+    with db() as c: return {r['key']:r['value'] for r in c.execute('SELECT key,value FROM settings')}
+def admin_required(fn):
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        if not session.get('admin') or session.get('email') != ADMIN_EMAIL:
+            return jsonify({'error':'Acceso administrativo requerido'}),401
+        return fn(*args, **kwargs)
+    return wrapped
+def allowed_file(filename, allowed): return '.' in filename and filename.rsplit('.',1)[1].lower() in allowed
+
+@app.get('/')
+def home(): return render_template('index.html')
+@app.get('/uploads/<path:filename>')
+def uploads(filename): return send_from_directory(UPLOAD_DIR, filename)
+
+@app.get('/api/public')
+def public_data():
+    with db() as c:
+        products=[dict(r) for r in c.execute('SELECT * FROM products WHERE active=1 ORDER BY id DESC')]
+        reviews=[dict(r) for r in c.execute('SELECT id,name,rating,products,comment,admin_reply,created_at FROM reviews WHERE approved=1 ORDER BY id DESC')]
+        ads=[dict(r) for r in c.execute('SELECT * FROM ads WHERE active=1')]
+        payments=[dict(r) for r in c.execute('SELECT id,title,url,details,tip_enabled FROM payments WHERE active=1')]
+    return jsonify({'products':products,'reviews':reviews,'ads':ads,'payments':payments,'settings':setting_map(),'statuses':STATUSES})
+
+@app.post('/api/login')
+def login():
+    data=request.get_json(silent=True) or {}
+    email=str(data.get('email','')).strip().lower(); password=str(data.get('password',''))
+    if not ADMIN_PASSWORD:
+        return jsonify({'error':'El administrador debe configurar VIANE_ADMIN_PASSWORD en el servidor antes de habilitar el panel.'}),503
+    if email != ADMIN_EMAIL or not secrets.compare_digest(password, ADMIN_PASSWORD):
+        return jsonify({'error':'Correo o contraseña incorrectos'}),401
+    session.clear(); session['admin']=True; session['email']=email
+    return jsonify({'ok':True,'email':email})
+
+@app.post('/api/logout')
+def logout(): session.clear(); return jsonify({'ok':True})
+
+@app.get('/api/admin/data')
+@admin_required
+def admin_data():
+    with db() as c:
+        return jsonify({'products':[dict(r) for r in c.execute('SELECT * FROM products ORDER BY id DESC')],
+          'reviews':[dict(r) for r in c.execute('SELECT * FROM reviews ORDER BY id DESC')],
+          'orders':[dict(r) for r in c.execute('SELECT * FROM orders ORDER BY id DESC')],
+          'ads':[dict(r) for r in c.execute('SELECT * FROM ads ORDER BY id DESC')],
+          'payments':[dict(r) for r in c.execute('SELECT * FROM payments ORDER BY id DESC')], 'settings':setting_map(),'statuses':STATUSES})
+
+@app.post('/api/upload')
+@admin_required
+def upload():
+    f=request.files.get('file'); kind=request.form.get('kind','image')
+    if not f or not f.filename: return jsonify({'error':'Selecciona un archivo'}),400
+    allowed=ALLOWED_MEDIA if kind=='media' else ALLOWED_IMAGES
+    if not allowed_file(f.filename,allowed): return jsonify({'error':'Tipo de archivo no permitido'}),400
+    ext=f.filename.rsplit('.',1)[1].lower(); name=secure_filename(f.filename.rsplit('.',1)[0])[:40] or 'archivo'
+    filename=f'{secrets.token_hex(8)}-{name}.{ext}'; f.save(UPLOAD_DIR/filename)
+    return jsonify({'url':'/uploads/'+filename,'filename':filename})
+
+@app.post('/api/products')
+@admin_required
+def create_product():
+    d=request.get_json(force=True); name=str(d.get('name','')).strip(); desc=str(d.get('description','')).strip(); image=str(d.get('image','')).strip()
+    try: price=float(d.get('price'))
+    except: return jsonify({'error':'Precio inválido'}),400
+    if not name or not desc or not image or price<0: return jsonify({'error':'Nombre, imagen, precio y descripción son obligatorios'}),400
+    with db() as c:
+        cur=c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)',(name,str(d.get('category','bandejas')),price,desc,image,1 if d.get('active',True) else 0,now()))
+        return jsonify({'id':cur.lastrowid,'ok':True})
+
+@app.put('/api/products/<int:pid>')
+@admin_required
+def update_product(pid):
+    d=request.get_json(force=True)
+    with db() as c:
+        if not c.execute('SELECT id FROM products WHERE id=?',(pid,)).fetchone(): return jsonify({'error':'Producto no encontrado'}),404
+        old=dict(c.execute('SELECT * FROM products WHERE id=?',(pid,)).fetchone())
+        vals={k:d.get(k,old[k]) for k in ['name','category','price','description','image','active']}
+        if not vals['name'] or not vals['description'] or not vals['image']: return jsonify({'error':'Faltan campos requeridos'}),400
+        c.execute('UPDATE products SET name=?,category=?,price=?,description=?,image=?,active=? WHERE id=?',(vals['name'],vals['category'],float(vals['price']),vals['description'],vals['image'],int(bool(vals['active'])),pid))
+    return jsonify({'ok':True})
+
+@app.delete('/api/products/<int:pid>')
+@admin_required
+def delete_product(pid):
+    with db() as c: c.execute('DELETE FROM products WHERE id=?',(pid,))
+    return jsonify({'ok':True})
+
+@app.post('/api/reviews')
+def submit_review():
+    d=request.get_json(force=True); name=str(d.get('name','')).strip(); comment=str(d.get('comment','')).strip(); products=d.get('products',[]); rating=int(d.get('rating',0))
+    if not name or not comment or rating not in range(1,6) or not isinstance(products,list) or not 1<=len(products)<=3: return jsonify({'error':'Completa nombre, comentario, calificación y de 1 a 3 productos'}),400
+    with db() as c:
+        cur=c.execute('INSERT INTO reviews(name,rating,products,comment,phone,approved,created_at) VALUES(?,?,?,?,?,?,?)',(name,rating,json.dumps(products,ensure_ascii=False),comment,str(d.get('phone',''))[:40],0,now()))
+        return jsonify({'id':cur.lastrowid,'ok':True})
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
         for k,v in defaults.items(): c.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)',(k,v))
         count = c.execute('SELECT COUNT(*) FROM products').fetchone()[0]
         if not count:
