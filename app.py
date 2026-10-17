@@ -17,8 +17,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=80*1024*1024)
 # Set these environment variables before deploying publicly.
-ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'flaquitabella875@gmail.com').strip().lower()
-ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', '')
+ADMIN_EMAIL = os.environ.get('vianedelicatessen@gmail.com', 'vianedelicatessen@gmail.com').strip().lower()
+ADMIN_PASSWORD = os.environ.get('erisson30@@', '')
 
 
 def db():
