@@ -20,8 +20,7 @@ app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', M
 
 # Credenciales de Administrador configuradas
 ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com').strip().lower()
-ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', 'erisson01@')
-
+ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', 'erisson09@')
 
 def db():
     con = sqlite3.connect(DB_PATH)
@@ -40,8 +39,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS payments(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,details TEXT DEFAULT '',active INTEGER NOT NULL DEFAULT 1,tip_enabled INTEGER NOT NULL DEFAULT 0);
         ''')
         defaults = {
-          'brand_name':'VIANE DELICATESSEN','logo':'','whatsapp':'18296759640','instagram':'vianedelicatessen',
-          'background_type':'color','background_value':'#FFFDF5','review_url':'','tips_message':'¡Gracias por apoyar a VIANE Delicatessen!'
+         'brand_name':'VIANE DELICATESSEN','logo':'','whatsapp':'18296759640','instagram':'vianedelicatessen',
+         'background_type':'color','background_value':'#FFFDF5','review_url':'','tips_message':'¡Gracias por apoyar a VIANE Delicatessen!'
         }
         for k,v in defaults.items(): c.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)',(k,v))
         count = c.execute('SELECT COUNT(*) FROM products').fetchone()[0]
@@ -81,19 +80,19 @@ def public_data():
 def login():
     data = request.get_json(silent=True) or request.form
     email = str(data.get('email', '')).strip().lower()
-    password = str(data.get('password', ''))
+    password = str(data.get('password', '')).strip()
     
     print(f"DEBUG LOGIN -> Email recibido: '{email}' | Password recibido: '{password}'")
 
     if not ADMIN_PASSWORD:
         return jsonify({'error':'El administrador debe configurar la contraseña en el servidor.'}),503
-    if email != ADMIN_EMAIL or not secrets.compare_digest(password, ADMIN_PASSWORD):
+    if email != ADMIN_EMAIL.lower() or not secrets.compare_digest(password, ADMIN_PASSWORD.strip()):
         return jsonify({'error':'Correo o contraseña incorrectos'}),401
     
     session.clear()
     session['admin'] = True
-    session['email'] = email
-    return jsonify({'ok': True, 'email': email})
+    session['email'] = ADMIN_EMAIL
+    return jsonify({'ok': True, 'email': ADMIN_EMAIL})
 
 @app.post('/api/logout')
 def logout(): session.clear(); return jsonify({'ok':True})
@@ -259,3 +258,5 @@ def delete_payment(pid):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+
