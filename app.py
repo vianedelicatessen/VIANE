@@ -39,14 +39,22 @@ def init_db():
         CREATE TABLE IF NOT EXISTS payments(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,details TEXT DEFAULT '',active INTEGER NOT NULL DEFAULT 1,tip_enabled INTEGER NOT NULL DEFAULT 0);
         ''')
         defaults = {
-         'brand_name':'VIANE DELICATESSEN','logo':'','whatsapp':'18296759640','instagram':'vianedelicatessen',
-         'background_type':'color','background_value':'#FFFDF5','review_url':'','tips_message':'¡Gracias por apoyar a VIANE Delicatessen!'
+            'brand_name':'VIANE DELICATESSEN','logo':'','whatsapp':'18296759640','instagram':'vianedelicatessen',
+            'background_type':'color','background_value':'#FFFDF5','review_url':'','tips_message':'¡Gracias por apoyar a VIANE Delicatessen!'
         }
-        for k,v in defaults.items(): c.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)',(k,v))
+        for k, v in defaults.items():
+            c.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)', (k, v))
+        
         count = c.execute('SELECT COUNT(*) FROM products').fetchone()[0]
         if not count:
-            samples=[('Desayuno Sorpresa VIP Viane','desayunos',3500,'Desayuno especial personalizado. Confirma disponibilidad y detalles por WhatsApp.','',0),('Bandeja Romántica','bandejas',4200,'Bandeja premium personalizada para sorprender.','',0),('Picaderas para Cumpleaños','picaderas',4500,'Variedad de bocadillos para compartir.','',0)]
-            for p in samples: c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)',(*p,datetime.now(timezone.utc).isoformat()))
+            samples = [
+                ('Desayuno Sorpresa VIP Viane','desayunos',3500,'Desayuno especial personalizado. Confirma disponibilidad y detalles por WhatsApp.','',0),
+                ('Bandeja Romántica','bandejas',4200,'Bandeja premium personalizada para sorprender.','',0),
+                ('Picaderas para Cumpleaños','picaderas',4500,'Variedad de bocadillos para compartir.','',0)
+            ]
+            for p in samples:
+                c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)', (*p, datetime.now(timezone.utc).isoformat()))
+
 init_db()
 
 def now(): return datetime.now(timezone.utc).isoformat()
@@ -81,8 +89,6 @@ def login():
     data = request.get_json(silent=True) or request.form
     email = str(data.get('email', '')).strip().lower()
     password = str(data.get('password', '')).strip()
-    
-    print(f"DEBUG LOGIN -> Email recibido: '{email}' | Password recibido: '{password}'")
 
     if not ADMIN_PASSWORD:
         return jsonify({'error':'El administrador debe configurar la contraseña en el servidor.'}),503
@@ -101,11 +107,15 @@ def logout(): session.clear(); return jsonify({'ok':True})
 @admin_required
 def admin_data():
     with db() as c:
-        return jsonify({'products':[dict(r) for r in c.execute('SELECT * FROM products ORDER BY id DESC')],
-          'reviews':[dict(r) for r in c.execute('SELECT * FROM reviews ORDER BY id DESC')],
-          'orders':[dict(r) for r in c.execute('SELECT * FROM orders ORDER BY id DESC')],
-          'ads':[dict(r) for r in c.execute('SELECT * FROM ads ORDER BY id DESC')],
-          'payments':[dict(r) for r in c.execute('SELECT * FROM payments ORDER BY id DESC')], 'settings':setting_map(),'statuses':STATUSES})
+        return jsonify({
+            'products':[dict(r) for r in c.execute('SELECT * FROM products ORDER BY id DESC')],
+            'reviews':[dict(r) for r in c.execute('SELECT * FROM reviews ORDER BY id DESC')],
+            'orders':[dict(r) for r in c.execute('SELECT * FROM orders ORDER BY id DESC')],
+            'ads':[dict(r) for r in c.execute('SELECT * FROM ads ORDER BY id DESC')],
+            'payments':[dict(r) for r in c.execute('SELECT * FROM payments ORDER BY id DESC')],
+            'settings':setting_map(),
+            'statuses':STATUSES
+        })
 
 @app.post('/api/upload')
 @admin_required
@@ -258,5 +268,4 @@ def delete_payment(pid):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-
 
