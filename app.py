@@ -1,4 +1,3 @@
-python
 import os, re, json, secrets, sqlite3
 from datetime import datetime, timezone
 from functools import wraps
@@ -268,4 +267,3 @@ def delete_payment(pid):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-
