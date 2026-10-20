@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurador 3D de Bandejas - Viane Delicatessen</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js & OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        canvas { display: block; outline: none; }
+        .glass-panel {
+            background: rgba(35, 8, 12, 0.90);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+        #canvas-container {
+            background-image: url('IMG-20260327-WA0017.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(30, 5, 8, 0.3); }
+        ::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.3); border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-[#1a0306] text-amber-50 h-screen overflow-hidden flex flex-col relative select-none">
+
+    <script>
+        const WHATSAPP_PHONE = "18296759640"; // Número oficial de Viane Delicatessen
+    </script>
+
+    <!-- Header Superior / Navbar con temática de marca -->
+    <header class="h-16 glass-panel border-b border-amber-900/40 px-6 flex items-center justify-between z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full border-2 border-amber-400/80 shadow-lg overflow-hidden flex-shrink-0 bg-[#2c080d]">
+                <img src="IMG-20260327-WA0017.jpg" alt="Viane Delicatessen Logo" class="w-full h-full object-cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-stone-950 font-bold\'><i class=\'fa-solid fa-gift\'></i></div>';">
+            </div>
+            <div>
+                <h1 class="font-bold text-lg text-amber-200 tracking-wide leading-tight">Viane Delicatessen 3D</h1>
+                <p class="text-xs text-amber-400/80">Configurador Exclusivo de Bandejas</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span class="hidden md:inline-flex items-center text-xs text-amber-300 bg-amber-500/15 px-3 py-1.5 rounded-full border border-amber-500/30">
+                <i class="fa-solid fa-rotate mr-2"></i> Arrastra para rotar 360° • 829-675-9640
+            </span>
+        </div>
+    </header>
+
+    <main class="flex-1 relative overflow-hidden flex flex-col lg:flex-row">
+
+        <!-- Visor 3D Three.js -->
+        <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+        <!-- Panel Izquierdo: Configuración de Bandeja -->
+        <aside class="w-full lg:w-80 m-4 z-10 glass-panel rounded-2xl p-5 flex flex-col space-y-5 shadow-2xl lg:max-h-[calc(100vh-6rem)] overflow-y-auto self-start">
+            <div>
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-amber-400 mb-3 flex items-center">
+                    <i class="fa-solid fa-sliders mr-2"></i> 1. Estilo y Altura de Bandeja
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-amber-200/90 mb-1">Material y Acabado</label>
+                        <select id="tray-material" onchange="onMaterialChange()" class="w-full bg-[#2c080d] border border-amber-900/50 rounded-xl px-3.5 py-2.5 text-sm text-amber-100 focus:outline-none focus:border-amber-400 transition-colors">
+                            <option value="oak">Roble Clásico (Madera)</option>
+                            <option value="walnut">Nogal Oscuro</option>
+                            <option value="marble">Mármol Blanco</option>
+                            <option value="black">Negro Mate Elegante</option>
+                            <option value="pink">Rosa Pastel Premium</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-amber-200/90">Altura de las Paredes</label>
+                            <span id="tray-height-val" class="text-xs font-semibold text-amber-400">0.90 m</span>
+                        </div>
+                        <input type="range" id="tray-height-slider" min="0.4" max="2.0" step="0.05" value="0.9" class="w-full accent-amber-400 bg-[#3d0b12] rounded-lg h-2 cursor-pointer">
+                        <div class="flex justify-between text-[10px] text-amber-400/60 mt-1">
+                            <span>Baja (0.4m)</span>
+                            <span>Estándar (0.9m)</span>
+                            <span>Alta (2.0m)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-amber-900/40 pt-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-amber-400 flex items-center">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Hazlo Tú Mismo (DIY)
+                    </h2>
+                    <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold">
+                        Custom Mode
+                    </span>
+                </div>
+                <p class="text-[11px] text-amber-200/70 mb-3 leading-relaxed">
+                    Personaliza libremente tu bandeja subiendo tu propia textura o añadiendo artículos con precios personalizados.
+                </p>
+
+                <div class="space-y-3 bg-[#2c080d]/80 p-3 rounded-xl border border-amber-900/40">
+                    <div>
+                        <label class="block text-[11px] font-medium text-amber-200/90 mb-1">Textura/Foto Personalizada</label>
+                        <input type="file" id="diy-tray-texture" accept="image/*" onchange="uploadDIYTexture(event)" class="w-full text-[11px] text-amber-300/80 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-amber-500/20 file:text-amber-200 hover:file:bg-amber-500/30 cursor-pointer">
+                    </div>
+
+                    <div class="border-t border-amber-900/40 pt-2 space-y-2">
+                        <label class="block text-[11px] font-medium text-amber-300">Crear tu propio Producto 3D:</label>
+                        <input type="text" id="diy-item-name" placeholder="Nombre (Ej. Arreglo Floral VIP)" class="w-full bg-[#1a0306] border border-amber-900/60 rounded-lg px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="diy-item-price" placeholder="Precio ($)" value="15.00" class="w-full bg-[#1a0306] border border-amber-900/60 rounded-lg px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                            <input type="color" id="diy-item-color" value="#e11d48" class="w-full h-8 bg-[#1a0306] border border-amber-900/60 rounded-lg p-0.5 cursor-pointer">
+                        </div>
+                        <select id="diy-item-shape" class="w-full bg-[#1a0306] border border-amber-900/60 rounded-lg px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                            <option value="box">Caja / Empaque</option>
+                            <option value="cylinder">Botella / Cilindro</option>
+                            <option value="sphere">Esfera / Globo</option>
+                        </select>
+                        <button onclick="addDIYProduct()" class="w-full py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-stone-950 font-bold text-xs rounded-lg transition-all flex items-center justify-center space-x-1.5 shadow-md">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Añadir Producto Creado</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-amber-900/40 pt-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-amber-400 flex items-center">
+                        <i class="fa-solid fa-folder-plus mr-2"></i> Gestión de Bandejas
+                    </h2>
+                    <span id="admin-badge" class="text-[10px] bg-[#2c080d] text-amber-400/70 px-2 py-0.5 rounded-full border border-amber-900/50">
+                        <i class="fa-solid fa-lock mr-1"></i> Solo Admin
+                    </span>
+                </div>
+
+                <button id="btn-open-admin-login" onclick="openAdminLoginModal()" class="w-full py-2.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-500/30 text-amber-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center space-x-2 shadow-md mb-3">
+                    <i class="fa-solid fa-user-lock"></i>
+                    <span>Subir Bandeja (Acceso Admin)</span>
+                </button>
+
+                <div id="admin-tray-panel" class="hidden bg-[#2c080d]/90 rounded-xl p-3 border border-amber-500/40 space-y-3">
+                    <div class="flex items-center justify-between border-b border-amber-900/40 pb-2">
+                        <span class="text-[11px] font-bold text-amber-300 flex items-center">
+                            <i class="fa-solid fa-shield-halved mr-1.5"></i> Admin Viane Activo
+                        </span>
+                        <button onclick="logoutAdmin()" class="text-[10px] text-amber-400/60 hover:text-rose-400 transition-colors">
+                            <i class="fa-solid fa-right-from-bracket mr-1"></i>Salir
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-amber-200/90 mb-1">Nombre del Modelo</label>
+                        <input type="text" id="custom-tray-name" placeholder="Ej. Bandeja Viane Delicatessen VIP" class="w-full bg-[#1a0306] border border-amber-900/60 rounded-lg px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-medium text-amber-200/90 mb-1">Precio Base ($)</label>
+                            <input type="number" id="custom-tray-price" value="50.00" step="1" class="w-full bg-[#1a0306] border border-amber-900/60 rounded-lg px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-amber-200/90 mb-1">Color Base</label>
+                            <input type="color" id="custom-tray-color" value="#8B5A2B" class="w-full h-8 bg-[#1a0306] border border-amber-900/60 rounded-lg p-0.5 cursor-pointer">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-amber-200/90 mb-1">Altura Inicial (m)</label>
+                        <input type="number" id="custom-tray-height" value="1.20" step="0.1" min="0.4" max="2.5" class="w-full bg-[#1a0306] border border-amber-900/60 rounded-lg px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                    </div>
+                    <button onclick="addNewTrayType()" class="w-full py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-stone-950 font-bold text-xs rounded-lg transition-all flex items-center justify-center space-x-1.5 shadow-md">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Añadir Nuevo Tipo de Bandeja</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-amber-900/40 pt-4">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-amber-400 mb-3 flex items-center">
+                    <i class="fa-solid fa-font mr-2"></i> 2. Texto Frontal Personalizado
+                </h2>
+                <div class="space-y-3">
+                    <label class="block text-xs font-medium text-amber-200/90">Mensaje en la Cara Frontal</label>
+                    <input type="text" id="front-text-input" oninput="updateFrontText()" value="Viane Delicatessen ❤️✨" maxlength="30" placeholder="Ej. Sorprende y deleita ❤️" class="w-full bg-[#2c080d] border border-amber-900/50 rounded-xl px-3.5 py-2.5 text-sm text-amber-100 focus:outline-none focus:border-amber-400 transition-colors">
+
+                    <div>
+                        <label class="block text-[11px] font-medium text-amber-300/70 mb-1.5">Símbolos y Decoraciones:</label>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button onclick="insertSymbol('❤️')" class="px-2 py-1 bg-[#2c080d] hover:bg-[#3d0b12] border border-amber-900/40 rounded-lg text-sm transition-transform active:scale-95">❤️</button>
+                            <button onclick="insertSymbol('✨')" class="px-2 py-1 bg-[#2c080d] hover:bg-[#3d0b12] border border-amber-900/40 rounded-lg text-sm transition-transform active:scale-95">✨</button>
+                            <button onclick="insertSymbol('🎁')" class="px-2 py-1 bg-[#2c080d] hover:bg-[#3d0b12] border border-amber-900/40 rounded-lg text-sm transition-transform active:scale-95">🎁</button>
+                            <button onclick="insertSymbol('⭐')" class="px-2 py-1 bg-[#2c080d] hover:bg-[#3d0b12] border border-amber-900/40 rounded-lg text-sm transition-transform active:scale-95">⭐</button>
+                            <button onclick="insertSymbol('🌹')" class="px-2 py-1 bg-[#2c080d] hover:bg-[#3d0b12] border border-amber-900/40 rounded-lg text-sm transition-transform active:scale-95">🌹</button>
+                            <button onclick="insertSymbol('👑')" class="px-2 py-1 bg-[#2c080d] hover:bg-[#3d0b12] border border-amber-900/40 rounded-lg text-sm transition-transform active:scale-95">👑</button>
+                            <button onclick="insertSymbol('🥂')" class="px-2 py-1 bg-[#2c080d] hover:bg-[#3d0b12] border border-amber-900/40 rounded-lg text-sm transition-transform active:scale-95">🥂</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-medium text-amber-200/90 mb-1">Estilo Placa</label>
+                            <select id="plate-style" onchange="updateFrontText()" class="w-full bg-[#2c080d] border border-amber-900/50 rounded-xl px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                                <option value="default">Color Madera / Base</option>
+                                <option value="gold">Oro & Diamante 👑</option>
+                                <option value="rainbow">Multicolor Arcoíris 🌈</option>
+                                <option value="sunset">Atardecer Dorado 🌅</option>
+                                <option value="neon">Brillo Neón Festivo 💖</option>
+                                <option value="galaxy">Galaxia Mística 🌌</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-amber-200/90 mb-1">Color de Texto</label>
+                            <select id="text-color-style" onchange="updateFrontText()" class="w-full bg-[#2c080d] border border-amber-900/50 rounded-xl px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                                <option value="#fef08a">Amarillo Brillante</option>
+                                <option value="#ffffff">Blanco Puro</option>
+                                <option value="#f43f5e">Rosa Neón</option>
+                                <option value="#38bdf8">Azul Celeste</option>
+                                <option value="#f97316">Naranja Dorado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Panel Derecho: Catálogo de Productos y Resumen -->
+        <aside class="w-full lg:w-96 m-4 lg:ml-auto z-10 glass-panel rounded-2xl p-5 flex flex-col space-y-5 shadow-2xl lg:max-h-[calc(100vh-6rem)] overflow-y-auto self-start">
+            <div>
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-amber-400 mb-3 flex items-center">
+                    <i class="fa-solid fa-boxes-stacked mr-2"></i> 3. Agregar Productos
+                </h2>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="addProduct('wine')" class="flex flex-col items-center justify-center p-3 bg-[#2c080d]/80 hover:bg-[#3d0b12] border border-amber-900/50 hover:border-amber-400/50 rounded-xl transition-all group">
+                        <i class="fa-solid fa-wine-bottle text-amber-400 text-xl mb-1.5 group-hover:scale-110 transition-transform"></i>
+                        <span class="text-xs font-medium text-amber-100">Vino Reserva</span>
+                        <span class="text-[11px] text-amber-400 font-semibold">$25.00</span>
+                    </button>
+                    <button onclick="addProduct('chocolate')" class="flex flex-col items-center justify-center p-3 bg-[#2c080d]/80 hover:bg-[#3d0b12] border border-amber-900/50 hover:border-amber-400/50 rounded-xl transition-all group">
+                        <i class="fa-solid fa-gift text-pink-400 text-xl mb-1.5 group-hover:scale-110 transition-transform"></i>
+                        <span class="text-xs font-medium text-amber-100">Chocolates</span>
+                        <span class="text-[11px] text-amber-400 font-semibold">$15.00</span>
+                    </button>
+                    <button onclick="addProduct('sphere')" class="flex flex-col items-center justify-center p-3 bg-[#2c080d]/80 hover:bg-[#3d0b12] border border-amber-900/50 hover:border-amber-400/50 rounded-xl transition-all group">
+                        <i class="fa-solid fa-basketball text-yellow-400 text-xl mb-1.5 group-hover:scale-110 transition-transform"></i>
+                        <span class="text-xs font-medium text-amber-100">Esfera Deco</span>
+                        <span class="text-[11px] text-amber-400 font-semibold">$10.00</span>
+                    </button>
+                    <button onclick="addProduct('candle')" class="flex flex-col items-center justify-center p-3 bg-[#2c080d]/80 hover:bg-[#3d0b12] border border-amber-900/50 hover:border-amber-400/50 rounded-xl transition-all group">
+                        <i class="fa-solid fa-fire-flame-curved text-orange-400 text-xl mb-1.5 group-hover:scale-110 transition-transform"></i>
+                        <span class="text-xs font-medium text-amber-100">Vela Aromática</span>
+                        <span class="text-[11px] text-amber-400 font-semibold">$12.00</span>
+                    </button>
+                </div>
+                <div class="mt-3 flex items-center justify-between min-h-[32px]">
+                    <span id="selected-item-info" class="text-xs text-amber-200/60 italic">Haz clic en un producto 3D para seleccionarlo</span>
+                    <button onclick="removeSelectedProduct()" id="btn-remove" class="hidden px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs rounded-lg border border-rose-500/30 transition-colors">
+                        <i class="fa-solid fa-trash mr-1"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-amber-900/40 pt-4 space-y-3">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-amber-400 flex items-center">
+                    <i class="fa-solid fa-calculator mr-2"></i> Resumen de Compra
+                </h2>
+                
+                <div class="bg-[#2c080d]/90 rounded-xl p-3.5 border border-amber-900/50 space-y-2 text-xs">
+                    <div class="flex justify-between text-amber-200/90">
+                        <span>Bandeja Base:</span>
+                        <span id="price-base" class="font-medium text-amber-100">$30.00</span>
+                    </div>
+                    <div class="flex justify-between text-amber-200/90">
+                        <span>Productos Agregados (<span id="items-count">0</span>):</span>
+                        <span id="price-products" class="font-medium text-amber-100">$0.00</span>
+                    </div>
+                    <div class="border-t border-amber-900/50 pt-2 flex justify-between font-bold text-sm text-amber-100">
+                        <span>Total:</span>
+                        <span id="price-total" class="text-amber-400">$30.00</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="openCartModal()" class="py-2.5 px-3 bg-[#3d0b12] hover:bg-[#4d0f17] border border-amber-900/60 text-amber-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-md">
+                        <i class="fa-solid fa-cart-shopping text-amber-400"></i>
+                        <span>Ver Carrito</span>
+                    </button>
+                    <button onclick="checkoutWhatsApp()" class="py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-md">
+                        <i class="fa-brands fa-whatsapp text-sm"></i>
+                        <span>WhatsApp</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Modal Admin -->
+    <div id="admin-login-modal" class="fixed inset-0 z-50 bg-[#1a0306]/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-amber-500/30 flex flex-col space-y-4">
+            <div class="flex items-center justify-between border-b border-amber-900/40 pb-3">
+                <div class="flex items-center space-x-2.5 text-amber-400">
+                    <i class="fa-solid fa-lock text-xl"></i>
+                    <h3 class="font-bold text-base text-amber-100">Acceso Administrador Viane</h3>
+                </div>
+                <button onclick="closeAdminLoginModal()" class="text-amber-300/60 hover:text-amber-100 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <form onsubmit="submitAdminLogin(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-amber-200/90 mb-1">Usuario</label>
+                    <input type="text" id="admin-user-input" required placeholder="Ingresa tu usuario" class="w-full bg-[#1a0306] border border-amber-900/60 rounded-xl px-3 py-2 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-amber-200/90 mb-1">Contraseña</label>
+                    <input type="password" id="admin-pass-input" required placeholder="Ingresa tu contraseña" class="w-full bg-[#1a0306] border border-amber-900/60 rounded-xl px-3 py-2 text-xs text-amber-100 focus:outline-none focus:border-amber-400">
+                </div>
+                <div id="admin-login-error" class="hidden text-rose-400 text-[11px] font-medium bg-rose-500/10 border border-rose-500/20 p-2 rounded-lg text-center">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> Usuario o contraseña incorrectos.
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeAdminLoginModal()" class="px-3.5 py-2 bg-[#2c080d] hover:bg-[#3d0b12] text-amber-200 text-xs font-semibold rounded-xl transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-stone-950 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5 shadow-md">
+                        <i class="fa-solid fa-key"></i>
+                        <span>Ingresar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Carrito -->
+    <div id="cart-modal" class="fixed inset-0 z-50 bg-[#1a0306]/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 shadow-2xl border border-amber-500/30 flex flex-col space-y-4">
+            <div class="flex items-center justify-between border-b border-amber-900/40 pb-3">
+                <div class="flex items-center space-x-2.5 text-amber-400">
+                    <i class="fa-solid fa-circle-check text-xl"></i>
+                    <h3 class="font-bold text-base text-amber-100">¡Resumen de tu Carrito Viane!</h3>
+                </div>
+                <button onclick="closeCartModal()" class="text-amber-300/60 hover:text-amber-100 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="cart-modal-body" class="space-y-3 text-sm text-amber-200/90 max-h-60 overflow-y-auto pr-1"></div>
+            <div class="border-t border-amber-900/40 pt-3 flex justify-end space-x-3">
+                <button onclick="closeCartModal()" class="px-4 py-2 bg-[#2c080d] hover:bg-[#3d0b12] text-amber-200 text-xs font-semibold rounded-xl transition-colors">
+                    Seguir Editando
+                </button>
+                <button onclick="checkoutWhatsApp(); closeCartModal();" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition-colors flex items-center space-x-1.5 shadow-md">
+                    <i class="fa-brands fa-whatsapp"></i>
+                    <span>Enviar Pedido al 829-675-9640</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Declaración de Variables Globales y Estado
+        let scene, camera, renderer, controls;
+        let trayGroup = null;
+        let frontWallMesh = null;
+        let backWallMesh = null;
+        let currentWallHeight = 0.9;
+        let currentBasePrice = 30.00;
+        let placedProducts = [];
+        let selectedProduct = null;
+        let isAdminLoggedIn = false;
+
+        const ADMIN_USER_DEFAULT = "VIANE30";
+        const ADMIN_PASS_DEFAULT = "ERISSON09";
+
+        // Raycasting y Arrastre
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let isDraggingProduct = false;
+        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2);
+
+        // Catálogo de Materiales para Bandejas
+        const trayMaterials = {
+            oak: { color: 0xc49a6c, roughness: 0.6, price: 30.00, name: 'Roble Clásico (Madera)' },
+            walnut: { color: 0x5c3a21, roughness: 0.5, price: 38.00, name: 'Nogal Oscuro' },
+            marble: { color: 0xf0f0f0, roughness: 0.2, metalness: 0.1, price: 50.00, name: 'Mármol Blanco' },
+            black: { color: 0x1f2937, roughness: 0.8, price: 35.00, name: 'Negro Mate Elegante' },
+            pink: { color: 0xf472b6, roughness: 0.4, price: 32.00, name: 'Rosa Pastel Premium' }
+        };
+
+        // Catálogo Base de Productos
+        const productCatalog = {
+            wine: { name: 'Vino Reserva', price: 25.00, color: 0x722f37 },
+            chocolate: { name: 'Chocolates', price: 15.00, color: 0x3d2314 },
+            sphere: { name: 'Esfera Deco', price: 10.00, color: 0xfacc15 },
+            candle: { name: 'Vela Aromática', price: 12.00, color: 0xf97316 }
+        };
+
+        function uploadDIYTexture(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const texture = new THREE.Texture(img);
+                    texture.needsUpdate = true;
+
+                    const customMatKey = 'diy_custom_' + Date.now();
+                    trayMaterials[customMatKey] = {
+                        color: 0xffffff,
+                        roughness: 0.5,
+                        price: currentBasePrice,
+                        name: 'Bandeja DIY Viane'
+                    };
+
+                    const diyMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.5 });
+
+                    if (trayGroup) {
+                        trayGroup.traverse((child) => {
+                            if (child.isMesh && child !== frontWallMesh && child !== backWallMesh) {
+                                child.material = diyMaterial;
+                            }
+                        });
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addDIYProduct() {
+            const name = document.getElementById('diy-item-name').value.trim() || 'Arreglo Viane';
+            const price = parseFloat(document.getElementById('diy-item-price').value) || 15.00;
+            const colorHex = document.getElementById('diy-item-color').value;
+            const shape = document.getElementById('diy-item-shape').value;
+
+            let geom;
+            if (shape === 'cylinder') {
+                geom = new THREE.CylinderGeometry(0.2, 0.2, 0.8, 16);
+            } else if (shape === 'sphere') {
+                geom = new THREE.SphereGeometry(0.3, 24, 24);
+            } else {
+                geom = new THREE.BoxGeometry(0.6, 0.4, 0.6);
+            }
+
+            const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.4, metalness: 0.1 });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            const offsetX = (Math.random() - 0.5) * 2.0;
+            const offsetZ = (Math.random() - 0.5) * 2.0;
+            const floorY = 0.2;
+            geom.computeBoundingBox();
+            const bboxHeight = geom.boundingBox.max.y - geom.boundingBox.min.y;
+            mesh.position.set(offsetX, floorY + bboxHeight / 2, offsetZ);
+
+            mesh.userData = {
+                id: Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                type: 'diy_custom',
+                name: name,
+                price: price
+            };
+
+            scene.add(mesh);
+            placedProducts.push(mesh);
+
+            selectProduct(mesh);
+            updatePriceBreakdown();
+
+            document.getElementById('diy-item-name').value = '';
+        }
+
+        function closeAdminLoginModal() {
+            document.getElementById('admin-login-modal').classList.add('hidden');
+        }
+
+        function openAdminLoginModal() {
+            document.getElementById('admin-login-modal').classList.remove('hidden');
+        }
+
+        function submitAdminLogin(event) {
+            event.preventDefault();
+            const userVal = document.getElementById('admin-user-input').value.trim();
+            const passVal = document.getElementById('admin-pass-input').value.trim();
+
+            if (userVal === ADMIN_USER_DEFAULT && passVal === ADMIN_PASS_DEFAULT) {
+                isAdminLoggedIn = true;
+                document.getElementById('admin-tray-panel').classList.remove('hidden');
+                document.getElementById('btn-open-admin-login').classList.add('hidden');
+                document.getElementById('admin-badge').innerText = 'Modo Admin';
+                document.getElementById('admin-badge').className = 'text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30';
+                closeAdminLoginModal();
+            } else {
+                document.getElementById('admin-login-error').classList.remove('hidden');
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            document.getElementById('admin-tray-panel').classList.add('hidden');
+            document.getElementById('btn-open-admin-login').classList.remove('hidden');
+            document.getElementById('admin-badge').innerText = 'Solo Admin';
+            document.getElementById('admin-badge').className = 'text-[10px] bg-[#2c080d] text-amber-400/70 px-2 py-0.5 rounded-full border border-amber-900/50';
+        }
+
+        function insertSymbol(symbol) {
+            const input = document.getElementById('front-text-input');
+            if (input.value.length + symbol.length <= 30) {
+                input.value += symbol;
+                updateFrontText();
+            }
+        }
+
+        function createTextTexture(text, baseColorHex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            const plateStyle = document.getElementById('plate-style') ? document.getElementById('plate-style').value : 'default';
+            const textColor = document.getElementById('text-color-style') ? document.getElementById('text-color-style').value : '#fef08a';
+
+            if (plateStyle === 'gold') {
+                const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                grad.addColorStop(0, '#bf953f');
+                grad.addColorStop(0.25, '#fcf6ba');
+                grad.addColorStop(0.5, '#b38728');
+                grad.addColorStop(0.75, '#fbf5b7');
+                grad.addColorStop(1, '#aa771c');
+                ctx.fillStyle = grad;
+            } else if (plateStyle === 'rainbow') {
+                const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                grad.addColorStop(0, '#ff4b1f');
+                grad.addColorStop(0.5, '#f8b500');
+                grad.addColorStop(1, '#0083b0');
+                ctx.fillStyle = grad;
+            } else if (plateStyle === 'sunset') {
+                const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                grad.addColorStop(0, '#ff7e5f');
+                grad.addColorStop(1, '#feb47b');
+                ctx.fillStyle = grad;
+            } else if (plateStyle === 'neon') {
+                const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                grad.addColorStop(0, '#833ab4');
+                grad.addColorStop(0.5, '#fd1d1d');
+                grad.addColorStop(1, '#fcb045');
+                ctx.fillStyle = grad;
+            } else if (plateStyle === 'galaxy') {
+                const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                grad.addColorStop(0, '#0f0c29');
+                grad.addColorStop(1, '#24243e');
+                ctx.fillStyle = grad;
+            } else {
+                ctx.fillStyle = typeof baseColorHex === 'number' 
+                    ? '#' + baseColorHex.toString(16).padStart(6, '0') 
+                    : baseColorHex;
+            }
+
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (plateStyle !== 'default') {
+                ctx.lineWidth = 12;
+                ctx.strokeStyle = '#fef08a';
+                ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+            }
+
+            if (text && text.trim() !== "") {
+                ctx.fillStyle = textColor;
+                ctx.font = 'bold 58px "Segoe UI Emoji", "Apple Color Emoji", Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                ctx.shadowBlur = 12;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 4;
+                ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        function buildTray(materialKey, heightOverride = null) {
+            if (trayGroup) {
+                scene.remove(trayGroup);
+            }
+
+            if (heightOverride !== null) {
+                currentWallHeight = parseFloat(heightOverride);
+            }
+
+            trayGroup = new THREE.Group();
+            const matConfig = trayMaterials[materialKey] || { color: 0xd4a373, roughness: 0.5 };
+            
+            const trayMaterial = typeof matConfig.color === 'string' 
+                ? new THREE.MeshStandardMaterial({ color: matConfig.color, roughness: 0.5 }) 
+                : new THREE.MeshStandardMaterial({
+                    color: matConfig.color,
+                    roughness: matConfig.roughness || 0.5,
+                    metalness: matConfig.metalness || 0.0
+                });
+
+            const trayWidth = 4.0;
+            const trayDepth = 4.0;
+            const floorHeight = 0.2;
+            const wallHeight = currentWallHeight;
+            const wallThickness = 0.2;
+
+            const floorGeo = new THREE.BoxGeometry(trayWidth, floorHeight, trayDepth);
+            const floorMesh = new THREE.Mesh(floorGeo, trayMaterial);
+            floorMesh.position.y = floorHeight / 2;
+            floorMesh.castShadow = true;
+            floorMesh.receiveShadow = true;
+            trayGroup.add(floorMesh);
+
+            const textValue = document.getElementById('front-text-input').value;
+            const textTexture = createTextTexture(textValue, matConfig.color);
+
+            const sideWithTextMaterial = new THREE.MeshStandardMaterial({ map: textTexture, roughness: 0.4 });
+
+            const backWallGeo = new THREE.BoxGeometry(trayWidth, wallHeight, wallThickness);
+            const backMaterials = [
+                trayMaterial, trayMaterial,
+                trayMaterial, trayMaterial,
+                sideWithTextMaterial,
+                sideWithTextMaterial
+            ];
+            backWallMesh = new THREE.Mesh(backWallGeo, backMaterials);
+            backWallMesh.position.set(0, floorHeight + wallHeight / 2, -trayDepth / 2 + wallThickness / 2);
+            backWallMesh.castShadow = true;
+            backWallMesh.receiveShadow = true;
+            trayGroup.add(backWallMesh);
+
+            const leftWallGeo = new THREE.BoxGeometry(wallThickness, wallHeight, trayDepth - wallThickness * 2);
+            const leftWall = new THREE.Mesh(leftWallGeo, trayMaterial);
+            leftWall.position.set(-trayWidth / 2 + wallThickness / 2, floorHeight + wallHeight / 2, 0);
+            leftWall.castShadow = true;
+            leftWall.receiveShadow = true;
+            trayGroup.add(leftWall);
+
+            const rightWallGeo = new THREE.BoxGeometry(wallThickness, wallHeight, trayDepth - wallThickness * 2);
+            const rightWall = new THREE.Mesh(rightWallGeo, trayMaterial);
+            rightWall.position.set(trayWidth / 2 - wallThickness / 2, floorHeight + wallHeight / 2, 0);
+            rightWall.castShadow = true;
+            rightWall.receiveShadow = true;
+            trayGroup.add(rightWall);
+
+            const frontWallGeo = new THREE.BoxGeometry(trayWidth, wallHeight, wallThickness);
+            const frontMaterials = [
+                trayMaterial, trayMaterial,
+                trayMaterial, trayMaterial,
+                sideWithTextMaterial,
+                sideWithTextMaterial
+            ];
+
+            frontWallMesh = new THREE.Mesh(frontWallGeo, frontMaterials);
+            frontWallMesh.position.set(0, floorHeight + wallHeight / 2, trayDepth / 2 - wallThickness / 2);
+            frontWallMesh.castShadow = true;
+            frontWallMesh.receiveShadow = true;
+            trayGroup.add(frontWallMesh);
+
+            scene.add(trayGroup);
+        }
+
+        function updateFrontText() {
+            if (!frontWallMesh && !backWallMesh) return;
+            const materialKey = document.getElementById('tray-material').value;
+            const matConfig = trayMaterials[materialKey] || { color: 0xd4a373 };
+            const textValue = document.getElementById('front-text-input').value;
+            const textTexture = createTextTexture(textValue, matConfig.color);
+
+            if (frontWallMesh) {
+                frontWallMesh.material[4].map = textTexture;
+                frontWallMesh.material[4].needsUpdate = true;
+                frontWallMesh.material[5].map = textTexture;
+                frontWallMesh.material[5].needsUpdate = true;
+            }
+
+            if (backWallMesh) {
+                backWallMesh.material[4].map = textTexture;
+                backWallMesh.material[4].needsUpdate = true;
+                backWallMesh.material[5].map = textTexture;
+                backWallMesh.material[5].needsUpdate = true;
+            }
+        }
+
+        function onMaterialChange() {
+            const materialKey = document.getElementById('tray-material').value;
+            if (trayMaterials[materialKey] && trayMaterials[materialKey].price) {
+                currentBasePrice = trayMaterials[materialKey].price;
+            }
+            buildTray(materialKey, currentWallHeight);
+            updatePriceBreakdown();
+        }
+
+        document.getElementById('tray-height-slider').addEventListener('input', (e) => {
+            const heightVal = parseFloat(e.target.value);
+            document.getElementById('tray-height-val').innerText = `${heightVal.toFixed(2)} m`;
+            const currentMat = document.getElementById('tray-material').value;
+            buildTray(currentMat, heightVal);
+        });
+
+        function addNewTrayType() {
+            const nameInput = document.getElementById('custom-tray-name').value.trim();
+            const priceInput = parseFloat(document.getElementById('custom-tray-price').value) || 45.00;
+            const colorInput = document.getElementById('custom-tray-color').value;
+            const heightInput = parseFloat(document.getElementById('custom-tray-height').value) || 1.2;
+
+            if (!nameInput) {
+                alert("Por favor escribe un nombre para la bandeja.");
+                return;
+            }
+
+            const key = 'custom_' + Date.now();
+            trayMaterials[key] = {
+                color: colorInput,
+                roughness: 0.5,
+                price: priceInput,
+                name: `${nameInput} ($${priceInput.toFixed(2)})`
+            };
+
+            const select = document.getElementById('tray-material');
+            const newOption = document.createElement('option');
+            newOption.value = key;
+            newOption.text = `${nameInput} - ${heightInput.toFixed(2)}m ($${priceInput.toFixed(2)})`;
+            select.appendChild(newOption);
+            select.value = key;
+
+            currentBasePrice = priceInput;
+            document.getElementById('tray-height-slider').value = heightInput;
+            document.getElementById('tray-height-val').innerText = `${heightInput.toFixed(2)} m`;
+
+            buildTray(key, heightInput);
+            updatePriceBreakdown();
+
+            document.getElementById('custom-tray-name').value = '';
+        }
+
+        function addProduct(typeKey) {
+            const catalogItem = productCatalog[typeKey];
+            if (!catalogItem) return;
+
+            let geom, mat;
+            const itemColor = catalogItem.color;
+
+            if (typeKey === 'wine') {
+                geom = new THREE.CylinderGeometry(0.18, 0.22, 1.2, 16);
+                mat = new THREE.MeshStandardMaterial({ color: itemColor, roughness: 0.3, metalness: 0.2 });
+            } else if (typeKey === 'chocolate') {
+                geom = new THREE.BoxGeometry(0.8, 0.25, 0.6);
+                mat = new THREE.MeshStandardMaterial({ color: itemColor, roughness: 0.6 });
+            } else if (typeKey === 'sphere') {
+                geom = new THREE.SphereGeometry(0.35, 24, 24);
+                mat = new THREE.MeshStandardMaterial({ color: itemColor, roughness: 0.2, metalness: 0.8 });
+            } else if (typeKey === 'candle') {
+                geom = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 20);
+                mat = new THREE.MeshStandardMaterial({ color: itemColor, roughness: 0.4 });
+            }
+
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            const offsetX = (Math.random() - 0.5) * 2.2;
+            const offsetZ = (Math.random() - 0.5) * 2.2;
+            const floorY = 0.2;
+            geom.computeBoundingBox();
+            const bboxHeight = geom.boundingBox.max.y - geom.boundingBox.min.y;
+            mesh.position.set(offsetX, floorY + bboxHeight / 2, offsetZ);
+
+            mesh.userData = {
+                id: Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                type: typeKey,
+                name: catalogItem.name,
+                price: catalogItem.price
+            };
+
+            scene.add(mesh);
+            placedProducts.push(mesh);
+
+            selectProduct(mesh);
+            updatePriceBreakdown();
+        }
+
+        function selectProduct(mesh) {
+            selectedProduct = mesh;
+            const infoText = document.getElementById('selected-item-info');
+            const btnRemove = document.getElementById('btn-remove');
+
+            if (mesh) {
+                infoText.innerText = `Seleccionado: ${mesh.userData.name} ($${mesh.userData.price.toFixed(2)})`;
+                infoText.classList.remove('italic');
+                infoText.classList.add('text-amber-400', 'font-semibold');
+                btnRemove.classList.remove('hidden');
+            } else {
+                infoText.innerText = 'Haz clic en un producto 3D para seleccionarlo';
+                infoText.classList.add('italic');
+                infoText.classList.remove('text-amber-400', 'font-semibold');
+                btnRemove.classList.add('hidden');
+            }
+        }
+
+        function removeSelectedProduct() {
+            if (!selectedProduct) return;
+            scene.remove(selectedProduct);
+            const index = placedProducts.indexOf(selectedProduct);
+            if (index > -1) {
+                placedProducts.splice(index, 1);
+            }
+            selectProduct(null);
+            updatePriceBreakdown();
+        }
+
+        function updatePriceBreakdown() {
+            const basePrice = currentBasePrice;
+            let productsTotal = 0;
+            placedProducts.forEach(p => {
+                productsTotal += p.userData.price;
+            });
+
+            const total = basePrice + productsTotal;
+
+            const elBase = document.getElementById('price-base');
+            const elCount = document.getElementById('items-count');
+            const elProducts = document.getElementById('price-products');
+            const elTotal = document.getElementById('price-total');
+
+            if (elBase) elBase.innerText = `$${basePrice.toFixed(2)}`;
+            if (elCount) elCount.innerText = placedProducts.length;
+            if (elProducts) elProducts.innerText = `$${productsTotal.toFixed(2)}`;
+            if (elTotal) elTotal.innerText = `$${total.toFixed(2)}`;
+        }
+
+        function openCartModal() {
+            const modal = document.getElementById('cart-modal');
+            const modalBody = document.getElementById('cart-modal-body');
+
+            const materialKey = document.getElementById('tray-material').value;
+            const trayName = trayMaterials[materialKey] ? trayMaterials[materialKey].name : 'Personalizada';
+            const frontText = document.getElementById('front-text-input').value;
+            const basePrice = currentBasePrice;
+
+            let productsHtml = '';
+            let productsTotal = 0;
+
+            if (placedProducts.length === 0) {
+                productsHtml = `<p class="text-amber-300/60 italic text-xs">No hay productos agregados en la bandeja.</p>`;
+            } else {
+                productsHtml = `<ul class="space-y-1.5 text-xs">`;
+                placedProducts.forEach(p => {
+                    productsTotal += p.userData.price;
+                    productsHtml += `<li class="flex justify-between text-amber-100"><span>• ${p.userData.name}</span><span class="font-semibold text-amber-400">$${p.userData.price.toFixed(2)}</span></li>`;
+                });
+                productsHtml += `</ul>`;
+            }
+
+            const total = basePrice + productsTotal;
+
+            modalBody.innerHTML = `
+                <div class="bg-[#1a0306] p-3.5 rounded-xl space-y-2 border border-amber-900/50">
+                    <div class="text-xs font-semibold text-amber-400">Detalles Viane Delicatessen:</div>
+                    <div class="text-xs text-amber-200/95 flex justify-between"><span>Material/Modelo:</span> <span class="font-medium">${trayName}</span></div>
+                    <div class="text-xs text-amber-200/95 flex justify-between"><span>Altura Paredes:</span> <span class="font-medium">${currentWallHeight.toFixed(2)} m</span></div>
+                    <div class="text-xs text-amber-200/95 flex justify-between"><span>Texto Frontal:</span> <span class="font-medium">"${frontText || 'Sin texto'}"</span></div>
+                    <div class="text-xs text-amber-200/95 flex justify-between"><span>Precio Base:</span> <span class="font-medium">$${basePrice.toFixed(2)}</span></div>
+                </div>
+                <div class="bg-[#1a0306] p-3.5 rounded-xl space-y-2 border border-amber-900/50">
+                    <div class="text-xs font-semibold text-amber-400">Artículos Incluidos:</div>
+                    ${productsHtml}
+                </div>
+                <div class="flex justify-between items-center pt-2 px-1 text-sm font-bold text-amber-100">
+                    <span>Total a Pagar:</span>
+                    <span class="text-amber-400 text-base">$${total.toFixed(2)}</span>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeCartModal() {
+            document.getElementById('cart-modal').classList.add('hidden');
+        }
+
+        function checkoutWhatsApp() {
+            const materialKey = document.getElementById('tray-material').value;
+            const trayName = trayMaterials[materialKey] ? trayMaterials[materialKey].name : 'Personalizada';
+            const frontText = document.getElementById('front-text-input').value;
+            const basePrice = currentBasePrice;
+
+            let productsTotal = 0;
+            let productListStr = "";
+
+            if (placedProducts.length === 0) {
+                productListStr = "Ninguno";
+            } else {
+                placedProducts.forEach(p => {
+                    productsTotal += p.userData.price;
+                    productListStr += `\n  - ${p.userData.name} ($${p.userData.price.toFixed(2)})`;
+                });
+            }
+
+            const total = basePrice + productsTotal;
+
+            const message = `¡Hola Viane Delicatessen! 🌹✨ Quiero hacer un pedido de una Bandeja Personalizada:\n\n` +
+                            `🎁 *Bandeja:* ${trayName}\n` +
+                            `📏 *Altura de Paredes:* ${currentWallHeight.toFixed(2)} m\n` +
+                            `✍️ *Texto Frontal:* "${frontText || 'Sin texto'}"\n` +
+                            `💲 *Precio Base:* $${basePrice.toFixed(2)}\n\n` +
+                            `📦 *Productos:* ${productListStr}\n\n` +
+                            `💰 *TOTAL A PAGAR:* $${total.toFixed(2)}`;
+
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodedMessage}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera.position.set(0, 6, 8);
+
+            try {
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+            } catch (e) {
+                renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+            }
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000000, 0);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.05;
+            controls.minDistance = 3;
+            controls.maxDistance = 14;
+
+            const ambientLight = new THREE.AmbientLight(0xfff5ea, 0.8);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfff8ee, 1.3);
+            dirLight.position.set(5, 10, 7);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.bias = -0.0001;
+            scene.add(dirLight);
+
+            const fillLight = new THREE.DirectionalLight(0xffd700, 0.5);
+            fillLight.position.set(-5, 4, -5);
+            scene.add(fillLight);
+
+            const grid = new THREE.GridHelper(20, 20, 0xd4af37, 0x4a1219);
+            grid.position.y = -0.01;
+            scene.add(grid);
+
+            buildTray('oak', currentWallHeight);
+            updatePriceBreakdown();
+
+            const domElem = renderer.domElement;
+            domElem.addEventListener('pointerdown', onPointerDown);
+            domElem.addEventListener('pointermove', onPointerMove);
+            domElem.addEventListener('pointerup', onPointerUp);
+
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        function getMousePos(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        function onPointerDown(e) {
+            getMousePos(e);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(placedProducts, false);
+
+            if (intersects.length > 0) {
+                isDraggingProduct = true;
+                controls.enabled = false;
+                selectProduct(intersects[0].object);
+            } else {
+                selectProduct(null);
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!isDraggingProduct || !selectedProduct) return;
+            getMousePos(e);
+            raycaster.setFromCamera(mouse, camera);
+
+            const targetPoint = new THREE.Vector3();
+            if (raycaster.ray.intersectPlane(dragPlane, targetPoint)) {
+                const limit = 1.6;
+                const clampedX = Math.max(-limit, Math.min(limit, targetPoint.x));
+                const clampedZ = Math.max(-limit, Math.min(limit, targetPoint.z));
+
+                selectedProduct.geometry.computeBoundingBox();
+                const bboxHeight = selectedProduct.geometry.boundingBox.max.y - selectedProduct.geometry.boundingBox.min.y;
+                selectedProduct.position.set(clampedX, 0.2 + bboxHeight / 2, clampedZ);
+            }
+        }
+
+        function onPointerUp() {
+            isDraggingProduct = false;
+            controls.enabled = true;
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container || !renderer || !camera) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        window.onload = function () {
+            init3D();
+        };
+    </script>
+</body>
+</html>
