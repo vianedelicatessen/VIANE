@@ -1,9 +1,14 @@
-app = Flask(__name__)
-app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=16 * 1024 * 1024)
-
-@app.before_request
-def ensure_db_initialized():
-    if not hasattr(app, '_db_initialized'):
-        init_db()
-        app._db_initialized = True
+{
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "app.py"
+    }
+  ]
+}
