@@ -116,6 +116,11 @@ def login():
 
 @app.post('/api/logout')
 def logout(): session.clear(); return jsonify({'ok':True})
+    
+@app.route('/Bandeja360.html')
+def bandeja_360():
+    return render_template('Bandeja360.html')
+
 
 @app.get('/api/admin/data')
 @admin_required
