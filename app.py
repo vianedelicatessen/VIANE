@@ -9,8 +9,10 @@ from werkzeug.utils import secure_filename
 BASE = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE / 'static' / 'uploads'
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-if os.environ.get('VERCEL'):    
-    DB_PATH = path('/tmp/viane.sqlite3')
+if os.environ.get('VERCEL'):
+    DB_PATH = Path('/tmp/viane.sqlite3')
+else:
+    DB_PATH = BASE / 'viane.sqlite3'
 else:DB_PATH = BASE / 'viane.sqlite3'
 ALLOWED_IMAGES = {'png','jpg','jpeg','webp','gif'}
 ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4','mp3','wav','ogg','m4a'}
