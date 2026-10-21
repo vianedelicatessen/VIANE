@@ -19,12 +19,14 @@ if os.environ.get('VERCEL'):
     DB_PATH = Path('/tmp/viane.sqlite3')
 else:
     DB_PATH = BASE / 'viane.sqlite3'
-  ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+
+ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4', 'mp3', 'wav', 'ogg', 'm4a'}
-STATUSES = ['Pago pendiente','Pago recibido','Pedido confirmado','En preparación','En creación','Enviado','En camino','Entregado','Incidencia']
+STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación']
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=80*1024*1024)
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=16 * 1024 * 1024)
 
 # Credenciales de Administrador configuradas
 ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com').strip().lower()
