@@ -1,15 +1,18 @@
 import os, re, json, secrets, sqlite3
 from datetime import datetime, timezone
 from functools import wraps
+import os
 from pathlib import Path
-from flask import Flask, request, jsonify, session, render_template, send_from_directory
-from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
 
 BASE = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE / 'static' / 'uploads'
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Esto detecta si estamos en Vercel y manda la BD a /tmp (que sí tiene permisos)
 if os.environ.get('VERCEL'):
+    DB_PATH = Path('/tmp/viane.sqlite3')
+else:
+    DB_PATH = BASE / 'viane.sqlite3'
     DB_PATH = Path('/tmp/viane.sqlite3')
 else:
     DB_PATH = BASE / 'viane.sqlite3'
