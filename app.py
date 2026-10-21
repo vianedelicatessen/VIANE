@@ -71,7 +71,6 @@ def init_db():
                 c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)', (*p, datetime.now(timezone.utc).isoformat()))
 
 
-
 def now(): return datetime.now(timezone.utc).isoformat()
 def asdict(row): return dict(row) if row else None
 def setting_map():
