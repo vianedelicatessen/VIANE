@@ -1,24 +1,26 @@
-import os, re, json, secrets, sqlite3
+import os
+import re
+import json
+import secrets
+import sqlite3
 from datetime import datetime, timezone
 from functools import wraps
-import os
 from pathlib import Path
+from flask import Flask, request, jsonify, session, render_template, send_from_directory
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 BASE = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE / 'static' / 'uploads'
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Esto detecta si estamos en Vercel y manda la BD a /tmp (que sí tiene permisos)
+# Detecta si estamos en Vercel para usar /tmp (única ruta con permisos de escritura)
 if os.environ.get('VERCEL'):
     DB_PATH = Path('/tmp/viane.sqlite3')
 else:
     DB_PATH = BASE / 'viane.sqlite3'
-    DB_PATH = Path('/tmp/viane.sqlite3')
-else:
-    DB_PATH = BASE / 'viane.sqlite3'
-else:DB_PATH = BASE / 'viane.sqlite3'
-ALLOWED_IMAGES = {'png','jpg','jpeg','webp','gif'}
-ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4','mp3','wav','ogg','m4a'}
+  ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4', 'mp3', 'wav', 'ogg', 'm4a'}
 STATUSES = ['Pago pendiente','Pago recibido','Pedido confirmado','En preparación','En creación','Enviado','En camino','Entregado','Incidencia']
 app = Flask(__name__)
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
