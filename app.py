@@ -23,10 +23,15 @@ else:
 ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4', 'mp3', 'wav', 'ogg', 'm4a'}
 STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación']
-
 app = Flask(__name__)
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=16 * 1024 * 1024)
+
+@app.before_request
+def ensure_db_initialized():
+    if not hasattr(app, '_db_initialized'):
+        init_db()
+        app._db_initialized = True
 
 # Credenciales de Administrador configuradas
 ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com').strip().lower()
@@ -65,7 +70,7 @@ def init_db():
             for p in samples:
                 c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)', (*p, datetime.now(timezone.utc).isoformat()))
 
-init_db()
+
 
 def now(): return datetime.now(timezone.utc).isoformat()
 def asdict(row): return dict(row) if row else None
