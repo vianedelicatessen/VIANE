@@ -4,13 +4,14 @@ import secrets
 import sqlite3
 import cloudinary
 import cloudinary.uploader
+import cloudinary.api
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
- 
+
 app = Flask(__name__)
- 
+
 BASE = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE / 'static' / 'uploads'
 # En Vercel el sistema de archivos es de solo lectura: no debe romper el arranque.
@@ -18,27 +19,27 @@ try:
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 except OSError:
     pass
- 
+
 # Detecta si estamos en Vercel para usar /tmp (única ruta con permisos de escritura)
 if os.environ.get('VERCEL'):
     DB_PATH = Path('/tmp/viane.sqlite3')
 else:
     DB_PATH = BASE / 'viane.sqlite3'
- 
+
 ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4', 'mp3', 'wav', 'ogg', 'm4a'}
 STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación']
- 
+
 # La clave de sesión se lee de Vercel (VIANE_SECRET_KEY). Si no existe se genera una
 # aleatoria, pero entonces la sesión del admin se cierra cada vez que Vercel reinicia.
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=16 * 1024 * 1024)
- 
+
 # Cloudinary: usa CLOUDINARY_URL, o bien las tres variables sueltas.
 def _env(name):
     # Quita espacios, saltos de línea y comillas que se cuelan al copiar/pegar en Vercel.
     return (os.environ.get(name) or '').strip().strip('"').strip("'").strip()
- 
+
 _cld = {
     'cloud_name': _env('CLOUDINARY_CLOUD_NAME'),
     'api_key': _env('CLOUDINARY_API_KEY'),
@@ -48,27 +49,27 @@ if all(_cld.values()):
     cloudinary.config(secure=True, **_cld)
 else:
     cloudinary.config(secure=True)
- 
+
 @app.before_request
 def ensure_db_initialized():
     if not hasattr(app, '_db_initialized'):
         init_db()
         app._db_initialized = True
- 
+
 # Credenciales de Administrador: ya NO están en el código, se leen de las variables de entorno.
 ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com').strip().lower()
 ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', '')
- 
+
 @app.errorhandler(413)
 def too_large(e):
     return jsonify({'error': 'El archivo es demasiado grande'}), 413
- 
+
 def db():
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     con.execute('PRAGMA foreign_keys=ON')
     return con
- 
+
 def init_db():
     with db() as c:
         c.executescript('''
@@ -85,7 +86,7 @@ def init_db():
         }
         for k, v in defaults.items():
             c.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)', (k, v))
- 
+
         count = c.execute('SELECT COUNT(*) FROM products').fetchone()[0]
         if not count:
             samples = [
@@ -95,8 +96,8 @@ def init_db():
             ]
             for p in samples:
                 c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)', (*p, datetime.now(timezone.utc).isoformat()))
- 
- 
+
+
 def now(): return datetime.now(timezone.utc).isoformat()
 def asdict(row): return dict(row) if row else None
 def setting_map():
@@ -109,12 +110,12 @@ def admin_required(fn):
         return fn(*args, **kwargs)
     return wrapped
 def allowed_file(filename, allowed): return '.' in filename and filename.rsplit('.',1)[1].lower() in allowed
- 
+
 @app.get('/')
 def home(): return render_template('index.html')
 @app.get('/uploads/<path:filename>')
 def uploads(filename): return send_from_directory(UPLOAD_DIR, filename)
- 
+
 @app.get('/api/public')
 def public_data():
     with db() as c:
@@ -123,31 +124,31 @@ def public_data():
         ads=[dict(r) for r in c.execute('SELECT * FROM ads WHERE active=1')]
         payments=[dict(r) for r in c.execute('SELECT id,title,url,details,tip_enabled FROM payments WHERE active=1')]
     return jsonify({'products':products,'reviews':reviews,'ads':ads,'payments':payments,'settings':setting_map(),'statuses':STATUSES})
- 
+
 @app.post('/api/login')
 def login():
     data = request.get_json(silent=True) or request.form
     email = str(data.get('email', '')).strip().lower()
     password = str(data.get('password', '')).strip()
- 
+
     if not ADMIN_PASSWORD:
         return jsonify({'error':'El administrador debe configurar la contraseña en el servidor.'}),503
     if email != ADMIN_EMAIL or not secrets.compare_digest(password.encode('utf-8'), ADMIN_PASSWORD.strip().encode('utf-8')):
         return jsonify({'error':'Correo o contraseña incorrectos'}),401
- 
+
     session.clear()
     session['admin'] = True
     session['email'] = ADMIN_EMAIL
     return jsonify({'ok': True, 'email': ADMIN_EMAIL})
- 
+
 @app.post('/api/logout')
 def logout(): session.clear(); return jsonify({'ok':True})
- 
+
 @app.route('/Bandeja360.html')
 def bandeja_360():
     return render_template('Bandeja360.html')
- 
- 
+
+
 @app.get('/api/admin/data')
 @admin_required
 def admin_data():
@@ -161,7 +162,7 @@ def admin_data():
             'settings':setting_map(),
             'statuses':STATUSES
         })
- 
+
 @app.post('/api/upload')
 @admin_required
 def upload():
@@ -178,7 +179,28 @@ def upload():
         return jsonify({'error': f'No se pudo subir el archivo: {e}'}), 500
     url = result.get('secure_url')
     return jsonify({'url': url, 'filename': url})
- 
+
+@app.get('/api/admin/cloudinary-check')
+@admin_required
+def cloudinary_check():
+    # Diagnóstico: muestra qué ve el servidor (sin revelar la llave ni el secreto).
+    cfg = cloudinary.config()
+    key = cfg.api_key or ''
+    info = {
+        'fuente': 'variables sueltas' if all(_cld.values()) else 'CLOUDINARY_URL',
+        'existe_CLOUDINARY_URL': bool(os.environ.get('CLOUDINARY_URL')),
+        'cloud_name': cfg.cloud_name,
+        'api_key_largo': len(key),
+        'api_key_solo_numeros': key.isdigit(),
+        'api_secret_largo': len(cfg.api_secret or ''),
+    }
+    try:
+        cloudinary.api.ping()
+        info['conexion'] = 'OK: las credenciales son válidas'
+    except Exception as e:
+        info['conexion'] = f'ERROR: {e}'
+    return jsonify(info)
+
 @app.post('/api/products')
 @admin_required
 def create_product():
@@ -189,7 +211,7 @@ def create_product():
     with db() as c:
         cur=c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)',(name,str(d.get('category','bandejas')),price,desc,image,1 if d.get('active',True) else 0,now()))
         return jsonify({'id':cur.lastrowid,'ok':True})
- 
+
 @app.put('/api/products/<int:pid>')
 @admin_required
 def update_product(pid):
@@ -201,13 +223,13 @@ def update_product(pid):
         if not vals['name'] or not vals['description'] or not vals['image']: return jsonify({'error':'Faltan campos requeridos'}),400
         c.execute('UPDATE products SET name=?,category=?,price=?,description=?,image=?,active=? WHERE id=?',(vals['name'],vals['category'],float(vals['price']),vals['description'],vals['image'],int(bool(vals['active'])),pid))
     return jsonify({'ok':True})
- 
+
 @app.delete('/api/products/<int:pid>')
 @admin_required
 def delete_product(pid):
     with db() as c: c.execute('DELETE FROM products WHERE id=?',(pid,))
     return jsonify({'ok':True})
- 
+
 @app.post('/api/reviews')
 def submit_review():
     d=request.get_json(force=True); name=str(d.get('name','')).strip(); comment=str(d.get('comment','')).strip(); products=d.get('products',[])
@@ -217,7 +239,7 @@ def submit_review():
     with db() as c:
         cur=c.execute('INSERT INTO reviews(name,rating,products,comment,phone,approved,created_at) VALUES(?,?,?,?,?,?,?)',(name,rating,json.dumps(products,ensure_ascii=False),comment,str(d.get('phone',''))[:40],0,now()))
         return jsonify({'ok':True,'id':cur.lastrowid,'message':'¡Gracias! Tu reseña fue recibida y se publicará cuando sea revisada.'})
- 
+
 @app.patch('/api/reviews/<int:rid>')
 @admin_required
 def moderate_review(rid):
@@ -225,13 +247,13 @@ def moderate_review(rid):
     with db() as c:
         c.execute('UPDATE reviews SET approved=?,admin_reply=? WHERE id=?',(int(bool(d.get('approved',False))),str(d.get('admin_reply',''))[:1000],rid))
     return jsonify({'ok':True})
- 
+
 @app.delete('/api/reviews/<int:rid>')
 @admin_required
 def delete_review(rid):
     with db() as c: c.execute('DELETE FROM reviews WHERE id=?',(rid,))
     return jsonify({'ok':True})
- 
+
 @app.post('/api/orders')
 def create_order():
     d=request.get_json(force=True); items=d.get('items',[])
@@ -251,13 +273,13 @@ def create_order():
         c.execute('INSERT INTO orders(code,name,phone,province,delivery_date,items,total,payment_status,status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(code,str(d['name']).strip(),str(d['phone']).strip(),str(d.get('province','Puerto Plata')),str(d.get('delivery_date','')),json.dumps(clean,ensure_ascii=False),total,'Pago pendiente','Pago pendiente',str(d.get('notes',''))[:2000],now(),now()))
     s=setting_map(); review_url=s.get('review_url','')
     return jsonify({'ok':True,'code':code,'total':total,'review_url':review_url,'whatsapp':s.get('whatsapp','18296759640')})
- 
+
 @app.get('/api/track/<code>')
 def track_order(code):
     with db() as c: row=c.execute('SELECT code,status,payment_status,delivery_date,updated_at,incident FROM orders WHERE code=?',(code.upper(),)).fetchone()
     if not row: return jsonify({'error':'No encontramos un pedido con ese código. Revisa e inténtalo otra vez.'}),404
     return jsonify(dict(row))
- 
+
 @app.patch('/api/orders/<int:oid>')
 @admin_required
 def update_order(oid):
@@ -266,7 +288,7 @@ def update_order(oid):
     with db() as c:
         c.execute('UPDATE orders SET status=?,payment_status=?,notes=?,incident=?,updated_at=? WHERE id=?',(status,payment,str(d.get('notes',''))[:2000],str(d.get('incident',''))[:1000],now(),oid))
     return jsonify({'ok':True})
- 
+
 @app.put('/api/settings')
 @admin_required
 def update_settings():
@@ -276,7 +298,7 @@ def update_settings():
         for k,v in d.items():
             if k in allowed: c.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(k,str(v)[:4000]))
     return jsonify({'ok':True})
- 
+
 @app.route('/api/ads',methods=['POST'])
 @admin_required
 def add_ad():
@@ -284,20 +306,20 @@ def add_ad():
     if not d.get('title') or not d.get('url'): return jsonify({'error':'Título y enlace son obligatorios'}),400
     with db() as c: cur=c.execute('INSERT INTO ads(title,url,image,active) VALUES(?,?,?,?)',(d['title'],d['url'],d.get('image',''),int(bool(d.get('active',True)))))
     return jsonify({'ok':True,'id':cur.lastrowid})
- 
+
 @app.put('/api/ads/<int:aid>')
 @admin_required
 def update_ad(aid):
     d=request.get_json(force=True)
     with db() as c: c.execute('UPDATE ads SET title=?,url=?,image=?,active=? WHERE id=?',(d.get('title',''),d.get('url',''),d.get('image',''),int(bool(d.get('active',True))),aid))
     return jsonify({'ok':True})
- 
+
 @app.delete('/api/ads/<int:aid>')
 @admin_required
 def delete_ad(aid):
     with db() as c: c.execute('DELETE FROM ads WHERE id=?',(aid,))
     return jsonify({'ok':True})
- 
+
 @app.route('/api/payments',methods=['POST'])
 @admin_required
 def add_payment():
@@ -305,26 +327,19 @@ def add_payment():
     if not d.get('title') or not d.get('url'): return jsonify({'error':'Nombre y enlace de pago son obligatorios'}),400
     with db() as c: cur=c.execute('INSERT INTO payments(title,url,details,active,tip_enabled) VALUES(?,?,?,?,?)',(d['title'],d['url'],d.get('details',''),int(bool(d.get('active',True))),int(bool(d.get('tip_enabled',False)))))
     return jsonify({'ok':True,'id':cur.lastrowid})
- 
+
 @app.put('/api/payments/<int:pid>')
 @admin_required
 def update_payment(pid):
     d=request.get_json(force=True)
     with db() as c: c.execute('UPDATE payments SET title=?,url=?,details=?,active=?,tip_enabled=? WHERE id=?',(d.get('title',''),d.get('url',''),d.get('details',''),int(bool(d.get('active',True))),int(bool(d.get('tip_enabled',False))),pid))
     return jsonify({'ok':True})
- 
+
 @app.delete('/api/payments/<int:pid>')
 @admin_required
 def delete_payment(pid):
     with db() as c: c.execute('DELETE FROM payments WHERE id=?',(pid,))
     return jsonify({'ok':True})
- 
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
- 
-
-
-
-
-
-
