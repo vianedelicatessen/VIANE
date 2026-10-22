@@ -1,3 +1,5 @@
+import cloudinary
+import cloudinary.uploader
 import os
 import re
 import json
