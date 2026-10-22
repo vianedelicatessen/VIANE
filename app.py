@@ -12,6 +12,7 @@ from flask import Flask, request, jsonify, session, render_template, send_from_d
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 app = Flask(__name__)
+
 BASE = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE / 'static' / 'uploads'
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
