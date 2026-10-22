@@ -144,10 +144,11 @@ def upload():
     f=request.files.get('file'); kind=request.form.get('kind','image')
     if not f or not f.filename: return jsonify({'error':'Selecciona un archivo'}),400
     allowed=ALLOWED_MEDIA if kind=='media' else ALLOWED_IMAGES
-    if not allowed_file(f.filename,allowed): return jsonify({'error':'Tipo de archivo no permitido'}),400
-    ext=f.filename.rsplit('.',1)[1].lower(); name=secure_filename(f.filename.rsplit('.',1)[0])[:40] or 'archivo'
-    filename=f'{secrets.token_hex(8)}-{name}.{ext}'; f.save(UPLOAD_DIR/filename)
-    return jsonify({'url':'/uploads/'+filename,'filename':filename})
+   upload_result = 
+cloudinary.uploader.upload(f) 
+filename =upload_result.get("secure_url")
+return jsonify({"url": filename,
+                "filiname": filename})
 
 @app.post('/api/products')
 @admin_required
