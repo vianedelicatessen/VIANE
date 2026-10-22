@@ -1,5 +1,4 @@
 import os
-import re
 import json
 import secrets
 import sqlite3
@@ -9,13 +8,16 @@ from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
-from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
+
 app = Flask(__name__)
 
 BASE = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE / 'static' / 'uploads'
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+# En Vercel el sistema de archivos es de solo lectura: no debe romper el arranque.
+try:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    pass
 
 # Detecta si estamos en Vercel para usar /tmp (única ruta con permisos de escritura)
 if os.environ.get('VERCEL'):
@@ -26,8 +28,22 @@ else:
 ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4', 'mp3', 'wav', 'ogg', 'm4a'}
 STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación']
+
+# La clave de sesión se lee de Vercel (VIANE_SECRET_KEY). Si no existe se genera una
+# aleatoria, pero entonces la sesión del admin se cierra cada vez que Vercel reinicia.
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=16 * 1024 * 1024)
+
+# Cloudinary: usa CLOUDINARY_URL, o bien las tres variables sueltas.
+_cld = {
+    'cloud_name': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'api_key': os.environ.get('CLOUDINARY_API_KEY'),
+    'api_secret': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+if all(_cld.values()):
+    cloudinary.config(secure=True, **_cld)
+else:
+    cloudinary.config(secure=True)
 
 @app.before_request
 def ensure_db_initialized():
@@ -35,9 +51,13 @@ def ensure_db_initialized():
         init_db()
         app._db_initialized = True
 
-# Credenciales de Administrador configuradas
+# Credenciales de Administrador: ya NO están en el código, se leen de las variables de entorno.
 ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com').strip().lower()
-ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', 'erisson09@')
+ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', '')
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({'error': 'El archivo es demasiado grande'}), 413
 
 def db():
     con = sqlite3.connect(DB_PATH)
@@ -61,7 +81,7 @@ def init_db():
         }
         for k, v in defaults.items():
             c.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)', (k, v))
-        
+
         count = c.execute('SELECT COUNT(*) FROM products').fetchone()[0]
         if not count:
             samples = [
@@ -108,9 +128,9 @@ def login():
 
     if not ADMIN_PASSWORD:
         return jsonify({'error':'El administrador debe configurar la contraseña en el servidor.'}),503
-    if email != ADMIN_EMAIL.lower() or not secrets.compare_digest(password, ADMIN_PASSWORD.strip()):
+    if email != ADMIN_EMAIL or not secrets.compare_digest(password.encode('utf-8'), ADMIN_PASSWORD.strip().encode('utf-8')):
         return jsonify({'error':'Correo o contraseña incorrectos'}),401
-    
+
     session.clear()
     session['admin'] = True
     session['email'] = ADMIN_EMAIL
@@ -118,7 +138,7 @@ def login():
 
 @app.post('/api/logout')
 def logout(): session.clear(); return jsonify({'ok':True})
-    
+
 @app.route('/Bandeja360.html')
 def bandeja_360():
     return render_template('Bandeja360.html')
@@ -141,14 +161,19 @@ def admin_data():
 @app.post('/api/upload')
 @admin_required
 def upload():
-    f=request.files.get('file'); kind=request.form.get('kind','image')
-    if not f or not f.filename: return jsonify({'error':'Selecciona un archivo'}),400
-    allowed=ALLOWED_MEDIA if kind=='media' else ALLOWED_IMAGES
-   upload_result = 
-cloudinary.uploader.upload(f) 
-filename =upload_result.get("secure_url")
-return jsonify({"url": filename,
-                "filiname": filename})
+    f = request.files.get('file')
+    kind = request.form.get('kind', 'image')
+    if not f or not f.filename:
+        return jsonify({'error': 'Selecciona un archivo'}), 400
+    allowed = ALLOWED_MEDIA if kind == 'media' else ALLOWED_IMAGES
+    if not allowed_file(f.filename, allowed):
+        return jsonify({'error': 'Tipo de archivo no permitido'}), 400
+    try:
+        result = cloudinary.uploader.upload(f, folder='viane', resource_type='auto')
+    except Exception as e:
+        return jsonify({'error': f'No se pudo subir el archivo: {e}'}), 500
+    url = result.get('secure_url')
+    return jsonify({'url': url, 'filename': url})
 
 @app.post('/api/products')
 @admin_required
@@ -181,7 +206,9 @@ def delete_product(pid):
 
 @app.post('/api/reviews')
 def submit_review():
-    d=request.get_json(force=True); name=str(d.get('name','')).strip(); comment=str(d.get('comment','')).strip(); products=d.get('products',[]); rating=int(d.get('rating',0))
+    d=request.get_json(force=True); name=str(d.get('name','')).strip(); comment=str(d.get('comment','')).strip(); products=d.get('products',[])
+    try: rating=int(d.get('rating',0))
+    except (TypeError, ValueError): rating=0
     if not name or not comment or rating not in range(1,6) or not isinstance(products,list) or not 1<=len(products)<=3: return jsonify({'error':'Completa nombre, comentario, calificación y de 1 a 3 productos'}),400
     with db() as c:
         cur=c.execute('INSERT INTO reviews(name,rating,products,comment,phone,approved,created_at) VALUES(?,?,?,?,?,?,?)',(name,rating,json.dumps(products,ensure_ascii=False),comment,str(d.get('phone',''))[:40],0,now()))
