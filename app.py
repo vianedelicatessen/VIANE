@@ -174,7 +174,7 @@ def upload():
     if not allowed_file(f.filename, allowed):
         return jsonify({'error': 'Tipo de archivo no permitido'}), 400
     try:
-        result = cloudinary.uploader.upload(f,upload_preset='viane_unside', resource_type='auto',unsigned=true)
+        result = cloudinary.uploader.upload(f,upload_preset='viane_unside', resource_type='auto',unsigned=True)
     except Exception as e:
         return jsonify({'error': f'No se pudo subir el archivo: {e}'}), 500
     url = result.get('secure_url')
