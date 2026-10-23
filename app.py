@@ -341,11 +341,6 @@ def delete_payment(pid):
     with db() as c: c.execute('DELETE FROM payments WHERE id=?',(pid,))
     return jsonify({'ok':True})
 
-   @app.route('/bandeja360')
-   def bandeja360():
-       return render_template('Bandeja360.html')
-
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
