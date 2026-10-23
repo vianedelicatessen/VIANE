@@ -299,6 +299,22 @@ def update_payment(pid):
     d=request.get_json(force=True)
     with db() as c: c.execute('UPDATE payments SET title=?,url=?,details=?,active=?,tip_enabled=? WHERE id=?',(d.get('title',''),d.get('url',''),d.get('details',''),int(bool(d.get('active',True))),int(bool(d.get('tip_enabled',False))),pid))
     return jsonify({'ok':True})
+    
+@app.post('/api/verify-bandeja')
+def verify_bandeja():
+    data = request.get_json(silent=True) or {}
+    user_password = str(data.get('password', '')).strip()
+    
+    # Lee la contraseña secreta de las variables de entorno de Vercel
+    real_password = os.environ.get('BANDEJA_PASSWORD', 'temporal123')
+    
+    # Compara de forma segura
+    if secrets.compare_digest(user_password.encode('utf-8'), real_password.encode('utf-8')):
+        return jsonify({'ok': True})
+    
+    return jsonify({'error': 'Contraseña incorrecta'}), 401
+
+
 
 @app.delete('/api/payments/<int:pid>')
 @admin_required
