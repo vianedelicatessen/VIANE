@@ -5,7 +5,7 @@ import cloudinary.api
 import secrets
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template,session
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
