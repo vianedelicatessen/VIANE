@@ -174,7 +174,7 @@ def upload():
     if not allowed_file(f.filename, allowed):
         return jsonify({'error': 'Tipo de archivo no permitido'}), 400
     try:
-        result = cloudinary.uploader.upload(f,upload_preset='viane_unside', resource_type='auto',unsigned=True)
+        result = cloudinary.uploader.upload(f, folder='viane', resource_type='auto')
     except Exception as e:
         return jsonify({'error': f'No se pudo subir el archivo: {e}'}), 500
     url = result.get('secure_url')
@@ -340,14 +340,6 @@ def update_payment(pid):
 def delete_payment(pid):
     with db() as c: c.execute('DELETE FROM payments WHERE id=?',(pid,))
     return jsonify({'ok':True})
-
-python
-from flask import render_template
-
-@app.route('/bandeja360')
-def bandeja360():
-    return render_template('Bandeja360.html')
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
