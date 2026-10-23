@@ -75,29 +75,10 @@
         <button onclick="go('catalog')">Menú</button>
         <button onclick="go('reviews')">Reseñas</button>
         <button onclick="go('track')">Seguir pedido</button>
-        <!-- BOTÓN DIRECTO A LA BANDEJA 360 EN EL MENÚ -->
-        <button onclick="window.location.href='/bandeja360'" style="background:var(--gold);color:var(--dark);font-weight:800;">Bandeja 360°</button>
-        <button onclick="openLogin()">Panel privado</button>
+               <button onclick="openLogin()">Panel privado</button>
         <button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button>
     </nav>
 </header>
-
-<!-- SECCIÓN HERO CON BOTÓN DESTACADO PARA CREAR LA BANDEJA 360 -->
-<section class="hero" id="hero">
-    <img id="heroLogo" class="logo" src="" alt="Logo" onerror="this.style.display='none'">
-    <div class="eyebrow">DETALLES QUE SE CONVIERTEN EN RECUERDOS</div>
-    <h1>Un detalle especial, hecho para ti</h1>
-    <p>Desayunos, bandejas personalizadas, picaderas y regalos con el sello de VIANE Delicatessen.</p>
-    
-    <div class="actions" style="margin-top:22px">
-        <button class="btn goldbtn" onclick="go('catalog')">Explorar productos</button>
-        <button class="btn" onclick="go('reviews')">Compartir mi experiencia</button>
-        <!-- ACCESO DESTACADO 360° -->
-        <button type="button" onclick="window.location.href='/bandeja360'" style="background:#ff0033;color:#ffffff;font-weight:800;padding:12px 22px;border-radius:12px;border:2px solid #ffea00;box-shadow:0 0 18px rgba(255,234,0,0.7);cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:8px;">
-            ✨ Crea tu Bandeja 360° Interactiva
-        </button>
-    </div>
-</section>
 
 <main class="wrap">
     <section id="catalog">
