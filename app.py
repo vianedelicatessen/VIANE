@@ -1,7 +1,6 @@
 import os, re, json, secrets, sqlite3
 from datetime import datetime, timezone
 from functools import wraps
-import cloudinary
 from pathlib import Path
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -14,6 +13,7 @@ from pathlib import Path
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
+app = Flask(__name__)
 
 BASE = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE / 'static' / 'uploads'
@@ -22,7 +22,7 @@ DB_PATH = BASE / 'viane.sqlite3'
 ALLOWED_IMAGES = {'png','jpg','jpeg','webp','gif'}
 ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4','mp3','wav','ogg','m4a'}
 STATUSES = ['Pago pendiente','Pago recibido','Pedido confirmado','En preparación','En creación','Enviado','En camino','Entregado','Incidencia']
-app = Flask(__name__)
+
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=80*1024*1024)
 
