@@ -169,13 +169,29 @@ def upload():
 @app.post('/api/products')
 @admin_required
 def create_product():
-    d=request.get_json(force=True); name=str(d.get('name','')).strip(); desc=str(d.get('description','')).strip(); image=str(d.get('image','')).strip()
-    try: price=float(d.get('price'))
-    except: return jsonify({'error':'Precio inválido'}),400
-    if not name or not desc or not image or price<0: return jsonify({'error':'Nombre, imagen, precio y descripción son obligatorios'}),400
+    d = request.get_json(force=True)
+    name = str(d.get('name', '')).strip()
+    desc = str(d.get('description', '')).strip()
+    image = str(d.get('image', '')).strip()
+    category = str(d.get('category', 'bandejas')).strip()
+    
+    try: 
+        price = float(d.get('price'))
+    except: 
+        return jsonify({'error': 'Precio inválido'}), 400
+
+    if not name or not desc or not image or price < 0: 
+        return jsonify({'error': 'Nombre, imagen, precio y descripción son obligatorios'}), 400
+
+    # Asegurar que el estado activo sea 1 o 0 explícitamente
+    is_active = 1 if bool(d.get('active', True)) else 0
+
     with db() as c:
-        cur=c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)',(name,str(d.get('category','bandejas')),price,desc,image,1 if d.get('active',True) else 0,now()))
-        return jsonify({'id':cur.lastrowid,'ok':True})
+        cur = c.execute(
+            'INSERT INTO products(name, category, price, description, image, active, created_at) VALUES(?,?,?,?,?,?,?)',
+            (name, category, price, desc, image, is_active, now())
+        )
+        return jsonify({'id': cur.lastrowid, 'ok': True})
 
 @app.put('/api/products/<int:pid>')
 @admin_required
