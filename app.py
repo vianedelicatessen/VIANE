@@ -2,6 +2,7 @@ import os
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import secrets
 from flask import Flask, request, jsonify, render_template
 import psycopg2
 from psycopg2.extras import RealDictCursor
