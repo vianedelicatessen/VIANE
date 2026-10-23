@@ -41,6 +41,38 @@ def get_products():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.post('/api/login')
+
+def login():
+
+    data = request.get_json(silent=True) or request.form
+
+    email = str(data.get('email', '')).strip().lower()
+
+    password = str(data.get('password', '')).strip()
+
+
+
+    if not ADMIN_PASSWORD:
+
+        return jsonify({'error':'El administrador debe configurar la contraseña en el servidor.'}),503
+
+    if email != ADMIN_EMAIL or not secrets.compare_digest(password.encode('utf-8'), ADMIN_PASSWORD.strip().encode('utf-8')):
+
+        return jsonify({'error':'Correo o contraseña incorrectos'}),401
+
+
+
+    session.clear()
+
+    session['admin'] = True
+
+    session['email'] = ADMIN_EMAIL
+
+    return jsonify({'ok': True, 'email': ADMIN_EMAIL})
+
+
+
 @app.route('/api/products', methods=['POST'])
 def create_product():
     # Nota: Asegúrate de adaptar esta lógica según recibas los datos (FormData o JSON)
