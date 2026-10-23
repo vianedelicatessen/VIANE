@@ -7,10 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root{--dark:#3A0007;--crimson:#7A0C16;--gold:#D4AF37;--goldDark:#9A7B1C;--cream:#FFFDF5;--ink:#29252a;--muted:#77717a;--line:#eee5dc}
+        :root{--dark:#3A0007;--crimson:#7A0C16;--ruby:#900010;--bright:#C40C1A;--goldLight:#F7E7A9;--gold:#D4AF37;--goldDark:#9A7B1C;--cream:#FFFDF5;--ink:#29252a;--muted:#77717a;--line:#eee5dc}
         *{box-sizing:border-box}
         body{margin:0;background:var(--cream);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif}
-        h1,h2,h3{font-family:'Playfair Display',serif}
+        h1,h2,h3,.serif{font-family:'Playfair Display',serif}
         button,input,select,textarea{font:inherit}
         button{cursor:pointer;border:0}
         .top{position:sticky;top:0;z-index:5;background:#fffdf7ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px 5%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -21,36 +21,50 @@
         .primary{background:var(--crimson)!important;color:#fff!important}
         .hero{background:radial-gradient(circle at 50% 0,#a91826,var(--dark) 72%);color:white;text-align:center;padding:56px 18px 50px}
         .hero .logo{width:94px;height:94px;margin-bottom:14px}
-        .eyebrow{color:#F7E7A9;letter-spacing:3px;font-size:11px;font-weight:800}
+        .eyebrow{color:var(--goldLight);letter-spacing:3px;font-size:11px;font-weight:800}
         .hero h1{font-size:clamp(30px,5vw,53px);margin:12px 0}
         .hero p{max-width:720px;margin:0 auto;color:#f9eac5;line-height:1.8}
         .wrap{max-width:1200px;margin:auto;padding:30px 18px}
         .section-title{text-align:center;color:var(--crimson);margin:8px 0 24px}
         .filters,.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+        .filters button{border:1px solid #e6d7b4}
         .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px}
         .card{background:white;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 8px 28px #3a00070d;display:flex;flex-direction:column;gap:10px}
         .product-img{width:100%;height:190px;object-fit:cover;border-radius:15px;background:#f5eee2}
+        .product-img.placeholder{display:grid;place-items:center;font-size:45px;color:var(--goldDark)}
         .price{font-family:'Playfair Display';font-weight:800;color:var(--crimson);font-size:20px}
         .btn{padding:12px 15px;border-radius:12px;background:var(--crimson);color:white;font-weight:800;font-size:12px}
         .btn.goldbtn{background:var(--gold);color:var(--dark)}
+        .btn.light{background:#f5eee2;color:var(--crimson)}
         .muted{color:var(--muted);font-size:13px;line-height:1.65}
-        .formbox{max-width:680px;margin:0 auto;background:white;border:1px solid var(--line);border-radius:22px;padding:22px}
+        .formbox{max-width:680px;margin:0 auto;background:white;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 8px 28px #3a00070d}
         .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
         .field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:800;color:var(--crimson)}
         input,select,textarea{width:100%;padding:12px;border:1px solid #e4d9cf;border-radius:10px;background:#fffdf9;color:var(--ink)}
+        textarea{min-height:90px}
+        .stars{display:flex;gap:6px;font-size:28px;color:var(--gold);margin:4px 0 12px}
+        .stars button{background:none;color:inherit;font-size:28px;padding:0}
+        .review{background:#fff;border:1px solid var(--line);padding:18px;border-radius:18px;margin-bottom:12px}
         .hidden{display:none!important}
-        .modal{position:fixed;inset:0;background:#160207b8;z-index:20;display:grid;place-items:center;padding:14px}
-        .modalbox{background:white;border:2px solid var(--gold);border-radius:22px;padding:24px;width:min(560px,100%)}
+        .status{padding:7px 10px;border-radius:20px;background:#f7e7a9;color:var(--dark);font-size:11px;font-weight:800;display:inline-block}
+        .modal{position:fixed;inset:0;background:#160207b8;z-index:20;display:grid;place-items:center;padding:14px;overflow:auto}
+        .modalbox{background:white;border:2px solid var(--gold);border-radius:22px;padding:24px;width:min(560px,100%);max-height:92vh;overflow:auto}
+        .adminnav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+        .adminnav button{padding:10px;border-radius:10px;background:#f4ebdc;color:var(--crimson);font-weight:800;font-size:12px}
+        .adminpanel{background:white;border:1px solid var(--line);padding:18px;border-radius:18px;margin:12px 0}
+        .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+        .row>*{flex:1}
+        .itemrow{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;justify-content:space-between}
         .footer{text-align:center;padding:28px;background:#fff;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
-        .floating{position:fixed;bottom:18px;right:18px;background:#168653;color:#fff;border-radius:40px;padding:14px 18px;text-decoration:none;z-index:6;font-weight:800}
-        .row{display:flex;gap:8px;align-items:center}
+        .floating{position:fixed;bottom:18px;right:18px;background:#168653;color:#fff;border-radius:40px;padding:14px 18px;text-decoration:none;z-index:6;font-weight:800;box-shadow:0 8px 22px #0002}
+        @media(max-width:600px){.top{justify-content:center}.hero{padding-top:38px}.wrap{padding:22px 13px}.formbox{padding:16px}}
     </style>
 </head>
 <body>
 
 <header class="top">
     <div class="brand">
-        <img id="brandLogo" class="logo" src="IMG-20260327-WA0017.jpg" alt="VIANE" onerror="this.style.display='none'">
+        <img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'">
         <div>
             <div style="font-family:'Playfair Display';font-size:22px">VIANE</div>
             <small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small>
@@ -60,13 +74,14 @@
         <button onclick="go('catalog')">Menú</button>
         <button onclick="go('reviews')">Reseñas</button>
         <button onclick="go('track')">Seguir pedido</button>
-        <button onclick="openLogin()">Panel privado</button>
+        <!-- BOTÓN PANEL PRIVADO -->
+        <button onclick="openLogin()" class="gold">Panel privado</button>
         <button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button>
     </nav>
 </header>
 
 <section class="hero" id="hero">
-    <img id="heroLogo" class="logo" src="IMG-20260327-WA0017.jpg" alt="Logo" onerror="this.style.display='none'">
+    <img id="heroLogo" class="logo" src="" alt="Logo" onerror="this.style.display='none'">
     <div class="eyebrow">DETALLES QUE SE CONVIERTEN EN RECUERDOS</div>
     <h1>Un detalle especial, hecho para ti</h1>
     <p>Desayunos, bandejas personalizadas, picaderas y regalos con el sello de VIANE Delicatessen.</p>
@@ -78,33 +93,36 @@
 </section>
 
 <main class="wrap">
-    <!-- CATÁLOGO DE PRODUCTOS -->
     <section id="catalog">
         <h2 class="section-title">Nuestro catálogo</h2>
         <div class="filters" id="filters"></div>
         <div class="grid" id="products"></div>
+        <div id="ads" class="grid" style="margin-top:20px"></div>
     </section>
 
-    <!-- RESEÑAS -->
     <section id="reviews" class="hidden">
         <h2 class="section-title">Tu experiencia nos inspira</h2>
         <div class="formbox">
             <form id="reviewForm">
+                <div class="field">Tu calificación *<div class="stars" id="starButtons"></div></div>
                 <div class="fields">
-                    <label class="field">Nombre completo *<input id="reviewName" required></label>
-                    <label class="field">WhatsApp<input id="reviewPhone" placeholder="829-000-0000"></label>
+                    <label class="field">Nombre completo *<input id="reviewName" required maxlength="120"></label>
+                    <label class="field">WhatsApp (opcional)<input id="reviewPhone" placeholder="829-000-0000"></label>
                 </div>
-                <label class="field" style="margin-top:12px">Tu comentario *<textarea id="reviewComment" required placeholder="Cuéntanos cómo fue tu experiencia..."></textarea></label>
+                <div class="field" style="margin-top:12px">Productos recibidos (elige de 1 a 3) *<div id="reviewProductChoices" class="fields"></div></div>
+                <label class="field" style="margin-top:12px">Tu comentario *<textarea id="reviewComment" required maxlength="2000" placeholder="Cuéntanos cómo fue tu experiencia..."></textarea></label>
                 <button class="btn" style="width:100%;margin-top:12px">Enviar reseña</button>
             </form>
+            <p class="muted">Las reseñas se revisan antes de aparecer públicamente.</p>
         </div>
-        <div id="reviewsFeed" style="margin-top:30px"></div>
+        <h3 class="section-title" style="margin-top:30px">Lo que dicen nuestros clientes</h3>
+        <div id="reviewsFeed"></div>
     </section>
 
-    <!-- RASTREO DE PEDIDO -->
     <section id="track" class="hidden">
         <h2 class="section-title">Seguimiento de tu pedido</h2>
         <div class="formbox">
+            <p class="muted">Introduce el código que recibiste al realizar tu pedido.</p>
             <form id="trackForm" class="row">
                 <input id="trackCode" placeholder="Ej. VIA-A1B2C3D4" required>
                 <button class="btn">Consultar</button>
@@ -112,18 +130,56 @@
             <div id="trackResult" style="margin-top:18px"></div>
         </div>
     </section>
+
+    <!-- SECCIÓN PANEL ADMINISTRATIVO -->
+    <section id="admin" class="hidden">
+        <h2 class="section-title">Panel de administración</h2>
+        <div class="adminpanel">
+            <div class="row">
+                <div><b>VIANE Delicatessen</b><div class="muted">Sesión administrativa segura</div></div>
+                <button class="btn light" onclick="logout()">Cerrar sesión</button>
+            </div>
+            <div class="adminnav">
+                <button onclick="adminTab('orders')">Pedidos</button>
+                <button onclick="adminTab('products')">Productos</button>
+                <button onclick="adminTab('reviews')">Reseñas</button>
+                <button onclick="adminTab('brand')">Logo y diseño</button>
+                <button onclick="adminTab('payments')">Pagos y propinas</button>
+                <button onclick="adminTab('ads')">Publicidad</button>
+                <button onclick="adminTab('media')">Multimedia</button>
+            </div>
+            <div id="adminContent"></div>
+        </div>
+    </section>
 </main>
 
 <footer class="footer">
     <b style="font-family:'Playfair Display';color:var(--crimson);font-size:17px">VIANE DELICATESSEN</b>
     <p>Detalles especiales, desayunos, picaderas y regalos.</p>
-    <p>WhatsApp: <a href="https://wa.me/18296759640">829-675-9640</a> · Instagram: vianedelicatessen</p>
+    <p>WhatsApp: <a id="footerWa" href="https://wa.me/18296759640">829-675-9640</a> · Instagram: <span id="footerIg">vianedelicatessen</span></p>
     <p>© 2026 VIANE Delicatessen</p>
 </footer>
 
-<a class="floating" href="https://wa.me/18296759640" target="_blank">WhatsApp</a>
+<a class="floating" id="waFloat" href="https://wa.me/18296759640" target="_blank">WhatsApp</a>
 
-<!-- MODAL CARRITO / PEDIDO -->
+<!-- MODAL ACCESO ADMINISTRATIVO -->
+<div id="loginModal" class="modal hidden">
+    <div class="modalbox">
+        <h2 style="color:var(--crimson)">Acceso administrativo</h2>
+        <p class="muted">Solo personal autorizado.</p>
+        <form id="loginForm">
+            <label class="field">Correo electrónico<input id="loginEmail" type="email" placeholder="admin@viane.com" required></label>
+            <label class="field" style="margin-top:12px">Contraseña<input id="loginPassword" type="password" required></label>
+            <div class="row" style="margin-top:16px">
+                <button class="btn">Entrar</button>
+                <button type="button" class="btn light" onclick="closeLogin()">Cancelar</button>
+            </div>
+            <p id="loginError" style="color:red;font-size:12px;margin-top:8px"></p>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL CARRITO -->
 <div id="cartModal" class="modal hidden">
     <div class="modalbox">
         <h2 style="color:var(--crimson)">Tu pedido</h2>
@@ -133,25 +189,146 @@
             <div class="fields">
                 <label class="field">Nombre *<input id="orderName" required></label>
                 <label class="field">WhatsApp *<input id="orderPhone" required></label>
+                <label class="field">Provincia
+                    <select id="orderProvince">
+                        <option>Puerto Plata</option>
+                        <option>Santiago</option>
+                        <option>Santo Domingo</option>
+                        <option>La Vega</option>
+                        <option>Otra provincia</option>
+                    </select>
+                </label>
+                <label class="field">Fecha deseada *<input id="orderDate" type="date" required></label>
             </div>
+            <label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label>
             <div class="row" style="margin-top:14px">
                 <button class="btn">Crear pedido</button>
-                <button type="button" class="btn" onclick="closeCart()" style="background:#ccc">Cerrar</button>
+                <button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button>
             </div>
         </form>
+        <div id="orderCreated" class="hidden"></div>
     </div>
 </div>
 
 <script>
-    const $=id=>document.getElementById(id);
-    let cart = [];
+const $=id=>document.getElementById(id);
+let state={products:[],reviews:[],payments:[],ads:[],settings:{},cart:[],rating:5,admin:false,adminData:null,category:'Todos'};
+const categories=['Todos','desayunos','bandejas','picaderas','bizcochos','mariscos','regalos','eventos'];
 
-    function go(sec) {
-        ['catalog','reviews','track'].forEach(s=>$(s).classList.toggle('hidden',s!==sec));
+async function api(url,opts={}){
+    let r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});
+    let d=await r.json().catch(()=>({}));
+    if(!r.ok)throw Error(d.error||'Ocurrió un error');
+    return d;
+}
+
+function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function money(n){return 'RD$ '+Number(n||0).toLocaleString('es-DO',{maximumFractionDigits:2})}
+
+async function load(){
+    try{
+        let d=await api('/api/public');
+        state={...state,...d};
+        applyBrand();
+        renderProducts();
+        renderReviews();
+        renderFilters();
+        renderReviewChoices();
+        renderStars();
+        renderAds();
+    }catch(e){console.error(e)}
+}
+
+function applyBrand(){
+    let s=state.settings||{};
+    ['brandLogo','heroLogo'].forEach(id=>{
+        if(s.logo){$(id).src=s.logo;$(id).style.display=''}else $(id).style.display='none'
+    });
+    $('footerWa').href='https://wa.me/'+(s.whatsapp||'18296759640');
+    $('footerWa').textContent=s.whatsapp||'829-675-9640';
+    $('waFloat').href='https://wa.me/'+(s.whatsapp||'18296759640');
+    $('footerIg').textContent=s.instagram||'vianedelicatessen';
+}
+
+function go(sec){
+    ['catalog','reviews','track','admin'].forEach(s=>$(s).classList.toggle('hidden',s!==sec));
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(sec==='admin'&&state.admin)loadAdmin();
+}
+
+function renderFilters(){
+    $('filters').innerHTML=categories.map(c=>`<button class="pill ${state.category===c?'primary':''}" onclick="filterCategory('${c}')">${esc(c==='Todos'?'Todos':c[0].toUpperCase()+c.slice(1))}</button>`).join('')
+}
+function filterCategory(c){state.category=c;renderFilters();renderProducts()}
+
+function renderProducts(){
+    let list=state.products.filter(p=>state.category==='Todos'||p.category===state.category);
+    $('products').innerHTML=list.length?list.map(p=>`<article class="card">${p.image?`<img class="product-img" src="${esc(p.image)}" alt="${esc(p.name)}">`:`<div class="product-img placeholder">✦</div>`}<div class="eyebrow" style="color:var(--goldDark)">${esc(p.category)}</div><h3 style="margin:0;color:var(--crimson)">${esc(p.name)}</h3><p class="muted">${esc(p.description)}</p><div class="row" style="margin-top:auto"><span class="price">${money(p.price)}</span><button class="btn" onclick="addCart(${p.id})">Agregar</button></div></article>`).join(''):'<p class="muted">Estamos actualizando nuestro catálogo.</p>';
+}
+
+function addCart(id){let p=state.products.find(p=>p.id===id);if(p){state.cart.push(p);$('cartCount').textContent=state.cart.length;}}
+function openCart(){$('cartModal').classList.remove('hidden');renderCart()}
+function closeCart(){$('cartModal').classList.add('hidden')}
+
+function renderCart(){
+    $('cartItems').innerHTML=state.cart.length?state.cart.map((p,i)=>`<div class="itemrow"><span>${esc(p.name)} · ${money(p.price)}</span><button class="btn light" onclick="removeCart(${i})">Quitar</button></div>`).join(''):'<p class="muted">Todavía no agregaste productos.</p>';
+    $('cartTotal').textContent=money(state.cart.reduce((s,p)=>s+Number(p.price),0))
+}
+function removeCart(i){state.cart.splice(i,1);$('cartCount').textContent=state.cart.length;renderCart()}
+
+// FUNCIONES DEL MODAL DE LOGIN
+function openLogin(){ $('loginModal').classList.remove('hidden'); }
+function closeLogin(){ $('loginModal').classList.add('hidden'); $('loginError').textContent=''; }
+
+$('loginForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    $('loginError').textContent = 'Verificando...';
+    try {
+        await api('/api/login', {
+            method: 'POST',
+            body: JSON.stringify({ email: $('loginEmail').value, password: $('loginPassword').value })
+        });
+        state.admin = true;
+        closeLogin();
+        go('admin');
+        loadAdmin();
+    } catch(err) {
+        $('loginError').textContent = err.message || 'Credenciales incorrectas';
     }
+});
 
-    function openCart() { $('cartModal').classList.remove('hidden'); }
-    function closeCart() { $('cartModal').classList.add('hidden'); }
+async function logout(){
+    await api('/api/logout', {method:'POST'}).catch(()=>{});
+    state.admin = false;
+    go('catalog');
+}
+
+async function loadAdmin(){
+    if(!state.admin) return;
+    try {
+        state.adminData = await api('/api/admin/data');
+        adminTab(window.currentAdminTab || 'orders');
+    } catch(e) {
+        state.admin = false;
+        openLogin();
+    }
+}
+
+function adminTab(tab){
+    window.currentAdminTab = tab;
+    let d = state.adminData;
+    if(!d) return;
+    let out = '';
+    if(tab==='orders'){
+        out = '<h3>Pedidos recibidos</h3>' + (d.orders.map(o=>`<div class="adminpanel"><div class="row"><b>${esc(o.code)} · ${esc(o.name)}</b><span>${money(o.total)}</span></div><p class="muted">${esc(o.phone)} · ${esc(o.province)}</p></div>`).join('') || '<p class="muted">No hay pedidos registrados.</p>');
+    }
+    if(tab==='products'){
+        out = '<h3>Gestión de productos</h3>' + (d.products.map(p=>`<div class="itemrow"><div><b>${esc(p.name)}</b><div class="muted">${money(p.price)}</div></div></div>`).join('') || '<p class="muted">No hay productos.</p>');
+    }
+    $('adminContent').innerHTML = out || '<p class="muted">Cargando información del panel...</p>';
+}
+
+load();
 </script>
 </body>
 </html>
