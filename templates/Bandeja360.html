@@ -124,7 +124,7 @@
             
             <!-- LOGO CENTRALIZADO EN ENCABEZADO -->
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-full border-2 border-viane-gold bg-viane-red ilumini flex items-center justify-center overflow-hidden shadow-md">
+                <div class="w-12 h-12 rounded-full border-2 border-viane-gold bg-viane-red flex items-center justify-center overflow-hidden shadow-md">
                     <img id="site-logo" src="IMG-20260327-WA0017.jpg" alt="Logotipo de Viane Delicatessen" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/100x100/1A120B/D4AF37?text=VD';">
                 </div>
                 <div>
@@ -134,7 +134,7 @@
             </div>
 
             <!-- INTERACTIVE MESSAGE WITH HEARTS ON HOVER -->
-            <div id="heart-hover-zone" class="relative cursor-pointer px-6 py-2 rounded-full bg-viane-brown/50 border border-viane-gold/30 hover:border-viane-gold transition-all duration-300 text-center shadow-inner group">
+            <div id="heart-hover-zone" class="relative cursor-pointer px-6 py-2 rounded-full bg-viane-ebony/50 border border-viane-gold/30 hover:border-viane-gold transition-all duration-300 text-center shadow-inner group">
                 <span class="font-cinzel text-sm md:text-base font-semibold gold-gradient-text group-hover:scale-105 inline-block transition-transform">
                     ✨ "NADA MEJOR QUE DEMOSTRAR AMOR A NUESTRO SERES EN VIDA" ✨
                 </span>
@@ -163,9 +163,9 @@
                     <span class="w-3 h-3 rounded-full bg-viane-gold animate-pulse"></span>
                     <h2 class="font-cinzel font-bold text-sm text-viane-ebony">Visor 3D Interactivo</h2>
                 </div>
-                <div class="flex items-center gap-2 text-xs text-viane-brown/70">
+                <div class="flex items-center gap-2 text-xs text-viane-ebony/70">
                     <i class="fa-solid fa-arrows-rotate"></i>
-                    <span>Clic y arrastra para rotar | Scroll para zoom</span>
+                    <span>Arrastra los productos con el ratón o dedo por la bandeja</span>
                 </div>
             </div>
 
@@ -184,13 +184,13 @@
                 </div>
 
                 <div class="absolute top-4 right-4 z-10 glass-panel px-4 py-2.5 rounded-xl shadow-lg border border-viane-gold/30">
-                    <span class="text-[10px] text-viane-brown/70 uppercase tracking-widest font-bold block">Bandeja Actual</span>
+                    <span class="text-[10px] text-viane-ebony/70 uppercase tracking-widest font-bold block">Bandeja Actual</span>
                     <h3 id="current-tray-title" class="font-cinzel text-viane-ebony font-bold text-sm">Cargando...</h3>
                     <p id="current-tray-price" class="text-xs text-viane-golddark font-bold mt-0.5">$0.00</p>
                 </div>
             </div>
 
-            <!-- TRAY SELECTION CAROUSEL BAR (Siguiente bandeja de 5 en 5) -->
+            <!-- TRAY SELECTION CAROUSEL BAR -->
             <div class="bg-viane-cream border-t border-viane-gold/20 p-4">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
@@ -198,7 +198,7 @@
                         <h3 class="font-cinzel font-bold text-sm text-viane-ebony">Catálogo de Bandejas</h3>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span id="tray-page-info" class="text-xs font-medium text-viane-brown">Página 1 de 1</span>
+                        <span id="tray-page-info" class="text-xs font-medium text-viane-ebony">Página 1 de 1</span>
                         <div class="flex gap-1">
                             <button onclick="prevTrayPage()" id="btn-prev-trays" class="p-1.5 rounded-lg bg-white border border-viane-gold/30 text-viane-ebony hover:bg-viane-gold hover:text-white transition-all disabled:opacity-40 disabled:pointer-events-none">
                                 <i class="fa-solid fa-chevron-left text-xs"></i>
@@ -229,7 +229,7 @@
                     </div>
                     <div>
                         <h3 class="font-cinzel font-bold text-sm text-viane-ebony">Nombre o Mensaje 3D</h3>
-                        <p class="text-[11px] text-viane-brown/60">Visible en la parte frontal y laterales</p>
+                        <p class="text-[11px] text-viane-ebony/60">Visible en la parte frontal de la bandeja</p>
                     </div>
                 </div>
 
@@ -265,7 +265,7 @@
                         </div>
                         <div>
                             <h3 class="font-cinzel font-bold text-sm text-viane-ebony">Añadir Productos 3D</h3>
-                            <p class="text-[11px] text-viane-brown/60">Añade elementos realistas a la bandeja</p>
+                            <p class="text-[11px] text-viane-ebony/60">Haz clic para agregar a la bandeja</p>
                         </div>
                     </div>
                 </div>
@@ -321,15 +321,14 @@
                     <i class="fa-solid fa-shield-halved"></i>
                 </div>
                 <h4 class="font-cinzel font-bold text-lg text-viane-ebony">Acceso de Administrador</h4>
-                <p class="text-xs text-viane-brown/70 max-w-sm mx-auto">Ingresa las credenciales autorizadas para gestionar las bandejas y productos.</p>
+                <p class="text-xs text-viane-ebony/70 max-w-sm mx-auto">Ingresa las credenciales autorizadas para gestionar las bandejas y productos.</p>
                 
                 <div class="max-w-xs mx-auto space-y-3">
-                    <input type="text" id="admin-user-input" placeholder="Usuario (VIANE30)" class="w-full px-4 py-2 border border-viane-gold/40 rounded-xl text-center outline-none focus:ring-2 focus:ring-viane-gold text-sm">
-                    <input type="password" id="admin-password-input" placeholder="Contraseña (ERISSON09)" class="w-full px-4 py-2 border border-viane-gold/40 rounded-xl text-center outline-none focus:ring-2 focus:ring-viane-gold text-sm">
+                    <input type="password" id="admin-password-input" placeholder="Contraseña de Administrador" class="w-full px-4 py-2 border border-viane-gold/40 rounded-xl text-center outline-none focus:ring-2 focus:ring-viane-gold text-sm">
                     <button onclick="authenticateAdmin()" class="w-full py-2.5 rounded-xl gold-bg-gradient text-viane-ebony font-bold text-sm hover:brightness-110 transition-all">
                         Ingresar al Panel
                     </button>
-                    <p id="admin-auth-error" class="text-xs text-red-500 hidden">Usuario o Contraseña incorrectos.</p>
+                    <p id="admin-auth-error" class="text-xs text-red-500 hidden">Contraseña incorrecta.</p>
                 </div>
             </div>
 
@@ -340,22 +339,21 @@
                         <img id="logo-preview" src="IMG-20260327-WA0017.jpg" alt="Vista previa del logotipo" onerror="this.style.opacity='.35'">
                         <div class="flex-1 min-w-[180px]">
                             <h4 class="font-cinzel font-bold text-sm text-viane-ebony">Logotipo del sitio</h4>
-                            <p class="text-xs text-viane-brown/70 mt-1">Sube una imagen para colocarla en el encabezado o quítala para ocultar el logo.</p>
+                            <p class="text-xs text-viane-ebony/70 mt-1">Sube una imagen para colocarla en el encabezado.</p>
                             <input id="admin-logo-file" type="file" accept="image/*" class="mt-2 w-full text-xs">
                         </div>
                         <div class="flex gap-2 flex-wrap">
                             <button type="button" onclick="applyLogoUpload()" class="px-3 py-2 rounded-lg gold-bg-gradient text-xs font-bold">Guardar logo</button>
-                            <button type="button" onclick="removeSiteLogo()" class="px-3 py-2 rounded-lg border border-red-200 text-red-700 text-xs font-bold hover:bg-red-50">Quitar logo</button>
                         </div>
                     </div>
-                    <p id="logo-status" class="text-xs text-viane-brown/70 mt-2" role="status"></p>
                 </section>
+
                 <div class="flex border-b border-viane-softgray gap-4">
                     <button id="tab-btn-trays" onclick="switchAdminTab('trays')" class="pb-3 border-b-2 border-viane-gold text-viane-gold font-bold text-sm flex items-center gap-2">
                         <i class="fa-solid fa-box-archive"></i>
                         <span>Agregar Bandeja</span>
                     </button>
-                    <button id="tab-btn-products" onclick="switchAdminTab('products')" class="pb-3 border-b-2 border-transparent text-viane-brown/60 hover:text-viane-ebony font-bold text-sm flex items-center gap-2">
+                    <button id="tab-btn-products" onclick="switchAdminTab('products')" class="pb-3 border-b-2 border-transparent text-viane-ebony/60 hover:text-viane-ebony font-bold text-sm flex items-center gap-2">
                         <i class="fa-solid fa-wine-glass"></i>
                         <span>Agregar Producto 3D</span>
                     </button>
@@ -380,11 +378,12 @@
                                 <option value="gold">Dorado Lujo</option>
                                 <option value="black">Ébano Negro</option>
                                 <option value="white">Blanco Mármol</option>
+                                <option value="glass">Cristal / Vidrio</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-viane-ebony mb-1">Imagen / Textura (Opcional)</label>
-                            <input type="file" id="tray-texture-file" accept="image/*" class="w-full text-xs text-viane-brown/70 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-viane-gold/20 file:text-viane-brown hover:file:bg-viane-gold">
+                            <label class="block text-xs font-semibold text-viane-ebony mb-1">Imagen de Textura (Opcional)</label>
+                            <input type="file" id="tray-texture-file" accept="image/*" class="w-full text-xs text-viane-ebony/70 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-viane-gold/20 file:text-viane-ebony hover:file:bg-viane-gold">
                         </div>
 
                         <div class="md:col-span-2 pt-2">
@@ -427,8 +426,8 @@
                             <input type="color" id="prod-color" value="#D4AF37" class="w-full h-8 rounded-lg border border-viane-gold/30 cursor-pointer bg-white p-1">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-viane-ebony mb-1">Imagen para Generación Automática de Textura 3D</label>
-                            <input type="file" id="prod-image-file" accept="image/*" class="w-full text-xs text-viane-brown/70 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-viane-gold/20 file:text-viane-brown hover:file:bg-viane-gold">
+                            <label class="block text-xs font-semibold text-viane-ebony mb-1">Imagen de Textura 3D</label>
+                            <input type="file" id="prod-image-file" accept="image/*" class="w-full text-xs text-viane-ebony/70 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-viane-gold/20 file:text-viane-ebony hover:file:bg-viane-gold">
                         </div>
 
                         <div class="md:col-span-2 pt-2">
@@ -450,21 +449,15 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- JAVASCRIPT LOGIC CON ARRASTRE LIBRE Y LÍMITES DE BANDEJA -->
     <script>
-        // CREDENTIALS CHECK
-        const ADMIN_CREDENTIALS = {
-            user: "VIANE30",
-            pass: "ERISSON09"
-        };
-
         let state = {
             trays: [
                 { id: 'tray-1', name: 'Bandeja Roble Clásica', price: 25.00, material: 'wood', color: '#8B5A2B', textureUrl: null },
                 { id: 'tray-2', name: 'Bandeja Ébano Negra', price: 30.00, material: 'black', color: '#1A1A1A', textureUrl: null },
                 { id: 'tray-3', name: 'Bandeja Dorado Lujo', price: 45.00, material: 'gold', color: '#D4AF37', textureUrl: null },
                 { id: 'tray-4', name: 'Bandeja Mármol Blanco', price: 40.00, material: 'white', color: '#F5F5F5', textureUrl: null },
-                { id: 'tray-5', name: 'Bandeja Cedro Rustica', price: 28.00, material: 'wood', color: '#A0522D', textureUrl: null },
+                { id: 'tray-5', name: 'Bandeja Cedro Rústica', price: 28.00, material: 'wood', color: '#A0522D', textureUrl: null },
                 { id: 'tray-6', name: 'Bandeja Champagne', price: 50.00, material: 'gold', color: '#E6C687', textureUrl: null }
             ],
             products: [
@@ -484,157 +477,59 @@
             isAdminLoggedIn: false
         };
 
-        const STORAGE_KEY = 'viane-delicatessen-config-v2';
-        const DEFAULT_TRAYS = JSON.parse(JSON.stringify(state.trays));
-        const DEFAULT_PRODUCTS = JSON.parse(JSON.stringify(state.products));
-        let siteLogoData = null;
-        let logoWasRemoved = false;
+        const STORAGE_KEY = 'viane-delicatessen-config-v3';
 
-        function persistState() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                    trays: state.trays, products: state.products,
-                    selectedTrayIndex: state.selectedTrayIndex,
-                    customText: state.customText, textColor: state.textColor, textFont: state.textFont,
-                    logo: siteLogoData
-                }));
-            } catch (err) {
-                console.warn('No se pudo guardar toda la configuración local:', err);
-                const status = document.getElementById('logo-status');
-                if (status) status.textContent = 'Almacenamiento lleno: usa imágenes más pequeñas para guardar cambios.';
-            }
-        }
-
-        function loadSavedState() {
-            try {
-                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-                if (!saved) return;
-                if (Array.isArray(saved.trays)) state.trays = saved.trays;
-                if (Array.isArray(saved.products)) state.products = saved.products;
-                state.selectedTrayIndex = Math.min(Math.max(0, Number(saved.selectedTrayIndex) || 0), Math.max(0, state.trays.length - 1));
-                state.customText = typeof saved.customText === 'string' ? saved.customText : '';
-                state.textColor = saved.textColor || '#D4AF37';
-                state.textFont = saved.textFont || 'Cinzel';
-                siteLogoData = saved.logo || null;
-                logoWasRemoved = Object.prototype.hasOwnProperty.call(saved, 'logo') && !saved.logo;
-            } catch (err) { console.warn('Configuración guardada no válida; se usarán los valores iniciales.', err); }
-        }
-
-        function syncLogo() {
-            const logo = document.getElementById('site-logo');
-            const preview = document.getElementById('logo-preview');
-            [logo, preview].forEach(img => {
-                if (!img) return;
-                if (siteLogoData) { img.src = siteLogoData; img.style.display = ''; }
-                else if (logoWasRemoved) { img.style.display = 'none'; }
-                else { img.src = 'IMG-20260327-WA0017.jpg'; img.style.display = ''; }
-            });
-        }
-
-        function applyLogoUpload() {
-            const input = document.getElementById('admin-logo-file');
-            const file = input && input.files && input.files[0];
-            if (!file) { document.getElementById('logo-status').textContent = 'Selecciona primero una imagen.'; return; }
-            if (!file.type.startsWith('image/')) { document.getElementById('logo-status').textContent = 'El archivo debe ser una imagen.'; return; }
-            if (file.size > 2 * 1024 * 1024) { document.getElementById('logo-status').textContent = 'La imagen supera 2 MB. Elige una más pequeña.'; return; }
-            const reader = new FileReader();
-            reader.onload = e => { siteLogoData = e.target.result; syncLogo(); persistState(); document.getElementById('logo-status').textContent = 'Logotipo actualizado y guardado en este navegador.'; input.value = ''; };
-            reader.readAsDataURL(file);
-        }
-
-        function removeSiteLogo() {
-            siteLogoData = null;
-            logoWasRemoved = true;
-            try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); saved.logo = null; localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); } catch (_) {}
-            syncLogo();
-            const status = document.getElementById('logo-status');
-            if (status) status.textContent = 'Logotipo quitado. El encabezado conservará el espacio de marca.';
-        }
-
+        // THREE.JS SETUP Y VARIABLES DE ARRASTRE
         let scene, camera, renderer, controls;
-        let currentTrayMesh = null;
-        let textTextureCanvas, textTextureContext, textTexture;
-        let objectsGroup = new THREE.Group();
+        let trayMesh = null;
+        let trayProductsGroup = new THREE.Group();
+        let textMeshGroup = new THREE.Group();
 
-        function initThreeJS() {
-            // El catálogo y el panel deben seguir funcionando aunque Three.js no cargue.
-            if (typeof THREE === 'undefined') {
-                const container = document.getElementById('viewport-container');
-                if (container) {
-                    const notice = document.createElement('div');
-                    notice.className = 'absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-viane-brown bg-viane-cream/80';
-                    notice.textContent = 'El visor 3D no pudo cargarse. Comprueba tu conexión a Internet y recarga; el catálogo y el panel de administración siguen disponibles.';
-                    container.appendChild(notice);
-                }
-                return;
-            }
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedObject = null;
+        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        let planeIntersect = new THREE.Vector3();
+
+        function initThree() {
             const container = document.getElementById('viewport-container');
-            const width = container.clientWidth;
-            const height = container.clientHeight;
+            if (!container) return;
 
             scene = new THREE.Scene();
 
-            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-            camera.position.set(0, 12, 16);
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 10, 14);
 
             renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), antialias: true, alpha: true });
-            renderer.setSize(width, height);
+            renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.maxPolarAngle = Math.PI / 2 - 0.05;
-            controls.minDistance = 6;
-            controls.maxDistance = 30;
-            controls.target.set(0, 1, 0);
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            // Luces
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
             scene.add(ambientLight);
 
-            const dirLight = new THREE.DirectionalLight(0xfffaed, 0.9);
-            dirLight.position.set(10, 20, 12);
-            dirLight.castShadow = true;
+            const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.4);
+            dirLight.position.set(10, 20, 15);
             scene.add(dirLight);
 
-            const fillLight = new THREE.DirectionalLight(0xe6f0ff, 0.4);
-            fillLight.position.set(-10, 10, -10);
-            scene.add(fillLight);
+            scene.add(trayProductsGroup);
+            scene.add(textMeshGroup);
 
-            const floorGeo = new THREE.PlaneGeometry(60, 60);
-            const floorMat = new THREE.ShadowMaterial({ opacity: 0.15 });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.y = 0;
-            floor.receiveShadow = true;
-            scene.add(floor);
+            buildTray3D();
 
-            scene.add(objectsGroup);
+            // Eventos para mover objetos dentro de la bandeja con límites
+            const canvas = renderer.domElement;
+            canvas.addEventListener('pointerdown', onPointerDown);
+            canvas.addEventListener('pointermove', onPointerMove);
+            canvas.addEventListener('pointerup', onPointerUp);
 
-            textTextureCanvas = document.createElement('canvas');
-            textTextureCanvas.width = 1024;
-            textTextureCanvas.height = 256;
-            textTextureContext = textTextureCanvas.getContext('2d');
-            textTexture = new THREE.CanvasTexture(textTextureCanvas);
-
-            renderTray3D();
             window.addEventListener('resize', onWindowResize);
             animate();
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-
-            objectsGroup.children.forEach(child => {
-                if (child.userData && child.userData.isSphere) {
-                    child.rotation.y += 0.005;
-                }
-            });
-
-            renderer.render(scene, camera);
         }
 
         function onWindowResize() {
@@ -645,263 +540,240 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         }
 
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
         function resetCamera() {
-            camera.position.set(0, 12, 16);
-            controls.target.set(0, 1, 0);
+            camera.position.set(0, 10, 14);
+            controls.target.set(0, 0, 0);
             controls.update();
         }
 
-        function renderTray3D() {
-            if (typeof THREE === 'undefined' || !scene) {
-                const title = document.getElementById('current-tray-title');
-                const price = document.getElementById('current-tray-price');
-                const tray = state.trays[state.selectedTrayIndex];
-                if (title) title.innerText = tray ? tray.name : 'Sin bandejas';
-                if (price) price.innerText = tray ? `$${Number(tray.price).toFixed(2)}` : '$0.00';
-                updateOrderSummary();
-                return;
+        // CONSTRUCCIÓN DE LA BANDEJA CON MATERIALES REALISTAS Y TEXTURAS
+        function buildTray3D() {
+            if (trayMesh) scene.remove(trayMesh);
+
+            const trayData = state.trays[state.selectedTrayIndex] || state.trays[0];
+            if (!trayData) return;
+
+            document.getElementById('current-tray-title').textContent = trayData.name;
+            document.getElementById('current-tray-price').textContent = `$${Number(trayData.price).toFixed(2)}`;
+
+            let matConfig = { roughness: 0.5, metalness: 0.1, color: trayData.color || '#8B5A2B' };
+
+            if (trayData.material === 'gold') {
+                matConfig = { color: 0xD4AF37, roughness: 0.2, metalness: 0.85 };
+            } else if (trayData.material === 'black') {
+                matConfig = { color: 0x1A1A1A, roughness: 0.4, metalness: 0.3 };
+            } else if (trayData.material === 'white') {
+                matConfig = { color: 0xF5F5F5, roughness: 0.2, metalness: 0.1 };
+            } else if (trayData.material === 'glass' || trayData.material === 'cristal') {
+                matConfig = { color: 0xffffff, transparent: true, opacity: 0.4, roughness: 0.1, transmission: 0.9 };
             }
-            if (currentTrayMesh) scene.remove(currentTrayMesh);
 
-            const trayData = state.trays[state.selectedTrayIndex];
-            if (!trayData) {
-                document.getElementById('current-tray-title').innerText = 'Sin bandejas';
-                document.getElementById('current-tray-price').innerText = '$0.00';
-                updateOrderSummary();
-                return;
-            }
-
-            document.getElementById('current-tray-title').innerText = trayData.name;
-            document.getElementById('current-tray-price').innerText = `$${trayData.price.toFixed(2)}`;
-
-            const trayGroup = new THREE.Group();
-            drawCustomTextCanvas();
-
-            let mainMaterial;
             if (trayData.textureUrl) {
-                const loadedTexture = new THREE.TextureLoader().load(trayData.textureUrl);
-                mainMaterial = new THREE.MeshStandardMaterial({ map: loadedTexture, roughness: 0.4 });
-            } else {
-                mainMaterial = new THREE.MeshStandardMaterial({
-                    color: new THREE.Color(trayData.color),
-                    roughness: trayData.material === 'gold' ? 0.2 : 0.6,
-                    metalness: trayData.material === 'gold' ? 0.8 : 0.1
-                });
+                const texture = new THREE.TextureLoader().load(trayData.textureUrl);
+                matConfig.map = texture;
             }
 
-            const textMaterial = new THREE.MeshBasicMaterial({
-                map: textTexture,
-                transparent: true,
-                depthWrite: false
-            });
+            const baseMat = new THREE.MeshPhysicalMaterial(matConfig);
+            const trayGroup = new THREE.Group();
 
-            const width = 8, length = 5.5, height = 1.2, thickness = 0.25;
+            // Base
+            const baseGeo = new THREE.BoxGeometry(8, 0.4, 6);
+            const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+            baseMesh.position.y = -0.2;
+            trayGroup.add(baseMesh);
 
-            const bottomGeo = new THREE.BoxGeometry(width, thickness, length);
-            const bottomMesh = new THREE.Mesh(bottomGeo, mainMaterial);
-            bottomMesh.position.y = thickness / 2;
-            bottomMesh.castShadow = true;
-            bottomMesh.receiveShadow = true;
-            trayGroup.add(bottomMesh);
+            // Marcos / Paredes
+            const wallH = 0.8, wallT = 0.3;
+            const wallMat = baseMat.clone();
 
-            function createWall(w, h, d, px, py, pz) {
-                const geo = new THREE.BoxGeometry(w, h, d);
-                const mesh = new THREE.Mesh(geo, mainMaterial);
-                mesh.position.set(px, py, pz);
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                return mesh;
-            }
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(8, wallH, wallT), wallMat);
+            backWall.position.set(0, wallH/2 - 0.2, -3 + wallT/2);
+            trayGroup.add(backWall);
 
-            trayGroup.add(createWall(width, height, thickness, 0, height / 2, -length / 2 + thickness / 2));
-            trayGroup.add(createWall(width, height, thickness, 0, height / 2, length / 2 - thickness / 2));
-            trayGroup.add(createWall(thickness, height, length - thickness * 2, -width / 2 + thickness / 2, height / 2, 0));
-            trayGroup.add(createWall(thickness, height, length - thickness * 2, width / 2 - thickness / 2, height / 2, 0));
+            const frontWall = new THREE.Mesh(new THREE.BoxGeometry(8, wallH, wallT), wallMat);
+            frontWall.position.set(0, wallH/2 - 0.2, 3 - wallT/2);
+            trayGroup.add(frontWall);
 
-            if (state.customText.trim() !== '') {
-                const textPlaneGeoFront = new THREE.PlaneGeometry(width * 0.8, height * 0.7);
-                const frontTextMesh = new THREE.Mesh(textPlaneGeoFront, textMaterial);
-                frontTextMesh.position.set(0, height / 2, length / 2 + 0.01);
-                trayGroup.add(frontTextMesh);
+            const sideGeo = new THREE.BoxGeometry(wallT, wallH, 6 - wallT*2);
+            const leftWall = new THREE.Mesh(sideGeo, wallMat);
+            leftWall.position.set(-4 + wallT/2, wallH/2 - 0.2, 0);
+            trayGroup.add(leftWall);
 
-                const textPlaneGeoSide = new THREE.PlaneGeometry(length * 0.7, height * 0.7);
-                const sideLeftTextMesh = new THREE.Mesh(textPlaneGeoSide, textMaterial);
-                sideLeftTextMesh.position.set(-width / 2 - 0.01, height / 2, 0);
-                sideLeftTextMesh.rotation.y = -Math.PI / 2;
-                trayGroup.add(sideLeftTextMesh);
+            const rightWall = new THREE.Mesh(sideGeo, wallMat);
+            rightWall.position.set(4 - wallT/2, wallH/2 - 0.2, 0);
+            trayGroup.add(rightWall);
 
-                const sideRightTextMesh = new THREE.Mesh(textPlaneGeoSide, textMaterial);
-                sideRightTextMesh.position.set(width / 2 + 0.01, height / 2, 0);
-                sideRightTextMesh.rotation.y = Math.PI / 2;
-                trayGroup.add(sideRightTextMesh);
-            }
+            trayMesh = trayGroup;
+            scene.add(trayMesh);
 
-            currentTrayMesh = trayGroup;
-            scene.add(currentTrayMesh);
+            updateTrayTextOnMesh();
             updateOrderSummary();
         }
 
-        function drawCustomTextCanvas() {
-            textTextureContext.clearRect(0, 0, textTextureCanvas.width, textTextureCanvas.height);
-            if (!state.customText.trim()) {
-                textTexture.needsUpdate = true;
-                return;
+        // AÑADIR PRODUCTO A LA BANDEJA
+        function addProductToTray(productId) {
+            const product = state.products.find(p => p.id === productId);
+            if (!product) return;
+
+            state.addedObjects.push(product);
+
+            let geom;
+            if (product.shape === 'bottle') {
+                geom = new THREE.CylinderGeometry(0.3, 0.35, 2.2, 16);
+            } else if (product.shape === 'sphere') {
+                geom = new THREE.SphereGeometry(0.5, 16, 16);
+            } else if (product.shape === 'cylinder') {
+                geom = new THREE.CylinderGeometry(0.4, 0.4, 1.2, 16);
+            } else {
+                geom = new THREE.BoxGeometry(0.8, 0.6, 0.8);
             }
-            textTextureContext.font = `bold 72px ${state.textFont}, serif`;
-            textTextureContext.textAlign = 'center';
-            textTextureContext.textBaseline = 'middle';
-            textTextureContext.fillStyle = state.textColor;
-            textTextureContext.fillText(state.customText, textTextureCanvas.width / 2, textTextureCanvas.height / 2);
-            textTexture.needsUpdate = true;
+
+            const matConfig = { color: product.color || '#D4AF37', roughness: 0.3 };
+            if (product.textureUrl) {
+                matConfig.map = new THREE.TextureLoader().load(product.textureUrl);
+            }
+
+            const mat = new THREE.MeshStandardMaterial(matConfig);
+            const mesh = new THREE.Mesh(geom, mat);
+
+            // Posición inicial ordenada
+            const count = state.addedObjects.length - 1;
+            const row = Math.floor(count / 3);
+            const col = count % 3;
+            mesh.position.set((col - 1) * 1.8, 0.5, (row - 0.5) * 1.5);
+
+            trayProductsGroup.add(mesh);
+            updateOrderSummary();
         }
 
+        // ARRASTRE LIBRE Y LÍMITES FÍSICOS DENTRO DEL MARCO
+        function getPointerPos(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        function onPointerDown(e) {
+            getPointerPos(e);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(trayProductsGroup.children);
+
+            if (intersects.length > 0) {
+                selectedObject = intersects[0].object;
+                controls.enabled = false; // Pausa la rotación de la cámara al arrastrar
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!selectedObject) return;
+            getPointerPos(e);
+            raycaster.setFromCamera(mouse, camera);
+
+            if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
+                // Límites estrictos del marco de la bandeja (para que no salgan volando)
+                const limitX = 3.2;
+                const limitZ = 2.2;
+
+                selectedObject.position.x = Math.max(-limitX, Math.min(limitX, planeIntersect.x));
+                selectedObject.position.z = Math.max(-limitZ, Math.min(limitZ, planeIntersect.z));
+            }
+        }
+
+        function onPointerUp() {
+            selectedObject = null;
+            controls.enabled = true; // Reactiva la cámara
+        }
+
+        function clearTrayObjects() {
+            state.addedObjects = [];
+            while(trayProductsGroup.children.length > 0){
+                trayProductsGroup.remove(trayProductsGroup.children[0]);
+            }
+            updateOrderSummary();
+        }
+
+        // TEXTO GRABADO 3D
         function updateTrayText(val) {
             state.customText = val;
-            renderTray3D();
-            persistState();
+            updateTrayTextOnMesh();
         }
 
         function updateTrayTextColors() {
             state.textColor = document.getElementById('custom-text-color').value;
             state.textFont = document.getElementById('custom-text-font').value;
-            renderTray3D();
-            persistState();
+            updateTrayTextOnMesh();
         }
 
-        function addProductToTray(productId) {
-            const prod = state.products.find(p => p.id === productId);
-            if (!prod) return;
-
-            let mesh;
-            if (prod.textureUrl && prod.shape === 'box') {
-                const texture = new THREE.TextureLoader().load(prod.textureUrl);
-                const geo = new THREE.BoxGeometry(1.6, 1.2, 1.2);
-                const mat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3 });
-                mesh = new THREE.Mesh(geo, mat);
-                mesh.position.y = 0.6;
-            } else {
-                switch (prod.shape) {
-                    case 'bottle':
-                        const bottleGroup = new THREE.Group();
-                        const bodyGeo = new THREE.CylinderGeometry(0.45, 0.45, 2.2, 32);
-                        const bodyMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(prod.color), roughness: 0.1 });
-                        const body = new THREE.Mesh(bodyGeo, bodyMat);
-                        body.position.y = 1.1;
-
-                        const neckGeo = new THREE.CylinderGeometry(0.15, 0.3, 0.8, 32);
-                        const neck = new THREE.Mesh(neckGeo, bodyMat);
-                        neck.position.y = 2.4;
-
-                        bottleGroup.add(body);
-                        bottleGroup.add(neck);
-                        mesh = bottleGroup;
-                        break;
-                    case 'sphere':
-                        const sphereGeo = new THREE.SphereGeometry(0.5, 32, 32);
-                        const sphereMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(prod.color), metalness: 0.7 });
-                        mesh = new THREE.Mesh(sphereGeo, sphereMat);
-                        mesh.position.y = 0.5;
-                        mesh.userData.isSphere = true;
-                        break;
-                    default:
-                        const boxGeo = new THREE.BoxGeometry(1.5, 0.8, 1.2);
-                        const boxMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(prod.color), roughness: 0.3 });
-                        mesh = new THREE.Mesh(boxGeo, boxMat);
-                        mesh.position.y = 0.4;
-                        break;
-                }
+        function updateTrayTextOnMesh() {
+            while(textMeshGroup.children.length > 0) {
+                textMeshGroup.remove(textMeshGroup.children[0]);
             }
 
-            const count = state.addedObjects.length;
-            mesh.position.x = -2.2 + (count % 3) * 2.2;
-            mesh.position.z = -1.2 + Math.floor(count / 3) * 1.5;
-            mesh.position.y += 0.25;
+            if (!state.customText.trim()) return;
 
-            const instanceId = Date.now() + Math.floor(Math.random() * 1000);
-            mesh.userData = { ...mesh.userData, id: productId, instanceId };
-            objectsGroup.add(mesh);
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            state.addedObjects.push({
-                instanceId: instanceId,
-                productId: prod.id,
-                name: prod.name,
-                price: prod.price
-            });
+            ctx.fillStyle = state.textColor || '#D4AF37';
+            ctx.font = `bold 40px ${state.textFont || 'Cinzel'}, serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(state.customText, canvas.width / 2, canvas.height / 2);
 
-            updateOrderSummary();
-            renderAdminLists();
+            const texture = new THREE.CanvasTexture(canvas);
+            const planeGeo = new THREE.PlaneGeometry(3.5, 0.9);
+            const planeMat = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+            const textMesh = new THREE.Mesh(planeGeo, planeMat);
+            textMesh.position.set(0, 0.45, 2.86);
+
+            textMeshGroup.add(textMesh);
         }
 
-        function removePlacedProduct(instanceId) {
-            const mesh = objectsGroup.children.find(child => child.userData && child.userData.instanceId === instanceId);
-            if (mesh) { objectsGroup.remove(mesh); disposeObject(mesh); }
-            state.addedObjects = state.addedObjects.filter(item => item.instanceId !== instanceId);
-            updateOrderSummary();
-        }
-
-        function disposeObject(object) {
-            object.traverse(child => {
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) {
-                    const materials = Array.isArray(child.material) ? child.material : [child.material];
-                    materials.forEach(material => { if (material.map) material.map.dispose(); material.dispose(); });
-                }
-            });
-        }
-
-        function clearTrayObjects() {
-            while (objectsGroup.children.length > 0) {
-                objectsGroup.remove(objectsGroup.children[0]);
-            }
-            state.addedObjects = [];
-            updateOrderSummary();
-        }
-
+        // INTERFAZ DE USUARIO (CARRUSEL Y CATALOGO)
         function renderTraysCarousel() {
             const container = document.getElementById('trays-carousel-container');
-            container.innerHTML = '';
+            if (!container) return;
+
+            const startIndex = state.trayCurrentPage * state.traysPerPage;
+            const slice = state.trays.slice(startIndex, startIndex + state.traysPerPage);
 
             const totalPages = Math.ceil(state.trays.length / state.traysPerPage) || 1;
-            document.getElementById('tray-page-info').innerText = `Página ${state.trayCurrentPage + 1} de ${totalPages}`;
+            document.getElementById('tray-page-info').textContent = `Página ${state.trayCurrentPage + 1} de ${totalPages}`;
 
-            document.getElementById('btn-prev-trays').disabled = state.trayCurrentPage === 0;
-            document.getElementById('btn-next-trays').disabled = state.trayCurrentPage >= totalPages - 1;
-
-            const startIdx = state.trayCurrentPage * state.traysPerPage;
-            const pageTrays = state.trays.slice(startIdx, startIdx + state.traysPerPage);
-            if (!pageTrays.length) container.innerHTML = '<p class="col-span-full text-sm text-viane-brown/70 py-4">No hay bandejas disponibles. Añade una desde el panel de administración.</p>';
-
-            pageTrays.forEach((tray, pageOffset) => {
-                const globalIndex = startIdx + pageOffset;
-                const isSelected = globalIndex === state.selectedTrayIndex;
-
-                const card = document.createElement('div');
-                card.className = `cursor-pointer p-3 rounded-xl border transition-all text-center flex flex-col justify-between ${
-                    isSelected ? 'bg-viane-gold/15 border-viane-gold ring-2 ring-viane-gold/30' : 'bg-white border-viane-gold/20 hover:border-viane-gold'
-                }`;
-                card.onclick = () => selectTray(globalIndex);
-
-                card.innerHTML = `
-                    <div class="w-7 h-7 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style="background-color: ${tray.color}; color: #fff;">
-                        <i class="fa-solid fa-box"></i>
+            container.innerHTML = slice.map((tray, idx) => {
+                const actualIndex = startIndex + idx;
+                const isSelected = actualIndex === state.selectedTrayIndex;
+                return `
+                    <div onclick="selectTray(${actualIndex})" class="cursor-pointer p-3 rounded-xl border-2 transition-all ${isSelected ? 'border-viane-gold bg-viane-gold/10 shadow-md scale-102' : 'border-viane-gold/20 bg-white hover:border-viane-gold/60'} flex flex-col justify-between items-center text-center">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2" style="background:${tray.color || '#D4AF37'}; color:#fff;">
+                            <i class="fa-solid fa-box text-sm"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-cinzel text-xs font-bold text-viane-ebony line-clamp-1">${tray.name}</h4>
+                            <p class="text-[11px] text-viane-golddark font-bold mt-0.5">$${Number(tray.price).toFixed(2)}</p>
+                        </div>
                     </div>
-                    <p class="font-bold text-xs text-viane-ebony truncate">${tray.name}</p>
-                    <p class="text-[11px] font-semibold text-viane-golddark mt-0.5">$${tray.price.toFixed(2)}</p>
                 `;
-                container.appendChild(card);
-            });
+            }).join('');
         }
 
         function selectTray(index) {
             state.selectedTrayIndex = index;
+            buildTray3D();
             renderTraysCarousel();
-            renderTray3D();
-            persistState();
         }
 
         function nextTrayPage() {
-            const totalPages = Math.ceil(state.trays.length / state.traysPerPage);
-            if (state.trayCurrentPage < totalPages - 1) {
+            if ((state.trayCurrentPage + 1) * state.traysPerPage < state.trays.length) {
                 state.trayCurrentPage++;
                 renderTraysCarousel();
             }
@@ -914,90 +786,73 @@
             }
         }
 
-        function escapeHTML(value) {
-            return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-        }
-
         function renderProductsCatalog() {
             const container = document.getElementById('products-catalog-grid');
-            container.innerHTML = '';
-            if (!state.products.length) { container.innerHTML = '<p class="col-span-2 text-xs text-viane-brown/70 py-4">No hay productos disponibles por ahora.</p>'; return; }
+            if (!container) return;
 
-            state.products.forEach(prod => {
-                const card = document.createElement('div');
-                card.className = "bg-viane-cream/40 border border-viane-gold/20 rounded-xl p-3 flex flex-col justify-between";
-                card.innerHTML = `
-                    <div class="flex items-center gap-2 mb-2">
-                        <i class="fa-solid ${prod.icon || 'fa-gift'} text-viane-gold text-xs"></i>
-                        <span class="font-bold text-xs text-viane-ebony truncate">${escapeHTML(prod.name)}</span>
+            container.innerHTML = state.products.map(prod => `
+                <div onclick="addProductToTray('${prod.id}')" class="cursor-pointer p-3 rounded-xl border border-viane-gold/20 bg-viane-cream/30 hover:border-viane-gold hover:bg-viane-gold/5 transition-all flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:${prod.color || '#D4AF37'}; color:#fff;">
+                        <i class="fa-solid ${prod.icon || 'fa-cube'} text-sm"></i>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-viane-brown">$${prod.price.toFixed(2)}</span>
-                        <button onclick="addProductToTray('${prod.id}')" class="px-2 py-1 rounded-lg bg-viane-gold/20 hover:bg-viane-gold text-viane-ebony font-bold text-[11px]">
-                            + Añadir
-                        </button>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-cinzel text-xs font-bold text-viane-ebony truncate">${prod.name}</h4>
+                        <p class="text-[11px] text-viane-golddark font-bold">$${Number(prod.price).toFixed(2)}</p>
                     </div>
-                `;
-                container.appendChild(card);
-            });
+                    <div class="text-viane-gold">
+                        <i class="fa-solid fa-circle-plus text-base"></i>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function updateOrderSummary() {
-            const currentTray = state.trays[state.selectedTrayIndex];
-            const trayPrice = currentTray ? currentTray.price : 0;
-            const productsTotal = state.addedObjects.reduce((acc, item) => acc + item.price, 0);
-            const total = trayPrice + productsTotal;
+            const tray = state.trays[state.selectedTrayIndex] || state.trays[0];
+            let total = tray ? tray.price : 0;
 
-            document.getElementById('items-count-badge').innerText = `${state.addedObjects.length + (currentTray ? 1 : 0)} elementos`;
-            document.getElementById('order-total-price').innerText = `$${total.toFixed(2)}`;
+            const counts = {};
+            state.addedObjects.forEach(obj => {
+                counts[obj.name] = (counts[obj.name] || 0) + 1;
+                total += obj.price;
+            });
 
-            const listContainer = document.getElementById('order-items-list');
-            listContainer.innerHTML = '';
+            document.getElementById('items-count-badge').textContent = `${state.addedObjects.length} elementos`;
+            document.getElementById('order-total-price').textContent = `$${total.toFixed(2)}`;
 
-            if (currentTray) {
-                const trayRow = document.createElement('div');
-                trayRow.className = "flex justify-between items-center text-viane-goldlight";
-                trayRow.innerHTML = `<span class="truncate">📦 Base: ${currentTray.name}</span><span class="font-bold">$${currentTray.price.toFixed(2)}</span>`;
-                listContainer.appendChild(trayRow);
+            let html = `<div class="flex justify-between font-semibold border-b border-white/10 pb-1"><span>${tray.name}</span><span>$${tray.price.toFixed(2)}</span></div>`;
+            for (let name in counts) {
+                const prod = state.products.find(p => p.name === name);
+                const subtotal = prod ? prod.price * counts[name] : 0;
+                html += `<div class="flex justify-between text-viane-goldlight/80"><span>${counts[name]}x ${name}</span><span>$${subtotal.toFixed(2)}</span></div>`;
+            }
+            if (state.customText) {
+                html += `<div class="text-viane-gold text-[11px] italic">Grabado: "${state.customText}"</div>`;
             }
 
-            state.addedObjects.forEach((item) => {
-                const row = document.createElement('div');
-                row.className = "flex justify-between items-center gap-2 text-gray-300";
-                row.innerHTML = `<span class="truncate pl-2">✦ ${escapeHTML(item.name)}</span><span class="flex items-center gap-2 shrink-0"><span class="font-bold">$${item.price.toFixed(2)}</span><button type="button" aria-label="Quitar ${escapeHTML(item.name)}" title="Quitar producto" onclick="removePlacedProduct(${item.instanceId})" class="text-red-300 hover:text-white">×</button></span>`;
-                listContainer.appendChild(row);
-            });
+            document.getElementById('order-items-list').innerHTML = html;
         }
 
         function requestQuote() {
-            const currentTray = state.trays[state.selectedTrayIndex];
-            if (!currentTray) { alert('Añade o selecciona una bandeja antes de solicitar el pedido.'); return; }
-            let msg = `*Pedido de Bandeja Viane Delicatessen*\n\n`;
-            msg += `*Bandeja:* ${currentTray.name} ($${currentTray.price.toFixed(2)})\n`;
-            if (state.customText) msg += `*Grabado:* "${state.customText}"\n`;
-            msg += `*Productos:*\n`;
-            state.addedObjects.forEach(item => msg += `- ${item.name}: $${item.price.toFixed(2)}\n`);
-            msg += `\n*Total:* ${document.getElementById('order-total-price').innerText}`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+            const tray = state.trays[state.selectedTrayIndex] || state.trays[0];
+            let total = tray ? tray.price : 0;
+            state.addedObjects.forEach(obj => total += obj.price);
+
+            let msg = `Hola Viane Delicatessen ✨ Me gustaría ordenar la siguiente Bandeja Gourmet 360°:\n\n`;
+            msg += `• Bandeja: ${tray.name} ($${tray.price.toFixed(2)})\n`;
+            if (state.customText) msg += `• Grabado personalizado: "${state.customText}"\n`;
+            msg += `• Productos incluidos (${state.addedObjects.length}):\n`;
+
+            const counts = {};
+            state.addedObjects.forEach(obj => counts[obj.name] = (counts[obj.name] || 0) + 1);
+            for (let name in counts) {
+                msg += `  - ${counts[name]}x ${name}\n`;
+            }
+            msg += `\n*Total Estimado: $${total.toFixed(2)}*`;
+
+            window.open(`https://wa.me/18296759640?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        function setupHeartHoverEffect() {
-            const zone = document.getElementById('heart-hover-zone');
-            if (!zone) return;
-            zone.addEventListener('mousemove', (e) => {
-                if (Math.random() > 0.3) return;
-                const heart = document.createElement('i');
-                heart.className = 'fa-solid fa-heart heart-particle';
-                const rect = zone.getBoundingClientRect();
-                heart.style.left = `${e.clientX - rect.left}px`;
-                heart.style.top = `${e.clientY - rect.top}px`;
-                heart.style.setProperty('--x-shift', `${(Math.random() - 0.5) * 60}px`);
-                zone.appendChild(heart);
-                setTimeout(() => heart.remove(), 1800);
-            });
-        }
-
-        // AUTHENTICATION FUNCTION WITH FIXED CREDENTIALS
+        // MODAL ADMIN Y CREACIÓN DESDE EL PANEL
         function openAdminModal() {
             document.getElementById('admin-modal').classList.remove('hidden');
         }
@@ -1007,13 +862,11 @@
         }
 
         function authenticateAdmin() {
-            const userInput = document.getElementById('admin-user-input').value.trim();
-            const passInput = document.getElementById('admin-password-input').value.trim();
-
-            if (userInput === ADMIN_CREDENTIALS.user && passInput === ADMIN_CREDENTIALS.pass) {
-                state.isAdminLoggedIn = true;
+            const p = document.getElementById('admin-password-input').value.trim();
+            if (p === "ERISSON09") {
                 document.getElementById('admin-login-screen').classList.add('hidden');
                 document.getElementById('admin-dashboard-screen').classList.remove('hidden');
+                document.getElementById('admin-auth-error').classList.add('hidden');
                 renderAdminLists();
             } else {
                 document.getElementById('admin-auth-error').classList.remove('hidden');
@@ -1025,28 +878,30 @@
                 document.getElementById('admin-tab-trays').classList.remove('hidden');
                 document.getElementById('admin-tab-products').classList.add('hidden');
                 document.getElementById('tab-btn-trays').className = "pb-3 border-b-2 border-viane-gold text-viane-gold font-bold text-sm flex items-center gap-2";
-                document.getElementById('tab-btn-products').className = "pb-3 border-b-2 border-transparent text-viane-brown/60 hover:text-viane-ebony font-bold text-sm flex items-center gap-2";
+                document.getElementById('tab-btn-products').className = "pb-3 border-b-2 border-transparent text-viane-ebony/60 hover:text-viane-ebony font-bold text-sm flex items-center gap-2";
             } else {
                 document.getElementById('admin-tab-trays').classList.add('hidden');
                 document.getElementById('admin-tab-products').classList.remove('hidden');
+                document.getElementById('tab-btn-trays').className = "pb-3 border-b-2 border-transparent text-viane-ebony/60 hover:text-viane-ebony font-bold text-sm flex items-center gap-2";
                 document.getElementById('tab-btn-products').className = "pb-3 border-b-2 border-viane-gold text-viane-gold font-bold text-sm flex items-center gap-2";
-                document.getElementById('tab-btn-trays').className = "pb-3 border-b-2 border-transparent text-viane-brown/60 hover:text-viane-ebony font-bold text-sm flex items-center gap-2";
             }
         }
 
         function handleCreateTray(e) {
             e.preventDefault();
-            const name = document.getElementById('tray-name').value;
+            const name = document.getElementById('tray-name').value.trim();
             const price = parseFloat(document.getElementById('tray-price').value);
             const material = document.getElementById('tray-material-type').value;
             const fileInput = document.getElementById('tray-texture-file');
 
+            let color = '#8B5A2B';
+            if (material === 'gold') color = '#D4AF37';
+            if (material === 'black') color = '#1A1A1A';
+            if (material === 'white') color = '#F5F5F5';
+
             const newTray = {
-                id: `tray-${Date.now()}`,
-                name: name,
-                price: price,
-                material: material,
-                color: material === 'wood' ? '#8B5A2B' : (material === 'black' ? '#1A1A1A' : '#D4AF37'),
+                id: 'tray-' + Date.now(),
+                name, price, material, color,
                 textureUrl: null
             };
 
@@ -1055,128 +910,114 @@
                 reader.onload = function(evt) {
                     newTray.textureUrl = evt.target.result;
                     state.trays.push(newTray);
-                    finishTrayAddition();
-                };
-                reader.onerror = function() {
-                    alert('No se pudo leer la imagen de la bandeja. Intenta con otra imagen más pequeña.');
+                    finishTrayCreation();
                 };
                 reader.readAsDataURL(fileInput.files[0]);
             } else {
                 state.trays.push(newTray);
-                finishTrayAddition();
+                finishTrayCreation();
             }
         }
 
-        function finishTrayAddition() {
-            state.selectedTrayIndex = state.trays.length - 1;
-            state.trayCurrentPage = Math.floor(state.selectedTrayIndex / state.traysPerPage);
+        function finishTrayCreation() {
+            document.getElementById('form-add-tray').reset();
             renderTraysCarousel();
             renderAdminLists();
-            persistState();
-            try { renderTray3D(); } catch (err) { console.error('La bandeja se guardó, pero falló el visor 3D:', err); }
-            document.getElementById('form-add-tray').reset();
+            alert('¡Bandeja creada y añadida con éxito!');
         }
 
         function handleCreateProduct(e) {
             e.preventDefault();
-            const name = document.getElementById('prod-name').value;
+            const name = document.getElementById('prod-name').value.trim();
             const price = parseFloat(document.getElementById('prod-price').value);
             const shape = document.getElementById('prod-shape').value;
             const color = document.getElementById('prod-color').value;
             const fileInput = document.getElementById('prod-image-file');
 
-            const newProduct = {
-                id: `prod-${Date.now()}`,
-                name: name,
-                price: price,
-                shape: shape,
-                color: color,
-                textureUrl: null,
-                icon: shape === 'bottle' ? 'fa-wine-bottle' : (shape === 'sphere' ? 'fa-circle' : 'fa-box-open')
+            let icon = 'fa-box';
+            if (shape === 'bottle') icon = 'fa-wine-bottle';
+            if (shape === 'sphere') icon = 'fa-circle';
+            if (shape === 'cylinder') icon = 'fa-glass-water';
+
+            const newProd = {
+                id: 'prod-' + Date.now(),
+                name, price, shape, color, icon,
+                textureUrl: null
             };
 
             if (fileInput.files && fileInput.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(evt) {
-                    newProduct.textureUrl = evt.target.result;
-                    state.products.push(newProduct);
-                    finishProductAddition();
-                };
-                reader.onerror = function() {
-                    alert('No se pudo leer la imagen del producto. Intenta con otra imagen más pequeña.');
+                    newProd.textureUrl = evt.target.result;
+                    state.products.push(newProd);
+                    finishProductCreation();
                 };
                 reader.readAsDataURL(fileInput.files[0]);
             } else {
-                state.products.push(newProduct);
-                finishProductAddition();
+                state.products.push(newProd);
+                finishProductCreation();
             }
         }
 
-        function finishProductAddition() {
+        function finishProductCreation() {
+            document.getElementById('form-add-product').reset();
             renderProductsCatalog();
             renderAdminLists();
-            persistState();
-            document.getElementById('form-add-product').reset();
-        }
-
-        function deleteTray(id) {
-            const tray = state.trays.find(item => item.id === id);
-            if (!tray || !confirm(`¿Eliminar la bandeja "${tray.name}"?`)) return;
-            state.trays = state.trays.filter(item => item.id !== id);
-            state.selectedTrayIndex = Math.min(state.selectedTrayIndex, Math.max(0, state.trays.length - 1));
-            state.trayCurrentPage = Math.min(state.trayCurrentPage, Math.max(0, Math.ceil(state.trays.length / state.traysPerPage) - 1));
-            renderTraysCarousel(); renderAdminLists(); persistState();
-            try { renderTray3D(); } catch (err) { console.error('Error al actualizar el visor 3D:', err); }
-        }
-
-        function deleteProduct(id) {
-            const product = state.products.find(item => item.id === id);
-            if (!product || !confirm(`¿Eliminar el producto "${product.name}" del catálogo? Los que ya estén colocados en la bandeja no se quitarán del pedido actual.`)) return;
-            state.products = state.products.filter(item => item.id !== id);
-            renderProductsCatalog(); renderAdminLists(); persistState();
+            alert('¡Producto 3D creado con éxito!');
         }
 
         function renderAdminLists() {
-            document.getElementById('admin-trays-count').innerText = state.trays.length;
-            const traysList = document.getElementById('admin-trays-list');
-            traysList.innerHTML = '';
-            if (!state.trays.length) traysList.innerHTML = '<p class="text-viane-brown/70 py-2">No hay bandejas. Crea una arriba.</p>';
-            state.trays.forEach((t) => {
-                const item = document.createElement('div');
-                item.className = "flex justify-between items-center gap-2 p-2 bg-viane-cream rounded-lg border border-viane-gold/20";
-                item.innerHTML = `<span class="min-w-0"><strong>${escapeHTML(t.name)}</strong> - $${Number(t.price).toFixed(2)}</span><button type="button" class="admin-action shrink-0" onclick="deleteTray('${t.id}')" aria-label="Eliminar bandeja ${escapeHTML(t.name)}">Eliminar</button>`;
-                traysList.appendChild(item);
-            });
+            document.getElementById('admin-trays-count').textContent = state.trays.length;
+            document.getElementById('admin-trays-list').innerHTML = state.trays.map((t, i) => `
+                <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-viane-gold/20">
+                    <span><b>${t.name}</b> ($${t.price.toFixed(2)})</span>
+                    ${i > 5 ? `<button onclick="deleteTray(${i})" class="text-red-600 font-bold hover:underline">Eliminar</button>` : '<span class="text-[10px] text-viane-ebony/50">Por defecto</span>'}
+                </div>
+            `).join('');
 
-            document.getElementById('admin-prods-count').innerText = state.products.length;
-            const prodsList = document.getElementById('admin-products-list');
-            prodsList.innerHTML = '';
-            if (!state.products.length) prodsList.innerHTML = '<p class="text-viane-brown/70 py-2">No hay productos. Crea uno arriba.</p>';
-            state.products.forEach((p) => {
-                const item = document.createElement('div');
-                item.className = "flex justify-between items-center gap-2 p-2 bg-viane-cream rounded-lg border border-viane-gold/20";
-                item.innerHTML = `<span class="min-w-0"><strong>${escapeHTML(p.name)}</strong> - $${Number(p.price).toFixed(2)}</span><button type="button" class="admin-action shrink-0" onclick="deleteProduct('${p.id}')" aria-label="Eliminar producto ${escapeHTML(p.name)}">Eliminar</button>`;
-                prodsList.appendChild(item);
-            });
+            document.getElementById('admin-prods-count').textContent = state.products.length;
+            document.getElementById('admin-products-list').innerHTML = state.products.map((p, i) => `
+                <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-viane-gold/20">
+                    <span><b>${p.name}</b> ($${p.price.toFixed(2)})</span>
+                    ${i > 4 ? `<button onclick="deleteProduct(${i})" class="text-red-600 font-bold hover:underline">Eliminar</button>` : '<span class="text-[10px] text-viane-ebony/50">Por defecto</span>'}
+                </div>
+            `).join('');
         }
 
-        window.onload = function() {
-            loadSavedState();
-            syncLogo();
-            const textInput = document.getElementById('custom-tray-text');
-            const colorInput = document.getElementById('custom-text-color');
-            const fontInput = document.getElementById('custom-text-font');
-            textInput.value = state.customText;
-            colorInput.value = state.textColor;
-            fontInput.value = state.textFont;
+        function deleteTray(index) {
+            state.trays.splice(index, 1);
+            if (state.selectedTrayIndex >= state.trays.length) state.selectedTrayIndex = 0;
+            buildTray3D();
             renderTraysCarousel();
+            renderAdminLists();
+        }
+
+        function deleteProduct(index) {
+            state.products.splice(index, 1);
             renderProductsCatalog();
             renderAdminLists();
-            setupHeartHoverEffect();
-            try { initThreeJS(); renderTray3D(); } catch (err) {
-                console.error('El visor 3D no pudo iniciarse; el panel y catálogo siguen disponibles:', err);
+        }
+
+        function applyLogoUpload() {
+            const fileInput = document.getElementById('admin-logo-file');
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    document.getElementById('site-logo').src = evt.target.result;
+                    document.getElementById('logo-preview').src = evt.target.result;
+                    alert('Logotipo actualizado con éxito.');
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                alert('Selecciona una imagen primero.');
             }
-        };
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initThree();
+            renderTraysCarousel();
+            renderProductsCatalog();
+        });
     </script>
 </body>
 </html>
