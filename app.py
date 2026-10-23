@@ -7,667 +7,115 @@ from functools import wraps
 from pathlib import Path
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
 
-
-
 app = Flask(__name__)
-
 
 BASE = Path(__file__).resolve().parent
 
-
-
 # En Vercel usamos /tmp/uploads (única ruta con permisos de escritura), localmente usamos static/uploads
-
 if os.environ.get('VERCEL'):
-
     UPLOAD_DIR = Path('/tmp/uploads')
-
 else:
-
     UPLOAD_DIR = BASE / 'static' / 'uploads'
 
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+app.secret_key = os.environ.get('VANE_SECRET_KEY') or secrets.token_hex(32)
 
-try:
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+)
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-except OSError:
-
-    pass
-
-
-
-# Base de datos en /tmp si estamos en Vercel
-
-if os.environ.get('VERCEL'):
-
-    DB_PATH = Path('/tmp/viane.sqlite3')
-
-else:
-
-    DB_PATH = BASE / 'viane.sqlite3'
-
-
-
-ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
-
-ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4', 'mp3', 'wav', 'ogg', 'm4a'}
-
-STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación']
-
-
-
-app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
-
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=16 * 1024 * 1024)
-
-
+ADMIN_EMAIL = os.environ.get('VANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com')
+ADMIN_PASSWORD = os.environ.get('VANE_ADMIN_PASSWORD')
 
 @app.before_request
-
 def ensure_db_initialized():
+    if not hasattr(g, '_db_initialized'):
+        db_init()
+        g._db_initialized = True
 
-    if not hasattr(app, '_db_initialized'):
-
-        init_db()
-
-        app._db_initialized = True
-
-
-
-ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com').strip().lower()
-
-ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', '')
-
-
-
-@app.errorhandler(413)
-
-def too_large(e):
-
-    return jsonify({'error': 'El archivo es demasiado grande'}), 413
-
-
-
-def db():
-
-    con = sqlite3.connect(DB_PATH)
-
-    con.row_factory = sqlite3.Row
-
-    con.execute('PRAGMA foreign_keys=ON')
-
-    return con
-
-
-
-def init_db():
-
-    with db() as c:
-
-        c.executescript('''
-
-        CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,category TEXT NOT NULL DEFAULT 'bandejas',price REAL NOT NULL,description TEXT NOT NULL,image TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL);
-
-        CREATE TABLE IF NOT EXISTS reviews(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,rating INTEGER NOT NULL,products TEXT NOT NULL,comment TEXT NOT NULL,phone TEXT DEFAULT '',approved INTEGER NOT NULL DEFAULT 0,admin_reply TEXT DEFAULT '',created_at TEXT NOT NULL);
-
-        CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT UNIQUE NOT NULL,name TEXT NOT NULL,phone TEXT NOT NULL,province TEXT NOT NULL,delivery_date TEXT NOT NULL,items TEXT NOT NULL,total REAL NOT NULL,payment_status TEXT NOT NULL DEFAULT 'Pago pendiente',status TEXT NOT NULL DEFAULT 'Pago pendiente',notes TEXT DEFAULT '',incident TEXT DEFAULT '',created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
-
-        CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
-
-        CREATE TABLE IF NOT EXISTS ads(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,image TEXT DEFAULT '',active INTEGER NOT NULL DEFAULT 1);
-
-        CREATE TABLE IF NOT EXISTS payments(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,details TEXT DEFAULT '',active INTEGER NOT NULL DEFAULT 1,tip_enabled INTEGER NOT NULL DEFAULT 0);
-
+def db_init():
+    with sqlite3.connect(BASE / 'database.db') as conn:
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS productos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                subtitle TEXT,
+                description TEXT,
+                price TEXT NOT NULL,
+                image TEXT,
+                category TEXT NOT NULL
+            )
         ''')
-
-        defaults = {
-
-            'brand_name':'VIANE DELICATESSEN','logo':'','whatsapp':'18296759640','instagram':'vianedelicatessen',
-
-            'background_type':'color','background_value':'#FFFDF5','review_url':'','tips_message':'¡Gracias por apoyar a VIANE Delicatessen!'
-
-        }
-
-        for k, v in defaults.items():
-
-            c.execute('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)', (k, v))
-
-
-
-        count = c.execute('SELECT COUNT(*) FROM products').fetchone()[0]
-
-        if not count:
-
-            samples = [
-
-                ('Desayuno Sorpresa VIP Viane','desayunos',3500,'Desayuno especial personalizado. Confirma disponibilidad y detalles por WhatsApp.','',0),
-
-                ('Bandeja Romántica','bandejas',4200,'Bandeja premium personalizada para sorprender.','',0),
-
-                ('Picaderas para Cumpleaños','picaderas',4500,'Variedad de bocadillos para compartir.','',0)
-
-            ]
-
-            for p in samples:
-
-                c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)', (*p, datetime.now(timezone.utc).isoformat()))
-
-
-
-def now(): return datetime.now(timezone.utc).isoformat()
-
-def asdict(row): return dict(row) if row else None
-
-def setting_map():
-
-    with db() as c: return {r['key']:r['value'] for r in c.execute('SELECT key,value FROM settings')}
-
-def admin_required(fn):
-
-    @wraps(fn)
-
-    def wrapped(*args, **kwargs):
-
-        if not session.get('admin') or session.get('email') != ADMIN_EMAIL:
-
-            return jsonify({'error':'Acceso administrativo requerido'}),401
-
-        return fn(*args, **kwargs)
-
-    return wrapped
-
-def allowed_file(filename, allowed): return '.' in filename and filename.rsplit('.',1)[1].lower() in allowed
-
-
-
-@app.get('/')
-
-def home(): return render_template('index.html')
-
-
-
-@app.get('/uploads/<path:filename>')
-
-def uploads(filename): return send_from_directory(UPLOAD_DIR, filename)
-
-
-
-@app.get('/api/public')
-
-def public_data():
-
-    with db() as c:
-
-        products=[dict(r) for r in c.execute('SELECT * FROM products WHERE active=1 ORDER BY id DESC')]
-
-        reviews=[dict(r) for r in c.execute('SELECT id,name,rating,products,comment,admin_reply,created_at FROM reviews WHERE approved=1 ORDER BY id DESC')]
-
-        ads=[dict(r) for r in c.execute('SELECT * FROM ads WHERE active=1')]
-
-        payments=[dict(r) for r in c.execute('SELECT id,title,url,details,tip_enabled FROM payments WHERE active=1')]
-
-    return jsonify({'products':products,'reviews':reviews,'ads':ads,'payments':payments,'settings':setting_map(),'statuses':STATUSES})
-
-
-
-@app.post('/api/login')
-
-def login():
-
-    data = request.get_json(silent=True) or request.form
-
-    email = str(data.get('email', '')).strip().lower()
-
-    password = str(data.get('password', '')).strip()
-
-
-
-    if not ADMIN_PASSWORD:
-
-        return jsonify({'error':'El administrador debe configurar la contraseña en el servidor.'}),503
-
-    if email != ADMIN_EMAIL or not secrets.compare_digest(password.encode('utf-8'), ADMIN_PASSWORD.strip().encode('utf-8')):
-
-        return jsonify({'error':'Correo o contraseña incorrectos'}),401
-
-
-
-    session.clear()
-
-    session['admin'] = True
-
-    session['email'] = ADMIN_EMAIL
-
-    return jsonify({'ok': True, 'email': ADMIN_EMAIL})
-
-
-
-@app.post('/api/logout')
-
-def logout(): session.clear(); return jsonify({'ok':True})
-
-
-
-@app.route('/bandeja360')
-
-def bandeja360():
-
-    return render_template('Bandeja360.html')
-
-
-
-@app.get('/api/admin/data')
-
-@admin_required
-
-def admin_data():
-
-    with db() as c:
-
-        return jsonify({
-
-            'products':[dict(r) for r in c.execute('SELECT * FROM products ORDER BY id DESC')],
-
-            'reviews':[dict(r) for r in c.execute('SELECT * FROM reviews ORDER BY id DESC')],
-
-            'orders':[dict(r) for r in c.execute('SELECT * FROM orders ORDER BY id DESC')],
-
-            'ads':[dict(r) for r in c.execute('SELECT * FROM ads ORDER BY id DESC')],
-
-            'payments':[dict(r) for r in c.execute('SELECT * FROM payments ORDER BY id DESC')],
-
-            'settings':setting_map(),
-
-            'statuses':STATUSES
-
-        })
-
-
-
-@app.post('/api/upload')
-
-@admin_required
-
-def upload():
-
-    f = request.files.get('file')
-
-    kind = request.form.get('kind', 'image')
-
-    if not f or not f.filename:
-
-        return jsonify({'error': 'Selecciona un archivo'}), 400
-
-    allowed = ALLOWED_MEDIA if kind == 'media' else ALLOWED_IMAGES
-
-    if not allowed_file(f.filename, allowed):
-
-        return jsonify({'error': 'Tipo de archivo no permitido'}), 400
-
-    
-
-    ext = os.path.splitext(f.filename)[1]
-
-    filename = f"{secrets.token_hex(8)}{ext}"
-
-    filepath = UPLOAD_DIR / filename
-
-    f.save(str(filepath))
-
-    
-
-    url = f'/uploads/{filename}'
-
-    return jsonify({'url': url, 'filename': filename})
-
-
-
-@app.post('/api/products')
-
-@admin_required
-
-def create_product():
-
-    d = request.get_json(force=True)
-
-    name = str(d.get('name', '')).strip()
-
-    desc = str(d.get('description', '')).strip()
-
-    image = str(d.get('image', '')).strip()
-
-    category = str(d.get('category', 'bandejas')).strip()
-
-    
-
-    try: 
-
-        price = float(d.get('price'))
-
-    except: 
-
-        return jsonify({'error': 'Precio inválido'}), 400
-
-
-
-    if not name or not desc or not image or price < 0: 
-
-        return jsonify({'error': 'Nombre, imagen, precio y descripción son obligatorios'}), 400
-
-
-
-    # Asegurar que el estado activo sea 1 o 0 explícitamente
-
-    is_active = 1 if bool(d.get('active', True)) else 0
-
-
-
-    with db() as c:
-
-        cur = c.execute(
-
-            'INSERT INTO products(name, category, price, description, image, active, created_at) VALUES(?,?,?,?,?,?,?)',
-
-            (name, category, price, desc, image, is_active, now())
-
-        )
-
-        return jsonify({'id': cur.lastrowid, 'ok': True})
-
-
-
-@app.put('/api/products/<int:pid>')
-
-@admin_required
-
-def update_product(pid):
-
-    d=request.get_json(force=True)
-
-    with db() as c:
-
-        if not c.execute('SELECT id FROM products WHERE id=?',(pid,)).fetchone(): return jsonify({'error':'Producto no encontrado'}),404
-
-        old=dict(c.execute('SELECT * FROM products WHERE id=?',(pid,)).fetchone())
-
-        vals={k:d.get(k,old[k]) for k in ['name','category','price','description','image','active']}
-
-        if not vals['name'] or not vals['description'] or not vals['image']: return jsonify({'error':'Faltan campos requeridos'}),400
-
-        c.execute('UPDATE products SET name=?,category=?,price=?,description=?,image=?,active=? WHERE id=?',(vals['name'],vals['category'],float(vals['price']),vals['description'],vals['image'],int(bool(vals['active'])),pid))
-
-    return jsonify({'ok':True})
-
-
-
-@app.delete('/api/products/<int:pid>')
-
-@admin_required
-
-def delete_product(pid):
-
-    with db() as c: c.execute('DELETE FROM products WHERE id=?',(pid,))
-
-    return jsonify({'ok':True})
-
-
-
-@app.post('/api/reviews')
-
-def submit_review():
-
-    d=request.get_json(force=True); name=str(d.get('name','')).strip(); comment=str(d.get('comment','')).strip(); products=d.get('products',[])
-
-    try: rating=int(d.get('rating',0))
-
-    except (TypeError, ValueError): rating=0
-
-    if not name or not comment or rating not in range(1,6) or not isinstance(products,list) or not 1<=len(products)<=3: return jsonify({'error':'Completa nombre, comentario, calificación y de 1 a 3 productos'}),400
-
-    with db() as c:
-
-        cur=c.execute('INSERT INTO reviews(name,rating,products,comment,phone,approved,created_at) VALUES(?,?,?,?,?,?,?)',(name,rating,json.dumps(products,ensure_ascii=False),comment,str(d.get('phone',''))[:40],0,now()))
-
-        return jsonify({'ok':True,'id':cur.lastrowid,'message':'¡Gracias! Tu reseña fue recibida y se publicará cuando sea revisada.'})
-
-
-
-@app.patch('/api/reviews/<int:rid>')
-
-@admin_required
-
-def moderate_review(rid):
-
-    d=request.get_json(force=True)
-
-    with db() as c:
-
-        c.execute('UPDATE reviews SET approved=?,admin_reply=? WHERE id=?',(int(bool(d.get('approved',False))),str(d.get('admin_reply',''))[:1000],rid))
-
-    return jsonify({'ok':True})
-
-
-
-@app.delete('/api/reviews/<int:rid>')
-
-@admin_required
-
-def delete_review(rid):
-
-    with db() as c: c.execute('DELETE FROM reviews WHERE id=?',(rid,))
-
-    return jsonify({'ok':True})
-
-
-
-@app.post('/api/orders')
-
-def create_order():
-
-    d=request.get_json(force=True); items=d.get('items',[])
-
-    if not str(d.get('name','')).strip() or not str(d.get('phone','')).strip() or not items: return jsonify({'error':'Completa los datos y agrega productos'}),400
-
-    with db() as c:
-
-        ids=[int(i.get('id')) for i in items if str(i.get('id','')).isdigit()]
-
-        if not ids: return jsonify({'error':'Productos inválidos'}),400
-
-        q=','.join('?' for _ in ids); rows=c.execute(f'SELECT * FROM products WHERE active=1 AND id IN ({q})',ids).fetchall(); byid={r['id']:r for r in rows}
-
-        clean=[]; total=0
-
-        for item in items:
-
-            try: pid=int(item['id'])
-
-            except: continue
-
-            if pid in byid:
-
-                p=byid[pid]; clean.append({'id':pid,'name':p['name'],'price':p['price']}); total+=p['price']
-
-        if not clean: return jsonify({'error':'No hay productos válidos'}),400
-
-        code='VIA-'+secrets.token_hex(4).upper()
-
-        c.execute('INSERT INTO orders(code,name,phone,province,delivery_date,items,total,payment_status,status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(code,str(d['name']).strip(),str(d['phone']).strip(),str(d.get('province','Puerto Plata')),str(d.get('delivery_date','')),json.dumps(clean,ensure_ascii=False),total,'Pago pendiente','Pago pendiente',str(d.get('notes',''))[:2000],now(),now()))
-
-    s=setting_map(); review_url=s.get('review_url','')
-
-    return jsonify({'ok':True,'code':code,'total':total,'review_url':review_url,'whatsapp':s.get('whatsapp','18296759640')})
-
-
-
-@app.get('/api/track/<code>')
-
-def track_order(code):
-
-    with db() as c: row=c.execute('SELECT code,status,payment_status,delivery_date,updated_at,incident FROM orders WHERE code=?',(code.upper(),)).fetchone()
-
-    if not row: return jsonify({'error':'No encontramos un pedido con ese código. Revisa e inténtalo otra vez.'}),404
-
-    return jsonify(dict(row))
-
-
-
-@app.patch('/api/orders/<int:oid>')
-
-@admin_required
-
-def update_order(oid):
-
-    d=request.get_json(force=True); status=d.get('status','Pago pendiente'); payment=d.get('payment_status','Pago pendiente')
-
-    if status not in STATUSES: return jsonify({'error':'Estado no válido'}),400
-
-    with db() as c:
-
-        c.execute('UPDATE orders SET status=?,payment_status=?,notes=?,incident=?,updated_at=? WHERE id=?',(status,payment,str(d.get('notes',''))[:2000],str(d.get('incident',''))[:1000],now(),oid))
-
-    return jsonify({'ok':True})
-
-
-
-@app.put('/api/settings')
-
-@admin_required
-
-def update_settings():
-
-    d=request.get_json(force=True)
-
-    allowed={'brand_name','logo','whatsapp','instagram','background_type','background_value','review_url','tips_message'}
-
-    with db() as c:
-
-        for k,v in d.items():
-
-            if k in allowed: c.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(k,str(v)[:4000]))
-
-    return jsonify({'ok':True})
-
-
-
-@app.route('/api/ads',methods=['POST'])
-
-@admin_required
-
-def add_ad():
-
-    d=request.get_json(force=True)
-
-    if not d.get('title') or not d.get('url'): return jsonify({'error':'Título y enlace son obligatorios'}),400
-
-    with db() as c: cur=c.execute('INSERT INTO ads(title,url,image,active) VALUES(?,?,?,?)',(d['title'],d['url'],d.get('image',''),int(bool(d.get('active',True)))))
-
-    return jsonify({'ok':True,'id':cur.lastrowid})
-
-
-
-@app.put('/api/ads/<int:aid>')
-
-@admin_required
-
-def update_ad(aid):
-
-    d=request.get_json(force=True)
-
-    with db() as c: c.execute('UPDATE ads SET title=?,url=?,image=?,active=? WHERE id=?',(d.get('title',''),d.get('url',''),d.get('image',''),int(bool(d.get('active',True))),aid))
-
-    return jsonify({'ok':True})
-
-
-
-@app.delete('/api/ads/<int:aid>')
-
-@admin_required
-
-def delete_ad(aid):
-
-    with db() as c: c.execute('DELETE FROM ads WHERE id=?',(aid,))
-
-    return jsonify({'ok':True})
-
-
-
-@app.route('/api/payments',methods=['POST'])
-
-@admin_required
-
-def add_payment():
-
-    d=request.get_json(force=True)
-
-    if not d.get('title') or not d.get('url'): return jsonify({'error':'Nombre y enlace de pago son obligatorios'}),400
-
-    with db() as c: cur=c.execute('INSERT INTO payments(title,url,details,active,tip_enabled) VALUES(?,?,?,?,?)',(d['title'],d['url'],d.get('details',''),int(bool(d.get('active',True))),int(bool(d.get('tip_enabled',False)))))
-
-    return jsonify({'ok':True,'id':cur.lastrowid})
-
-
-
-@app.put('/api/payments/<int:pid>')
-
-@admin_required
-
-def update_payment(pid):
-
-    d=request.get_json(force=True)
-
-    with db() as c: c.execute('UPDATE payments SET title=?,url=?,details=?,active=?,tip_enabled=? WHERE id=?',(d.get('title',''),d.get('url',''),d.get('details',''),int(bool(d.get('active',True))),int(bool(d.get('tip_enabled',False))),pid))
-
-    return jsonify({'ok':True})
-
-    
-
-@app.post('/api/verify-bandeja')
-
-def verify_bandeja():
-
-    data = request.get_json(silent=True) or {}
-
-    user_password = str(data.get('password', '')).strip()
-
-    
-
-    # Lee la contraseña secreta de las variables de entorno de Vercel
-
-    real_password = os.environ.get('BANDEJA_PASSWORD', 'temporal123')
-
-    
-
-    # Compara de forma segura
-
-    if secrets.compare_digest(user_password.encode('utf-8'), real_password.encode('utf-8')):
-
-        return jsonify({'ok': True})
-
-    
-
-    return jsonify({'error': 'Contraseña incorrecta'}), 401
-
-
-
-
-
-
-
-@app.delete('/api/payments/<int:pid>')
-
-@admin_required
-
-def delete_payment(pid):
-
-    with db() as c: c.execute('DELETE FROM payments WHERE id=?',(pid,))
-
-    return jsonify({'ok':True})
-
-
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS recuentos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                subtitle TEXT,
+                description TEXT,
+                price TEXT NOT NULL,
+                image TEXT,
+                category TEXT NOT NULL
+            )
+        ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT UNIQUE NOT NULL,
+                value TEXT
+            )
+        ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS pagos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                metodo TEXT NOT NULL,
+                whatsapp TEXT NOT NULL,
+                instagram TEXT NOT NULL,
+                background_color TEXT,
+                table_background_color TEXT,
+                title_color TEXT,
+                msg_message TEXT
+            )
+        ''')
+        
+        # Valores por defecto para settings
+        defaults = [
+            ('brand_name', 'Viané Delicatessen'),
+            ('whatsapp', '8290000000'),
+            ('instagram', 'vianedelicatessen'),
+            ('background_color', '#fff'),
+            ('table_background_color', '#fafafa'),
+            ('title_color', '#333'),
+            ('msg_message', 'Hola, quiero ordenar este producto.')
+        ]
+        for k, v in defaults:
+            c.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (k, v))
+            
+        conn.commit()
+
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    with sqlite3.connect(BASE / 'database.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT id, title, subtitle, description, price, image, category FROM productos')
+        products = [dict(row) for row in c.fetchall()]
+    return jsonify(products)
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings():
+    with sqlite3.connect(BASE / 'database.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT key, value FROM settings')
+        settings = {row['key']: row['value'] for row in c.fetchall()}
+    return jsonify(settings)
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_DIR, filename)
 
 if __name__ == '__main__':
-
-    app.run(debug=True, host='0.0.0.0', port=5000
+    app.run(debug=True)
