@@ -10,7 +10,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
-app.secret_key = os.enviro.get("SECRET_KEY")
+
+app.secret_key = os.environ.get("SECRET_KEY")
 
 # Configuración de Cloudinary (Asegúrate de tener tus credenciales configuradas)
 # cloudinary.config(
