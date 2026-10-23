@@ -335,6 +335,12 @@ def update_payment(pid):
     with db() as c: c.execute('UPDATE payments SET title=?,url=?,details=?,active=?,tip_enabled=? WHERE id=?',(d.get('title',''),d.get('url',''),d.get('details',''),int(bool(d.get('active',True))),int(bool(d.get('tip_enabled',False))),pid))
     return jsonify({'ok':True})
 
+@app.route('/bandeja360')
+def bandeja360():
+    return render_template('Bandeja360.html')
+
+
+
 @app.delete('/api/payments/<int:pid>')
 @admin_required
 def delete_payment(pid):
