@@ -3,7 +3,7 @@
 </style></head><body>
 <header class="top"><div class="brand"><img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'"><div><div style="font-family:'Playfair Display';font-size:22px">VIANE</div><small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small></div></div><nav><button onclick="go('catalog')">Menú</button><button onclick="go('reviews')">Reseñas</button><button onclick="go('track')">Seguir pedido</button><button onclick="openLogin()">Panel privado</button><button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button></nav></header>
 
-<!-- SECCIÓN HERO CON EL BOTÓN BIEN VISIBLE -->
+<!-- SECCIÓN HERO CON EL BOTÓN LIBRE PARA CLIENTES -->
 <section class="hero" id="hero">
   <img id="heroLogo" class="logo" src="" alt="Logo" onerror="this.style.display='none'">
   <div class="eyebrow">DETALLES QUE SE CONVIERTEN EN RECUERDOS</div>
@@ -12,8 +12,8 @@
   <div class="actions" style="margin-top:22px">
     <button class="btn goldbtn" onclick="go('catalog')">Explorar productos</button>
     <button class="btn" onclick="go('reviews')">Compartir mi experiencia</button>
-    <!-- BOTÓN MODIFICADO PARA LLAMAR A LA VERIFICACIÓN SEGURA -->
-    <button type="button" onclick="verificarBandeja360()" style="background:#ff0033;color:#ffffff;font-weight:800;padding:12px 20px;border-radius:12px;border:2px solid #ffea00;box-shadow:0 0 15px rgba(255,234,0,0.6);cursor:pointer;font-size:12px;">Crea tu bandeja 360</button>
+    <!-- ACCESO DIRECTO LIBRE PARA CREAR LA BANDEJA 360 -->
+    <button type="button" onclick="window.location.href='/bandeja360'" style="background:#ff0033;color:#ffffff;font-weight:800;padding:12px 20px;border-radius:12px;border:2px solid #ffea00;box-shadow:0 0 15px rgba(255,234,0,0.6);cursor:pointer;font-size:12px;">Crea tu bandeja 360</button>
   </div>
 </section>
 
@@ -29,30 +29,6 @@
 const $=id=>document.getElementById(id);let state={products:[],reviews:[],payments:[],ads:[],settings:{},cart:[],rating:5,admin:false,adminData:null,category:'Todos'};const categories=['Todos','desayunos','bandejas','picaderas','bizcochos','mariscos','regalos','eventos'];
 async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Ocurrió un error');return d}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function money(n){return 'RD$ '+Number(n||0).toLocaleString('es-DO',{maximumFractionDigits:2})}
-
-// NUEVA FUNCIÓN SEGURA PARA VERIFICAR LA CONTRASEÑA EN EL SERVIDOR
-async function verificarBandeja360() {
-  let passwordIngresada = prompt("Introduce la contraseña para acceder a Bandeja 360:");
-  if (!passwordIngresada) return;
-
-  try {
-    let respuesta = await fetch('/api/verify-bandeja', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: passwordIngresada })
-    });
-
-    let resultado = await respuesta.json();
-
-    if (respuesta.ok && resultado.ok) {
-      window.location.href = '/bandeja360';
-    } else {
-      alert('Contraseña incorrecta');
-    }
-  } catch (error) {
-    alert('Ocurrió un error al verificar la contraseña');
-  }
-}
 
 async function load(){try{let d=await api('/api/public');state={...state,...d};applyBrand();renderProducts();renderReviews();renderFilters();renderReviewChoices();renderStars();renderAds()}catch(e){console.error(e)}}function applyBrand(){let s=state.settings||{};['brandLogo','heroLogo'].forEach(id=>{if(s.logo){$(id).src=s.logo;$(id).style.display=''}else $(id).style.display='none'});$('footerWa').href='https://wa.me/'+(s.whatsapp||'18296759640');$('footerWa').textContent=s.whatsapp||'829-675-9640';$('waFloat').href='https://wa.me/'+(s.whatsapp||'18296759640');$('footerIg').textContent=s.instagram||'vianedelicatessen';let bg=s.background_value||'#FFFDF5';if(s.background_type==='color')document.body.style.background=bg;else if(s.background_type==='image')document.body.style.background=`url('${bg}') center/cover fixed`;else if(s.background_type==='texture')document.body.style.background=`repeating-linear-gradient(45deg,${bg},${bg} 8px,#fff8e8 8px,#fff8e8 16px)`}
 function go(sec){['catalog','reviews','track','admin'].forEach(s=>$(s).classList.toggle('hidden',s!==sec));window.scrollTo({top:0,behavior:'smooth'});if(sec==='reviews'){renderReviewChoices();renderStars()}if(sec==='admin'&&state.admin)loadAdmin()}
