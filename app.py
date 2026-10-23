@@ -5,12 +5,13 @@ import sqlite3
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
-from flask import Flask, request, jsonify, session, render_template, send_from_directory
+from flask import Flask, request, jsonify, session, render_template, send_from_directory, g
 
 app = Flask(__name__)
 
+BASE = Path(__file__).resolve().parent
 
-# En Vercel usamos /tmp/uploads (única ruta con permisos de escritura), localmente usamos static/uploads
+# En Vercel usamos /tmp para archivos temporales si es necesario
 if os.environ.get('VERCEL'):
     UPLOAD_DIR = Path('/tmp/uploads')
 else:
@@ -18,7 +19,8 @@ else:
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-app.secret_key = os.environ.get('VANE_SECRET_KEY') or secrets.token_hex(32)
+# Uso de tus variables configuradas
+app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
@@ -26,17 +28,14 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Lax',
 )
 
-ADMIN_EMAIL = os.environ.get('VANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com')
-ADMIN_PASSWORD = os.environ.get('VANE_ADMIN_PASSWORD')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'vianedelicatessen@gmail.com')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
-@app.before_request
-def ensure_db_initialized():
-    if not hasattr(g, '_db_initialized'):
-        db_init()
-        g._db_initialized = True
+# Configuración de base de datos segura para servidor efímero
+DB_PATH = Path('/tmp/database.db') if os.environ.get('VERCEL') else BASE / 'database.db'
 
 def db_init():
-    with sqlite3.connect(BASE / 'database.db') as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()
         c.execute('''
             CREATE TABLE IF NOT EXISTS productos (
@@ -79,7 +78,6 @@ def db_init():
             )
         ''')
         
-        # Valores por defecto para settings
         defaults = [
             ('brand_name', 'Viané Delicatessen'),
             ('whatsapp', '8290000000'),
@@ -94,9 +92,15 @@ def db_init():
             
         conn.commit()
 
+@app.before_request
+def ensure_db_initialized():
+    if not hasattr(g, '_db_initialized'):
+        db_init()
+        g._db_initialized = True
+
 @app.route('/api/products', methods=['GET'])
 def get_products():
-    with sqlite3.connect(BASE / 'database.db') as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute('SELECT id, title, subtitle, description, price, image, category FROM productos')
@@ -105,7 +109,7 @@ def get_products():
 
 @app.route('/api/settings', methods=['GET'])
 def get_settings():
-    with sqlite3.connect(BASE / 'database.db') as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute('SELECT key, value FROM settings')
