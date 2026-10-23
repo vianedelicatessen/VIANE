@@ -1,10 +1,8 @@
+
 import os
 import json
 import secrets
 import sqlite3
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
@@ -13,14 +11,19 @@ from flask import Flask, request, jsonify, session, render_template, send_from_d
 app = Flask(__name__)
 
 BASE = Path(__file__).resolve().parent
-UPLOAD_DIR = BASE / 'static' / 'uploads'
-# En Vercel el sistema de archivos es de solo lectura: no debe romper el arranque.
+
+# En Vercel usamos /tmp/uploads (única ruta con permisos de escritura), localmente usamos static/uploads
+if os.environ.get('VERCEL'):
+    UPLOAD_DIR = Path('/tmp/uploads')
+else:
+    UPLOAD_DIR = BASE / 'static' / 'uploads'
+
 try:
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 except OSError:
     pass
 
-# Detecta si estamos en Vercel para usar /tmp (única ruta con permisos de escritura)
+# Base de datos en /tmp si estamos en Vercel
 if os.environ.get('VERCEL'):
     DB_PATH = Path('/tmp/viane.sqlite3')
 else:
@@ -30,25 +33,8 @@ ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 ALLOWED_MEDIA = ALLOWED_IMAGES | {'mp4', 'mp3', 'wav', 'ogg', 'm4a'}
 STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación']
 
-# La clave de sesión se lee de Vercel (VIANE_SECRET_KEY). Si no existe se genera una
-# aleatoria, pero entonces la sesión del admin se cierra cada vez que Vercel reinicia.
 app.secret_key = os.environ.get('VIANE_SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', MAX_CONTENT_LENGTH=16 * 1024 * 1024)
-
-# Cloudinary: usa CLOUDINARY_URL, o bien las tres variables sueltas.
-def _env(name):
-    # Quita espacios, saltos de línea y comillas que se cuelan al copiar/pegar en Vercel.
-    return (os.environ.get(name) or '').strip().strip('"').strip("'").strip()
-
-_cld = {
-    'cloud_name': _env('CLOUDINARY_CLOUD_NAME'),
-    'api_key': _env('CLOUDINARY_API_KEY'),
-    'api_secret': _env('CLOUDINARY_API_SECRET'),
-}
-if all(_cld.values()):
-    cloudinary.config(secure=True, **_cld)
-else:
-    cloudinary.config(secure=True)
 
 @app.before_request
 def ensure_db_initialized():
@@ -56,7 +42,6 @@ def ensure_db_initialized():
         init_db()
         app._db_initialized = True
 
-# Credenciales de Administrador: ya NO están en el código, se leen de las variables de entorno.
 ADMIN_EMAIL = os.environ.get('VIANE_ADMIN_EMAIL', 'vianedelicatessen@gmail.com').strip().lower()
 ADMIN_PASSWORD = os.environ.get('VIANE_ADMIN_PASSWORD', '')
 
@@ -97,7 +82,6 @@ def init_db():
             for p in samples:
                 c.execute('INSERT INTO products(name,category,price,description,image,active,created_at) VALUES(?,?,?,?,?,?,?)', (*p, datetime.now(timezone.utc).isoformat()))
 
-
 def now(): return datetime.now(timezone.utc).isoformat()
 def asdict(row): return dict(row) if row else None
 def setting_map():
@@ -113,6 +97,7 @@ def allowed_file(filename, allowed): return '.' in filename and filename.rsplit(
 
 @app.get('/')
 def home(): return render_template('index.html')
+
 @app.get('/uploads/<path:filename>')
 def uploads(filename): return send_from_directory(UPLOAD_DIR, filename)
 
@@ -144,10 +129,9 @@ def login():
 @app.post('/api/logout')
 def logout(): session.clear(); return jsonify({'ok':True})
 
-@app.route('/Bandeja360.html')
-def bandeja_360():
+@app.route('/bandeja360')
+def bandeja360():
     return render_template('Bandeja360.html')
-
 
 @app.get('/api/admin/data')
 @admin_required
@@ -173,33 +157,14 @@ def upload():
     allowed = ALLOWED_MEDIA if kind == 'media' else ALLOWED_IMAGES
     if not allowed_file(f.filename, allowed):
         return jsonify({'error': 'Tipo de archivo no permitido'}), 400
-    try:
-        result = cloudinary.uploader.upload(f, folder='viane', resource_type='auto')
-    except Exception as e:
-        return jsonify({'error': f'No se pudo subir el archivo: {e}'}), 500
-    url = result.get('secure_url')
-    return jsonify({'url': url, 'filename': url})
-
-@app.get('/api/admin/cloudinary-check')
-@admin_required
-def cloudinary_check():
-    # Diagnóstico: muestra qué ve el servidor (sin revelar la llave ni el secreto).
-    cfg = cloudinary.config()
-    key = cfg.api_key or ''
-    info = {
-        'fuente': 'variables sueltas' if all(_cld.values()) else 'CLOUDINARY_URL',
-        'existe_CLOUDINARY_URL': bool(os.environ.get('CLOUDINARY_URL')),
-        'cloud_name': cfg.cloud_name,
-        'api_key_largo': len(key),
-        'api_key_solo_numeros': key.isdigit(),
-        'api_secret_largo': len(cfg.api_secret or ''),
-    }
-    try:
-        cloudinary.api.ping()
-        info['conexion'] = 'OK: las credenciales son válidas'
-    except Exception as e:
-        info['conexion'] = f'ERROR: {e}'
-    return jsonify(info)
+    
+    ext = os.path.splitext(f.filename)[1]
+    filename = f"{secrets.token_hex(8)}{ext}"
+    filepath = UPLOAD_DIR / filename
+    f.save(str(filepath))
+    
+    url = f'/uploads/{filename}'
+    return jsonify({'url': url, 'filename': filename})
 
 @app.post('/api/products')
 @admin_required
@@ -335,18 +300,11 @@ def update_payment(pid):
     with db() as c: c.execute('UPDATE payments SET title=?,url=?,details=?,active=?,tip_enabled=? WHERE id=?',(d.get('title',''),d.get('url',''),d.get('details',''),int(bool(d.get('active',True))),int(bool(d.get('tip_enabled',False))),pid))
     return jsonify({'ok':True})
 
-@app.route('/bandeja360')
-def bandeja360():
-    return render_template('Bandeja360.html')
-
-
-
 @app.delete('/api/payments/<int:pid>')
 @admin_required
 def delete_payment(pid):
     with db() as c: c.execute('DELETE FROM payments WHERE id=?',(pid,))
     return jsonify({'ok':True})
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
