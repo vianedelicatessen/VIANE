@@ -2,6 +2,9 @@ import os
 import json
 import hmac
 import secrets
+import cloudinary
+import cloudinary.uploader
+import cloudinary.utils
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import wraps
@@ -32,9 +35,7 @@ _limpiar_cloudinary_url()
 # Si una de estas librerias falla, el sitio sigue abierto y /api/health dice cual es el problema
 # (el detalle queda en los Logs de Vercel). Asi no aparece un 500 generico.
 try:
-    import cloudinary
-    import cloudinary.uploader
-    import cloudinary.utils
+    
 except Exception as exc:
     cloudinary = None
     print(f'[VIANE] Cloudinary no disponible: {exc!r}')
