@@ -250,26 +250,30 @@ def now():
     return datetime.now(timezone.utc).isoformat()
 
 
+REQUIRED_TABLES = {'products', 'reviews', 'orders', 'settings', 'ads', 'payments', 'media'}
 def ensure_schema():
-    """Crea las tablas una sola vez por instancia (seguro si se ejecuta varias veces)."""
     global _schema_ready
     if _schema_ready:
         return
     with _schema_lock:
         if _schema_ready:
             return
-        with connect() as con:  # confirma (commit) y cierra al salir
-            con.execute('SELECT pg_advisory_xact_lock(%s)', (918273645,))
-            for stmt in SCHEMA:
-                con.execute(stmt)
-            for k, v in DEFAULT_SETTINGS.items():
-                con.execute('INSERT INTO settings(key,value) VALUES(%s,%s) ON CONFLICT (key) DO NOTHING', (k, v))
-            if con.execute('SELECT COUNT(*) AS n FROM products').fetchone()['n'] == 0:
-                for p in SAMPLE_PRODUCTS:
-                    con.execute(
-                        'INSERT INTO products(name,category,price,description,image,active,created_at) '
-                        'VALUES(%s,%s,%s,%s,%s,%s,%s)', (*p, now()))
+        with connect() as con:
+            existing = {r['tablename'] for r in con.execute(
+                "SELECT tablename FROM pg_tables WHERE schemaname='public'").fetchall()}
+            if not REQUIRED_TABLES <= existing:
+                con.execute('SELECT pg_advisory_xact_lock(%s)', (918273645,))
+                for stmt in SCHEMA:
+                    con.execute(stmt)
+                for k, v in DEFAULT_SETTINGS.items():
+                    con.execute('INSERT INTO settings(key,value) VALUES(%s,%s) ON CONFLICT (key) DO NOTHING', (k, v))
+                if con.execute('SELECT COUNT(*) AS n FROM products').fetchone()['n'] == 0:
+                    for p in SAMPLE_PRODUCTS:
+                        con.execute(
+                            'INSERT INTO products(name,category,price,description,image,active,created_at) '
+                            'VALUES(%s,%s,%s,%s,%s,%s,%s)', (*p, now()))
         _schema_ready = True
+
 
 
 @contextmanager
