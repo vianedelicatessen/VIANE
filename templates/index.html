@@ -1,5 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIANE Delicatessen</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"><style>
 :root{--dark:#3A0007;--crimson:#7A0C16;--ruby:#900010;--bright:#C40C1A;--goldLight:#F7E7A9;--gold:#D4AF37;--goldDark:#9A7B1C;--cream:#FFFDF5;--ink:#29252a;--muted:#77717a;--line:#eee5dc}*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif}h1,h2,h3,.serif{font-family:'Playfair Display',serif}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.top{position:sticky;top:0;z-index:5;background:#fffdf7ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px 5%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:10px;color:var(--crimson);font-weight:800;letter-spacing:2px}.logo{width:48px;height:48px;border:2px solid var(--gold);border-radius:50%;object-fit:cover;background:var(--dark)}nav{display:flex;gap:7px;flex-wrap:wrap}nav button,.pill{padding:10px 15px;border-radius:30px;background:#f5eee2;color:var(--crimson);font-size:12px;font-weight:800}.primary{background:var(--crimson)!important;color:#fff!important}.gold{color:var(--goldDark)}.hero{background:radial-gradient(circle at 50% 0,#a91826,var(--dark) 72%);color:white;text-align:center;padding:56px 18px 50px}.hero .logo{width:94px;height:94px;margin-bottom:14px}.eyebrow{color:var(--goldLight);letter-spacing:3px;font-size:11px;font-weight:800}.hero h1{font-size:clamp(30px,5vw,53px);margin:12px 0}.hero p{max-width:720px;margin:0 auto;color:#f9eac5;line-height:1.8}.wrap{max-width:1200px;margin:auto;padding:30px 18px}.section-title{text-align:center;color:var(--crimson);margin:8px 0 24px}.filters,.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}.filters button{border:1px solid #e6d7b4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px}.card{background:white;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 8px 28px #3a00070d;display:flex;flex-direction:column;gap:10px}.product-img{width:100%;height:190px;object-fit:cover;border-radius:15px;background:#f5eee2}.product-img.placeholder{display:grid;place-items:center;font-size:45px;color:var(--goldDark)}.price{font-family:'Playfair Display';font-weight:800;color:var(--crimson);font-size:20px}.btn{padding:12px 15px;border-radius:12px;background:var(--crimson);color:white;font-weight:800;font-size:12px}.btn.goldbtn{background:var(--gold);color:var(--dark)}.btn.light{background:#f5eee2;color:var(--crimson)}.muted{color:var(--muted);font-size:13px;line-height:1.65}.formbox{max-width:680px;margin:0 auto;background:white;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 8px 28px #3a00070d}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:800;color:var(--crimson)}input,select,textarea{width:100%;padding:12px;border:1px solid #e4d9cf;border-radius:10px;background:#fffdf9;color:var(--ink)}textarea{min-height:90px}.stars{display:flex;gap:6px;font-size:28px;color:var(--gold);margin:4px 0 12px}.stars button{background:none;color:inherit;font-size:28px;padding:0}.review{background:#fff;border:1px solid var(--line);padding:18px;border-radius:18px;margin-bottom:12px}.hidden{display:none!important}.status{padding:7px 10px;border-radius:20px;background:#f7e7a9;color:var(--dark);font-size:11px;font-weight:800;display:inline-block}.modal{position:fixed;inset:0;background:#160207b8;z-index:20;display:grid;place-items:center;padding:14px;overflow:auto}.modalbox{background:white;border:2px solid var(--gold);border-radius:22px;padding:24px;width:min(560px,100%);max-height:92vh;overflow:auto}.adminnav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.adminnav button{padding:10px;border-radius:10px;background:#f4ebdc;color:var(--crimson);font-weight:800;font-size:12px}.adminpanel{background:white;border:1px solid var(--line);padding:18px;border-radius:18px;margin:12px 0}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.itemrow{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;justify-content:space-between}.tiny{font-size:11px}.footer{text-align:center;padding:28px;background:#fff;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.floating{position:fixed;bottom:18px;right:18px;background:#168653;color:#fff;border-radius:40px;padding:14px 18px;text-decoration:none;z-index:6;font-weight:800;box-shadow:0 8px 22px #0002}@media(max-width:600px){.top{justify-content:center}.hero{padding-top:38px}.wrap{padding:22px 13px}.formbox{padding:16px}}
+#visor{display:none;position:fixed;inset:0;z-index:30;background:#160207eb;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}#visor.open{display:flex}#visorImg{max-width:100%;max-height:82vh;border-radius:14px;object-fit:contain}#visorCap{margin:0;color:#f9eac5;font-family:'Playfair Display',serif;text-align:center}.visor-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:#ffffff26;color:#fff;font-size:20px}#products img.product-img{cursor:zoom-in}
 </style></head><body>
 <header class="top"><div class="brand"><img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'"><div><div style="font-family:'Playfair Display';font-size:22px">VIANE</div><small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small></div></div><nav><button onclick="go('catalog')">Menú</button><button onclick="go('reviews')">Reseñas</button><button onclick="go('track')">Seguir pedido</button><button onclick="openLogin()">Panel privado</button><button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button></nav></header>
 <section class="hero" id="hero"><img id="heroLogo" class="logo" src="" alt="Logo" onerror="this.style.display='none'"><div class="eyebrow">DETALLES QUE SE CONVIERTEN EN RECUERDOS</div><h1>Un detalle especial, hecho para ti</h1><p>Desayunos, bandejas personalizadas, picaderas y regalos con el sello de VIANE Delicatessen.</p><div class="actions" style="margin-top:22px"><button class="btn goldbtn" onclick="go('catalog')">Explorar productos</button><button class="btn" onclick="go('reviews')">Compartir mi experiencia</button></div></section>
@@ -11,6 +12,7 @@
 <div id="loginModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Acceso administrativo</h2><p class="muted">Solo personal autorizado.</p><form id="loginForm"><label class="field">Correo electrónico<input id="loginEmail" type="email" value="flaquitabella875@gmail.com" required></label><label class="field" style="margin-top:12px">Contraseña<input id="loginPassword" type="password" required></label><div class="row" style="margin-top:16px"><button class="btn">Entrar</button><button type="button" class="btn light" onclick="closeLogin()">Cancelar</button></div><p id="loginError" class="muted"></p></form></div></div>
 <div id="cartModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Tu pedido</h2><div id="cartItems"></div><h3 id="cartTotal" class="price">RD$ 0</h3><form id="orderForm"><div class="fields"><label class="field">Nombre *<input id="orderName" required></label><label class="field">WhatsApp *<input id="orderPhone" required></label><label class="field">Provincia<select id="orderProvince"><option>Puerto Plata</option><option>Santiago</option><option>Santo Domingo</option><option>La Vega</option><option>Otra provincia</option></select></label><label class="field">Fecha deseada *<input id="orderDate" type="date" required></label></div><label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn">Crear pedido</button><button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button></div></form><div id="orderCreated" class="hidden"></div></div></div>
 <div id="tipModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">¿Te gustaría dejar una propina?</h2><p class="muted">Tu apoyo nos ayuda a seguir creando detalles especiales.</p><div id="tipLinks"></div><div class="row" style="margin-top:14px"><button class="btn" onclick="document.getElementById('tipModal').classList.add('hidden')">Ahora no, gracias</button></div></div></div>
+<div id="visor" onclick="closeVisor()"><button type="button" class="visor-x" aria-label="Cerrar">✕</button><img id="visorImg" alt=""><p id="visorCap"></p></div>
 <script>
 const $=id=>document.getElementById(id);let state={products:[],reviews:[],payments:[],ads:[],settings:{},cart:[],rating:5,admin:false,adminData:null,category:'Todos'};const categories=['Todos','desayunos','bandejas','picaderas','bizcochos','mariscos','regalos','eventos'];
 async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Ocurrió un error');return d}
@@ -56,7 +58,7 @@ async function createProduct(e){
 }
 async function editProduct(id){let p=state.adminData.products.find(x=>x.id===id);if(!p)return;let name=prompt('Nombre',p.name);if(name===null)return;let price=prompt('Precio RD$',p.price);if(price===null)return;let desc=prompt('Descripción',p.description);if(desc===null)return;let image=prompt('URL de imagen',p.image);if(image===null)return;let category=prompt('Categoría',p.category);if(category===null)return;try{await api('/api/products/'+id,{method:'PUT',body:JSON.stringify({...p,name,price:Number(price),description:desc,image,category})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function toggleProduct(id,active){let p=state.adminData.products.find(x=>x.id===id);await api('/api/products/'+id,{method:'PUT',body:JSON.stringify({...p,active:!!active})});await load();await refreshAdmin()}async function deleteProduct(id){if(confirm('¿Eliminar este producto?')){await api('/api/products/'+id,{method:'DELETE'});await load();await refreshAdmin()}}
 async function moderate(id,approved){try{await api('/api/reviews/'+id,{method:'PATCH',body:JSON.stringify({approved,admin_reply:$('rr'+id).value})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function deleteReview(id){if(confirm('¿Eliminar reseña?')){await api('/api/reviews/'+id,{method:'DELETE'});await load();await refreshAdmin()}}
-async function saveBrand(e){e.preventDefault();try{let d={};['brand_name','logo','whatsapp','instagram','background_type','background_value','review_url'].forEach(k=>d[k]=$('bs_'+k).value);let logoFile=$('logoFile')?.files?.[0];if(logoFile)d.logo=await uploadFile(logoFile);await api('/api/settings',{method:'PUT',body:JSON.stringify(d)});await load();await refreshAdmin();alert('Diseño guardado.')}catch(e){alert(e.message)}}async function uploadFile(file,kind='image'){let fd=new FormData();fd.append('file',file);fd.append('kind',kind);let r=await fetch('/api/upload',{method:'POST',body:fd});let d=await r.json();if(!r.ok)throw Error(d.error||'No se pudo subir');return d.url}async function uploadBackground(){try{let f=$('bgFile').files[0];if(!f)throw Error('Selecciona una imagen');let url=await uploadFile(f);$('bs_background_type').value='image';$('bs_background_value').value=url;alert('Archivo subido. Pulsa Guardar identidad y diseño para aplicar.')}catch(e){alert(e.message)}}async function addPayment(e){e.preventDefault();try{await api('/api/payments',{method:'POST',body:JSON.stringify({title:$('payTitle').value,url:$('payUrl').value,details:$('payDetails').value,tip_enabled:$('payTip').checked,active:true})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function togglePay(id,active,tip){let p=state.adminData.payments.find(x=>x.id===id);await api('/api/payments/'+id,{method:'PUT',body:JSON.stringify({...p,active:!!active,tip_enabled:!!tip})});await load();await refreshAdmin()}async function deletePay(id){if(confirm('¿Eliminar método?')){await api('/api/payments/'+id,{method:'DELETE'});await load();await refreshAdmin()}}async function addAd(e){e.preventDefault();try{await api('/api/ads',{method:'POST',body:JSON.stringify({title:$('adTitle').value,url:$('adUrl').value,image:$('adImage').value,active:true})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function toggleAd(id,active){let a=state.adminData.ads.find(x=>x.id===id);await api('/api/ads/'+id,{method:'PUT',body:JSON.stringify({...a,active:!!active})});await load();await refreshAdmin()}async function deleteAd(id){if(confirm('¿Eliminar publicidad?')){await api('/api/ads/'+id,{method:'DELETE'});await load();await refreshAdmin()}}
+async function saveBrand(e){e.preventDefault();try{let d={};['brand_name','logo','whatsapp','instagram','background_type','background_value','review_url'].forEach(k=>d[k]=$('bs_'+k).value);let logoFile=$('logoFile')?.files?.[0];if(logoFile)d.logo=await uploadFile(logoFile);await api('/api/settings',{method:'PUT',body:JSON.stringify(d)});await load();await refreshAdmin();alert('Diseño guardado.')}catch(e){alert(e.message)}}async function uploadBackground(){try{let f=$('bgFile').files[0];if(!f)throw Error('Selecciona una imagen');let url=await uploadFile(f);$('bs_background_type').value='image';$('bs_background_value').value=url;alert('Archivo subido. Pulsa Guardar identidad y diseño para aplicar.')}catch(e){alert(e.message)}}async function addPayment(e){e.preventDefault();try{await api('/api/payments',{method:'POST',body:JSON.stringify({title:$('payTitle').value,url:$('payUrl').value,details:$('payDetails').value,tip_enabled:$('payTip').checked,active:true})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function togglePay(id,active,tip){let p=state.adminData.payments.find(x=>x.id===id);await api('/api/payments/'+id,{method:'PUT',body:JSON.stringify({...p,active:!!active,tip_enabled:!!tip})});await load();await refreshAdmin()}async function deletePay(id){if(confirm('¿Eliminar método?')){await api('/api/payments/'+id,{method:'DELETE'});await load();await refreshAdmin()}}async function addAd(e){e.preventDefault();try{await api('/api/ads',{method:'POST',body:JSON.stringify({title:$('adTitle').value,url:$('adUrl').value,image:$('adImage').value,active:true})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function toggleAd(id,active){let a=state.adminData.ads.find(x=>x.id===id);await api('/api/ads/'+id,{method:'PUT',body:JSON.stringify({...a,active:!!active})});await load();await refreshAdmin()}async function deleteAd(id){if(confirm('¿Eliminar publicidad?')){await api('/api/ads/'+id,{method:'DELETE'});await load();await refreshAdmin()}}
 async function uploadMedia(){
     try{
         let f=$('mediaFile').files[0];
@@ -66,29 +68,27 @@ async function uploadMedia(){
         alert('Archivo subido correctamente.');
     }catch(e){alert(e.message)}
 }
-  
-<div id="visor" onclick="closeVisor()">
-  <button type="button" class="visor-x" aria-label="Cerrar">✕</button>
-  <img id="visorImg" alt=""><p id="visorCap"></p>
-</div>
-<style>
-#visor{display:none;position:fixed;inset:0;z-index:30;background:#160207eb;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}
-#visor.open{display:flex}
-#visorImg{max-width:100%;max-height:82vh;border-radius:14px;object-fit:contain}
-#visorCap{margin:0;color:#f9eac5;font-family:'Playfair Display',serif;text-align:center}
-.visor-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:#ffffff26;color:#fff;font-size:20px}
-#products .product-img{cursor:zoom-in}
-</style>
-<script>
-function closeVisor(){document.getElementById('visor').classList.remove('open');document.getElementById('visorImg').removeAttribute('src')}
+async function uploadFile(file,kind='image'){
+if(file.size>80*1024*1024)throw Error('El archivo supera 80 MB.');
+if(file.size<=4*1024*1024){let fd=new FormData();fd.append('file',file);fd.append('kind',kind);let r=await fetch('/api/upload',{method:'POST',body:fd});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'No se pudo subir');return d.url}
+let rt=file.type.startsWith('image/')?'image':'video';
+let s=await api('/api/upload-signature',{method:'POST',body:JSON.stringify({resource_type:rt})});
+let fd=new FormData();fd.append('file',file);fd.append('api_key',s.api_key);fd.append('timestamp',s.timestamp);fd.append('folder',s.folder);fd.append('signature',s.signature);
+let r=await fetch(s.upload_url,{method:'POST',body:fd});let d=await r.json().catch(()=>({}));
+if(!r.ok)throw Error((d.error&&d.error.message)||'No se pudo subir el archivo a Cloudinary');return d.secure_url}
+
+/* ---- Ampliar la foto del producto al tocarla ---- */
+function closeVisor(){$('visor').classList.remove('open');$('visorImg').removeAttribute('src')}
 document.addEventListener('click',function(e){
   var img=e.target.closest&&e.target.closest('#products img.product-img');
   if(!img)return;
-  document.getElementById('visorImg').src=(img.currentSrc||img.src).replace(/[?&]r=\d+$/,'');
-  document.getElementById('visorCap').textContent=img.alt||'';
-  document.getElementById('visor').classList.add('open');
+  $('visorImg').src=(img.currentSrc||img.src).replace(/[?&]r=\d+$/,'');
+  $('visorCap').textContent=img.alt||'';
+  $('visor').classList.add('open');
 });
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeVisor()});
+
+/* ---- Si una foto falla al cargar, reintenta sola (hasta 3 veces) ---- */
 function imgRetry(img){
   var n=Number(img.dataset.r||0),src=img.getAttribute('src')||'';
   if(!src||n>=3||img.id==='visorImg')return;
@@ -98,32 +98,8 @@ function imgRetry(img){
 }
 document.addEventListener('error',function(e){if(e.target&&e.target.tagName==='IMG')imgRetry(e.target)},true);
 document.addEventListener('load',function(e){var t=e.target;if(t&&(t.id==='brandLogo'||t.id==='heroLogo'))t.style.display=''},true);
-var _t=0,_iv=setInterval(function(){if(state.products.length||++_t>4){clearInterval(_iv);return}load()},3000);
-</script>
 
-    
-document.addEventListener('click',function(e){
-  var img=e.target.closest('img');
-  if(!img||img.closest('header,nav,#visor'))return;
-  document.getElementById('visorImg').src=img.currentSrc||img.src;
-  document.getElementById('visor').style.display='flex';
-});
-document.addEventListener('keydown',function(e){
-  if(e.key==='Escape')document.getElementById('visor').style.display='none';
-});
-</script>
-    
-    
-    
-    
-    
-    
-    async function uploadFile(file,kind='image'){
-if(file.size>80*1024*1024)throw Error('El archivo supera 80 MB.');
-if(file.size<=4*1024*1024){let fd=new FormData();fd.append('file',file);fd.append('kind',kind);let r=await fetch('/api/upload',{method:'POST',body:fd});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'No se pudo subir');return d.url}
-let rt=file.type.startsWith('image/')?'image':'video';
-let s=await api('/api/upload-signature',{method:'POST',body:JSON.stringify({resource_type:rt})});
-let fd=new FormData();fd.append('file',file);fd.append('api_key',s.api_key);fd.append('timestamp',s.timestamp);fd.append('folder',s.folder);fd.append('signature',s.signature);
-let r=await fetch(s.upload_url,{method:'POST',body:fd});let d=await r.json().catch(()=>({}));
-if(!r.ok)throw Error((d.error&&d.error.message)||'No se pudo subir el archivo a Cloudinary');return d.secure_url}  
+/* ---- Arranque: carga el catálogo y reintenta si la primera carga falla ---- */
+load();
+var _t=0,_iv=setInterval(function(){if(state.products.length||++_t>4){clearInterval(_iv);return}load()},3000);
 </script></body></html>
