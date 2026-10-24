@@ -20,9 +20,9 @@ import cloudinary.uploader
 import cloudinary.utils
 import psycopg
 from psycopg.rows import dict_row
-from flask import Flask, request, jsonify, session, render_template
-from jinja2 import TemplateNotFound
-from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
+from pathlib import Path
+from flask import Flask, request, jsonify, session, send_from_directory
+from werkzeug.exceptions import HTTPException, NotFound, RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
 # ---------------------------------------------------------------------------
@@ -41,6 +41,7 @@ STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparac
 MAX_SERVER_UPLOAD = 4 * 1024 * 1024
 
 app = Flask(__name__)
+TEMPLATES_DIR = Path(__file__).resolve().parent / 'templates'
 app.config.update(
     MAX_CONTENT_LENGTH=MAX_SERVER_UPLOAD,
     SESSION_COOKIE_HTTPONLY=True,
@@ -261,15 +262,16 @@ def on_error(e):
 # ---------------------------------------------------------------------------
 @app.get('/')
 def home():
-    return render_template('index.html')
+    # Se sirve el archivo tal cual (sin Jinja), asi el JavaScript con llaves no se toca.
+    return send_from_directory(TEMPLATES_DIR, 'index.html')
 
 
 @app.get('/Bandeja360.html')
 @app.get('/bandeja360')
 def bandeja360():
     try:
-        return render_template('Bandeja360.html')
-    except TemplateNotFound:
+        return send_from_directory(TEMPLATES_DIR, 'Bandeja360.html')
+    except NotFound:
         return jsonify({'error': 'Página no encontrada'}), 404
 
 
@@ -550,10 +552,12 @@ def update_order(oid):
     payment = str(d.get('payment_status', 'Pago pendiente'))[:100]
     if status not in STATUSES:
         return jsonify({'error': 'Estado no válido'}), 400
+    notes = str(d['notes'])[:2000] if 'notes' in d else None  # None = conservar las notas del cliente
     with db() as c:
         cur = c.execute(
-            'UPDATE orders SET status=%s,payment_status=%s,notes=%s,incident=%s,updated_at=%s WHERE id=%s',
-            (status, payment, str(d.get('notes', ''))[:2000], str(d.get('incident', ''))[:1000], now(), oid))
+            'UPDATE orders SET status=%s,payment_status=%s,notes=COALESCE(%s,notes),incident=%s,updated_at=%s '
+            'WHERE id=%s',
+            (status, payment, notes, str(d.get('incident', ''))[:1000], now(), oid))
         if cur.rowcount == 0:
             return jsonify({'error': 'Pedido no encontrado'}), 404
     return jsonify({'ok': True})
