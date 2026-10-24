@@ -1,23 +1,37 @@
+"""
+VIANE DELICATESSEN - backend Flask listo para Vercel.
+
+- Base de datos: Postgres (Supabase) a traves de DATABASE_URL.
+- Archivos (imagenes / audio / video): Cloudinary (CLOUDINARY_URL).
+- Sesion de administrador: SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD.
+
+Vercel NO conserva archivos locales entre peticiones, por eso ya no se usa
+SQLite ni la carpeta static/uploads.
+"""
 import os
 import json
 import hmac
 import secrets
-import cloudinary
-import cloudinary.uploader
-import cloudinary.utils
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import wraps
 from threading import Lock
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
+from pathlib import Path
+from flask import Flask, request, jsonify, session, send_from_directory
+from werkzeug.exceptions import HTTPException, NotFound, RequestEntityTooLarge
+from werkzeug.utils import secure_filename
+
+# Vercel busca esta variable "app" al nivel principal del archivo.
+app = Flask(__name__)
+TEMPLATES_DIR = Path(__file__).resolve().parent / 'templates'
+
 try:  # solo para desarrollo local (archivo .env); en Vercel no hace nada
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
-
-
 
 def _limpiar_cloudinary_url():
     """Arregla errores comunes al pegar CLOUDINARY_URL en Vercel: comillas, el texto
@@ -35,7 +49,9 @@ _limpiar_cloudinary_url()
 # Si una de estas librerias falla, el sitio sigue abierto y /api/health dice cual es el problema
 # (el detalle queda en los Logs de Vercel). Asi no aparece un 500 generico.
 try:
-    
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.utils
 except Exception as exc:
     cloudinary = None
     print(f'[VIANE] Cloudinary no disponible: {exc!r}')
@@ -46,11 +62,6 @@ try:
 except Exception as exc:
     psycopg = None
     print(f'[VIANE] psycopg no disponible (revisa requirements.txt): {exc!r}')
-
-from pathlib import Path
-from flask import Flask, request, jsonify, session, send_from_directory
-from werkzeug.exceptions import HTTPException, NotFound, RequestEntityTooLarge
-from werkzeug.utils import secure_filename
 
 # ---------------------------------------------------------------------------
 # Configuracion
@@ -67,8 +78,6 @@ STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparac
 # subirse directo a Cloudinary con /api/upload-signature (ver README).
 MAX_SERVER_UPLOAD = 4 * 1024 * 1024
 
-app = Flask(__name__)
-TEMPLATES_DIR = Path(__file__).resolve().parent / 'templates'
 app.config.update(
     MAX_CONTENT_LENGTH=MAX_SERVER_UPLOAD,
     SESSION_COOKIE_HTTPONLY=True,
