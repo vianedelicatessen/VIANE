@@ -1,4 +1,3 @@
-
 import os
 import json
 import hmac
@@ -15,11 +14,38 @@ try:  # solo para desarrollo local (archivo .env); en Vercel no hace nada
 except ImportError:
     pass
 
-import cloudinary
-import cloudinary.uploader
-import cloudinary.utils
-import psycopg
-from psycopg.rows import dict_row
+
+
+def _limpiar_cloudinary_url():
+    """Arregla errores comunes al pegar CLOUDINARY_URL en Vercel: comillas, el texto
+    'CLOUDINARY_URL=' delante, o los signos < > de los ejemplos."""
+    v = (os.environ.get('CLOUDINARY_URL') or '').strip().strip('"').strip("'").strip()
+    if not v:
+        return
+    if v.upper().startswith('CLOUDINARY_URL='):
+        v = v.split('=', 1)[1]
+    os.environ['CLOUDINARY_URL'] = v.strip().strip('"').strip("'").replace('<', '').replace('>', '').strip()
+
+
+_limpiar_cloudinary_url()
+
+# Si una de estas librerias falla, el sitio sigue abierto y /api/health dice cual es el problema
+# (el detalle queda en los Logs de Vercel). Asi no aparece un 500 generico.
+try:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.utils
+except Exception as exc:
+    cloudinary = None
+    print(f'[VIANE] Cloudinary no disponible: {exc!r}')
+
+try:
+    import psycopg
+    from psycopg.rows import dict_row
+except Exception as exc:
+    psycopg = None
+    print(f'[VIANE] psycopg no disponible (revisa requirements.txt): {exc!r}')
+
 from pathlib import Path
 from flask import Flask, request, jsonify, session, send_from_directory
 from werkzeug.exceptions import HTTPException, NotFound, RequestEntityTooLarge
@@ -52,27 +78,34 @@ app.config.update(
 # La clave de sesion DEBE ser fija: en Vercel hay varias instancias y una clave
 # aleatoria por instancia cerraria la sesion del admin constantemente.
 _secret = os.environ.get('SECRET_KEY') or os.environ.get('VIANE_SECRET_KEY')
+SECRET_KEY_OK = bool(_secret)
 if not _secret:
-    if IS_VERCEL:
-        raise RuntimeError('Falta la variable de entorno SECRET_KEY en Vercel.')
-    _secret = 'solo-desarrollo-local'
+    print('[VIANE] ADVERTENCIA: falta SECRET_KEY; la sesion del admin sera inestable.')
+    _secret = secrets.token_hex(32)
 app.secret_key = _secret
 
 ADMIN_EMAIL = (os.environ.get('ADMIN_EMAIL') or '').strip().lower()
 ADMIN_PASSWORD = (os.environ.get('ADMIN_PASSWORD') or '').strip()
 
 # Cloudinary lee CLOUDINARY_URL automaticamente. Respaldo con variables sueltas.
-cloudinary.config(secure=True)
-if os.environ.get('CLOUDINARY_CLOUD_NAME') and not os.environ.get('CLOUDINARY_URL'):
-    cloudinary.config(
-        cloud_name=os.environ['CLOUDINARY_CLOUD_NAME'],
-        api_key=os.environ.get('CLOUDINARY_API_KEY'),
-        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
-        secure=True,
-    )
+if cloudinary is not None:
+    try:
+        cloudinary.config(secure=True)
+        if os.environ.get('CLOUDINARY_CLOUD_NAME') and not os.environ.get('CLOUDINARY_URL'):
+            cloudinary.config(
+                cloud_name=os.environ['CLOUDINARY_CLOUD_NAME'],
+                api_key=os.environ.get('CLOUDINARY_API_KEY'),
+                api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+                secure=True,
+            )
+    except Exception as exc:
+        print(f'[VIANE] Configuracion de Cloudinary invalida: {exc!r}')
+        cloudinary = None
 
 
 def cloudinary_ready():
+    if cloudinary is None:
+        return False
     cfg = cloudinary.config()
     return bool(cfg.cloud_name and cfg.api_key and cfg.api_secret)
 
@@ -100,6 +133,8 @@ DSN = _clean_dsn(os.environ.get('DATABASE_URL'))
 
 
 def connect():
+    if psycopg is None:
+        raise RuntimeError('La libreria psycopg no esta instalada (revisa requirements.txt).')
     if not DSN:
         raise RuntimeError('Falta la variable de entorno DATABASE_URL.')
     # prepare_threshold=None: compatible con el pooler de Supabase (modo transaccion).
@@ -282,7 +317,7 @@ def health():
         'database': False,
         'cloudinary': cloudinary_ready(),
         'admin_configured': bool(ADMIN_EMAIL and ADMIN_PASSWORD),
-        'secret_key': bool(os.environ.get('SECRET_KEY')),
+        'secret_key': SECRET_KEY_OK,
     }
     try:
         with db() as c:
