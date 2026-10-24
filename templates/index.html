@@ -67,16 +67,40 @@ async function uploadMedia(){
     }catch(e){alert(e.message)}
 }
   
-<div id="visor" onclick="this.style.display='none'">
-  <img id="visorImg" alt="">
+<div id="visor" onclick="closeVisor()">
+  <button type="button" class="visor-x" aria-label="Cerrar">✕</button>
+  <img id="visorImg" alt=""><p id="visorCap"></p>
 </div>
 <style>
-#visor{display:none;position:fixed;inset:0;z-index:9999;
-background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:16px}
-#visorImg{max-width:100%;max-height:100%;border-radius:12px}
-.card img,.producto img,[class*="product"] img{cursor:zoom-in}
+#visor{display:none;position:fixed;inset:0;z-index:30;background:#160207eb;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}
+#visor.open{display:flex}
+#visorImg{max-width:100%;max-height:82vh;border-radius:14px;object-fit:contain}
+#visorCap{margin:0;color:#f9eac5;font-family:'Playfair Display',serif;text-align:center}
+.visor-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:#ffffff26;color:#fff;font-size:20px}
+#products .product-img{cursor:zoom-in}
 </style>
 <script>
+function closeVisor(){document.getElementById('visor').classList.remove('open');document.getElementById('visorImg').removeAttribute('src')}
+document.addEventListener('click',function(e){
+  var img=e.target.closest&&e.target.closest('#products img.product-img');
+  if(!img)return;
+  document.getElementById('visorImg').src=(img.currentSrc||img.src).replace(/[?&]r=\d+$/,'');
+  document.getElementById('visorCap').textContent=img.alt||'';
+  document.getElementById('visor').classList.add('open');
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeVisor()});
+function imgRetry(img){
+  var n=Number(img.dataset.r||0),src=img.getAttribute('src')||'';
+  if(!src||n>=3||img.id==='visorImg')return;
+  img.dataset.r=n+1;
+  src=src.replace(/[?&]r=\d+$/,'');
+  setTimeout(function(){img.src=src+(src.indexOf('?')>-1?'&':'?')+'r='+Date.now()},1200*(n+1));
+}
+document.addEventListener('error',function(e){if(e.target&&e.target.tagName==='IMG')imgRetry(e.target)},true);
+document.addEventListener('load',function(e){var t=e.target;if(t&&(t.id==='brandLogo'||t.id==='heroLogo'))t.style.display=''},true);
+var _t=0,_iv=setInterval(function(){if(state.products.length||++_t>4){clearInterval(_iv);return}load()},3000);
+</script>
+
     
 document.addEventListener('click',function(e){
   var img=e.target.closest('img');
