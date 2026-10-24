@@ -2,12 +2,16 @@
 VIANE DELICATESSEN - backend Flask listo para Vercel.
 
 - Base de datos: Postgres (Supabase) a traves de DATABASE_URL.
-- Archivos (imagenes / audio / video): Cloudinary (CLOUDINARY_URL).
+- Imagenes / audio / video subidos desde el navegador: se guardan en Supabase
+  (tabla "media") y se muestran desde /media/<id>. No se pierden al actualizar
+  ni al cerrar la web, y no necesitan ninguna llave extra.
 - Sesion de administrador: SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD.
+- Cloudinary es OPCIONAL: solo se usa para videos/audios grandes (/api/upload-signature).
 
-Vercel NO conserva archivos locales entre peticiones, por eso ya no se usa
+Vercel NO conserva archivos locales entre peticiones, por eso no se usa
 SQLite ni la carpeta static/uploads.
 """
+import io
 import os
 import json
 import hmac
@@ -16,10 +20,10 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import wraps
 from threading import Lock
-from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode, quote, unquote
 
 from pathlib import Path
-from flask import Flask, request, jsonify, session, send_from_directory
+from flask import Flask, request, jsonify, session, send_from_directory, send_file
 from werkzeug.exceptions import HTTPException, NotFound, RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
@@ -32,6 +36,7 @@ try:  # solo para desarrollo local (archivo .env); en Vercel no hace nada
     load_dotenv()
 except ImportError:
     pass
+
 
 def _limpiar_cloudinary_url():
     """Arregla errores comunes al pegar CLOUDINARY_URL en Vercel: comillas, el texto
@@ -54,7 +59,7 @@ try:
     import cloudinary.utils
 except Exception as exc:
     cloudinary = None
-    print(f'[VIANE] Cloudinary no disponible: {exc!r}')
+    print(f'[VIANE] Cloudinary no disponible (es opcional): {exc!r}')
 
 try:
     import psycopg
@@ -71,6 +76,11 @@ IS_VERCEL = bool(os.environ.get('VERCEL') or os.environ.get('VERCEL_ENV'))
 ALLOWED_IMAGES = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 ALLOWED_AUDIO_VIDEO = {'mp4', 'mp3', 'wav', 'ogg', 'm4a'}
 ALLOWED_MEDIA = ALLOWED_IMAGES | ALLOWED_AUDIO_VIDEO
+MEDIA_TYPES = {
+    'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'webp': 'image/webp',
+    'gif': 'image/gif', 'mp4': 'video/mp4', 'mp3': 'audio/mpeg', 'wav': 'audio/wav',
+    'ogg': 'audio/ogg', 'm4a': 'audio/mp4',
+}
 STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación',
             'En creación', 'Enviado', 'En camino', 'Entregado', 'Incidencia']
 
@@ -97,7 +107,7 @@ app.secret_key = _secret
 ADMIN_EMAIL = (os.environ.get('ADMIN_EMAIL') or '').strip().lower()
 ADMIN_PASSWORD = (os.environ.get('ADMIN_PASSWORD') or '').strip()
 
-# Cloudinary lee CLOUDINARY_URL automaticamente. Respaldo con variables sueltas.
+# Cloudinary (opcional) lee CLOUDINARY_URL automaticamente. Respaldo con variables sueltas.
 if cloudinary is not None:
     try:
         cloudinary.config(secure=True)
@@ -116,20 +126,44 @@ if cloudinary is not None:
 def cloudinary_ready():
     if cloudinary is None:
         return False
-    cfg = cloudinary.config()
-    return bool(cfg.cloud_name and cfg.api_key and cfg.api_secret)
+    try:
+        cfg = cloudinary.config()
+        return bool(cfg.cloud_name and cfg.api_key and cfg.api_secret)
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------------------
 # Base de datos (Supabase / Postgres)
 # ---------------------------------------------------------------------------
 def _clean_dsn(url):
-    """Limpia la URL de Supabase: quita parametros que libpq no entiende
-    (pgbouncer=true, etc.) y exige SSL."""
-    url = (url or '').strip().strip('"').strip("'")
+    """Limpia DATABASE_URL de Supabase para que nunca tumbe el sitio:
+    - quita comillas, el texto 'DATABASE_URL=' y los corchetes/signos de los ejemplos
+      (por ejemplo [YOUR-PASSWORD] o [servidor]);
+    - codifica caracteres raros de la contrasena (@ # / : etc.);
+    - quita parametros que libpq no entiende (pgbouncer=true, etc.) y exige SSL."""
+    url = (url or '').strip().strip('"').strip("'").strip()
+    if url.upper().startswith('DATABASE_URL='):
+        url = url.split('=', 1)[1].strip().strip('"').strip("'").strip()
     if not url:
         return ''
-    parts = urlsplit(url)
+    url = url.replace('[', '').replace(']', '').replace('<', '').replace('>', '')
+    scheme, sep, rest = url.partition('://')
+    if not sep:
+        raise ValueError('la URL debe empezar con postgresql://')
+    if scheme.lower() == 'postgres':
+        scheme = 'postgresql'
+    # La contrasena puede traer "@": el servidor empieza despues de la ULTIMA "@".
+    userinfo, at, hostpart = rest.rpartition('@')
+    if at:
+        user, colon, password = userinfo.partition(':')
+        userinfo = quote(unquote(user), safe='')
+        if colon:
+            userinfo += ':' + quote(unquote(password), safe='')
+        userinfo += '@'
+    else:
+        userinfo = ''
+    parts = urlsplit(f'{scheme}://{userinfo}{hostpart}')
     query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
              if k.lower() not in ('pgbouncer', 'connection_limit', 'schema')]
     keys = {k.lower() for k, _ in query}
@@ -139,14 +173,20 @@ def _clean_dsn(url):
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
-DSN = _clean_dsn(os.environ.get('DATABASE_URL'))
+DSN_ERROR = ''
+try:
+    DSN = _clean_dsn(os.environ.get('DATABASE_URL'))
+except Exception as exc:  # una URL mal escrita ya no tumba el sitio: /api/health lo avisa
+    DSN = ''
+    DSN_ERROR = 'DATABASE_URL tiene un formato invalido (copiala de nuevo desde Supabase).'
+    print(f'[VIANE] {DSN_ERROR} Detalle: {type(exc).__name__}')
 
 
 def connect():
     if psycopg is None:
         raise RuntimeError('La libreria psycopg no esta instalada (revisa requirements.txt).')
     if not DSN:
-        raise RuntimeError('Falta la variable de entorno DATABASE_URL.')
+        raise RuntimeError(DSN_ERROR or 'Falta la variable de entorno DATABASE_URL.')
     # prepare_threshold=None: compatible con el pooler de Supabase (modo transaccion).
     return psycopg.connect(DSN, row_factory=dict_row, prepare_threshold=None, connect_timeout=10)
 
@@ -173,6 +213,10 @@ SCHEMA = [
     '''CREATE TABLE IF NOT EXISTS payments(
         id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL, url TEXT NOT NULL, details TEXT DEFAULT '',
         active INTEGER NOT NULL DEFAULT 1, tip_enabled INTEGER NOT NULL DEFAULT 0)''',
+    # Imagenes / audio / video subidos desde el navegador (hasta 4 MB cada uno).
+    '''CREATE TABLE IF NOT EXISTS media(
+        id BIGSERIAL PRIMARY KEY, filename TEXT NOT NULL, content_type TEXT NOT NULL,
+        data BYTEA NOT NULL, size INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)''',
     # Seguridad: Supabase expone el esquema public por su API REST. Con RLS activado
     # y sin politicas, nadie puede leer estas tablas por esa via. Esta app se conecta
     # con el rol postgres (DATABASE_URL), que ignora RLS, asi que sigue funcionando.
@@ -182,6 +226,7 @@ SCHEMA = [
     'ALTER TABLE settings ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE ads ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE payments ENABLE ROW LEVEL SECURITY',
+    'ALTER TABLE media ENABLE ROW LEVEL SECURITY',
 ]
 
 DEFAULT_SETTINGS = {
@@ -320,14 +365,31 @@ def bandeja360():
         return jsonify({'error': 'Página no encontrada'}), 404
 
 
+@app.get('/media/<int:mid>')
+def media(mid):
+    """Muestra una imagen/audio/video guardado en Supabase (tabla media)."""
+    with db() as c:
+        row = c.execute('SELECT content_type,data FROM media WHERE id=%s', (mid,)).fetchone()
+    if not row:
+        return jsonify({'error': 'Archivo no encontrado'}), 404
+    resp = send_file(io.BytesIO(bytes(row['data'])), mimetype=row['content_type'],
+                     conditional=True, etag=f'viane-{mid}')
+    # El id de un archivo nunca cambia de contenido: se puede guardar en cache un año.
+    resp.headers['Cache-Control'] = 'public, max-age=31536000, s-maxage=31536000, immutable'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    return resp
+
+
 @app.get('/api/health')
 def health():
-    """Diagnostico rapido del despliegue (solo true/false, nunca secretos)."""
+    """Diagnostico rapido del despliegue (solo true/false o textos cortos, nunca secretos)."""
     info = {
+        'psycopg_instalado': psycopg is not None,
+        'database_url': 'ok' if DSN else (DSN_ERROR or 'falta DATABASE_URL'),
         'database': False,
-        'cloudinary': cloudinary_ready(),
         'admin_configured': bool(ADMIN_EMAIL and ADMIN_PASSWORD),
         'secret_key': SECRET_KEY_OK,
+        'cloudinary_opcional': cloudinary_ready(),
     }
     try:
         with db() as c:
@@ -335,7 +397,7 @@ def health():
         info['database'] = True
     except Exception:
         app.logger.exception('Health: fallo al conectar con la base de datos')
-    info['ok'] = all(info.values())
+    info['ok'] = bool(info['database'] and info['admin_configured'] and info['secret_key'])
     return jsonify(info), (200 if info['ok'] else 503)
 
 
@@ -471,11 +533,12 @@ def admin_data():
         })
 
 
-# --- Subida de archivos a Cloudinary -----------------------------------------
+# --- Subida de archivos (se guardan en Supabase) ------------------------------
 @app.post('/api/upload')
 @admin_required
 def upload():
-    """Sube un archivo (hasta 4 MB) a Cloudinary. Devuelve {'url', 'filename'}."""
+    """Guarda un archivo (hasta 4 MB) en Supabase. Devuelve {'url', 'filename'}.
+    La url (/media/<id>) es la que se guarda en el producto, logo o anuncio."""
     f = request.files.get('file')
     kind = request.form.get('kind', 'image')
     if not f or not f.filename:
@@ -483,27 +546,27 @@ def upload():
     allowed = ALLOWED_MEDIA if kind == 'media' else ALLOWED_IMAGES
     if not allowed_file(f.filename, allowed):
         return jsonify({'error': 'Tipo de archivo no permitido'}), 400
-    if not cloudinary_ready():
-        return jsonify({'error': 'Cloudinary no está configurado (revisa CLOUDINARY_URL en Vercel).'}), 503
 
     ext = f.filename.rsplit('.', 1)[1].lower()
-    name = secure_filename(f.filename.rsplit('.', 1)[0])[:40] or 'archivo'
-    resource_type = 'image' if ext in ALLOWED_IMAGES else 'video'  # Cloudinary trata el audio como "video"
-    try:
-        res = cloudinary.uploader.upload(
-            f.stream, folder='viane', public_id=f'{secrets.token_hex(6)}-{name}',
-            resource_type=resource_type, overwrite=False)
-    except Exception:
-        app.logger.exception('Fallo al subir a Cloudinary')
-        return jsonify({'error': 'No se pudo subir el archivo a Cloudinary'}), 502
-    return jsonify({'url': res['secure_url'], 'filename': res.get('public_id', name)})
+    data = f.read()
+    if not data:
+        return jsonify({'error': 'El archivo está vacío'}), 400
+    if len(data) > MAX_SERVER_UPLOAD:
+        return too_large(None)
+    name = (secure_filename(f.filename.rsplit('.', 1)[0])[:60] or 'archivo') + '.' + ext
+
+    with db() as c:
+        row = c.execute(
+            'INSERT INTO media(filename,content_type,data,size,created_at) VALUES(%s,%s,%s,%s,%s) RETURNING id',
+            (name, MEDIA_TYPES[ext], data, len(data), now())).fetchone()
+    return jsonify({'url': f"/media/{row['id']}", 'filename': name})
 
 
 @app.post('/api/upload-signature')
 @admin_required
 def upload_signature():
-    """Firma para subir archivos GRANDES (video/audio) directo del navegador a Cloudinary,
-    sin pasar por Vercel (limite 4.5 MB). Ver README para el codigo del navegador."""
+    """OPCIONAL (necesita Cloudinary): firma para subir archivos GRANDES (video/audio) directo
+    del navegador a Cloudinary, sin pasar por Vercel (limite 4.5 MB)."""
     if not cloudinary_ready():
         return jsonify({'error': 'Cloudinary no está configurado (revisa CLOUDINARY_URL en Vercel).'}), 503
     resource_type = body().get('resource_type', 'image')
