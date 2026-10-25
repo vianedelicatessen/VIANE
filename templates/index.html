@@ -103,6 +103,6 @@ document.addEventListener('load',function(e){var t=e.target;if(t&&(t.id==='brand
 /* ---- Arranque: carga el catálogo y reintenta si la primera carga falla ---- */
 load();
 var _t=0,_iv=setInterval(function(){if(state.products.length||++_t>4){clearInterval(_iv);return}load()},3000);
-if(location.hash==='#panel-viane')openLogin();
+if(location.hash==='#productos')openLogin();
 </script></body></html>
 
