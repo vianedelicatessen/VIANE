@@ -56,10 +56,18 @@ const totalconImpuestos=subtotal;.
   document.getElementById('cartTotal').textContent = money(granTotal);
 }
 
-function openCart(){$('cartModal').classList.remove('hidden');renderCart()}
-function closeCart(){$('cartModal').classList.add('hidden')}function renderCart() {
+function openCart() {
+  $('cartModal').classList.remove('hidden');
+  renderCart();
+}
+
+function closeCart() {
+  $('cartModal').classList.add('hidden');
+}
+
+function renderCart() {
   const cartItems = document.getElementById('cartItems');
-  
+
   if (state.cart.length > 0) {
     cartItems.innerHTML = state.cart.map((p, i) => `
       <div class="itemrow">
