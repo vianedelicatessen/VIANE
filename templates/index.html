@@ -45,7 +45,7 @@ function getCostoEnvio() {
 function actualizarCostoEnvio() {
   const costoEnvio = getCostoEnvio();
   const subtotal = state.cart.reduce((s, p) => s + Number(p.price), 0);
-const totalconImpuestos=subtotal;.
+const totalConImpuestos=subtotal;
   const granTotal = totalConImpuestos + costoEnvio;
 
   document.getElementById('invSubtotal').textContent = money(subtotal);
