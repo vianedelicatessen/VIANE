@@ -78,7 +78,7 @@ function closeCart(){$('cartModal').classList.add('hidden')}function renderCart(
     `;
   } else {
     cartItems.innerHTML = '<p class="muted">Todavía no agregaste productos.</p>';
-  }
+actualizarCostoEnvío();. } 
 }
 function removeCart(i){state.cart.splice(i,1);$('cartCount').textContent=state.cart.length;renderCart()}
 $('orderForm').addEventListener('submit',async e=>{e.preventDefault();try{let d=await api('/api/orders',{method:'POST',body:JSON.stringify({name:$('orderName').value,phone:$('orderPhone').value,province:$('orderProvince').value,delivery_date:$('orderDate').value,notes:$('orderNotes').value,items:state.cart.map(p=>({id:p.id}))})});let msg=`Hola, soy ${$('orderName').value}. Acabo de crear el pedido ${d.code} de VIANE Delicatessen por ${money(d.total)}. ¿Me ayudan con el pago?`+(d.review_url?`\n\nCuando finalice mi experiencia, puedo dejar mi reseña aquí: ${d.review_url}`:'');let wa='https://wa.me/'+(d.whatsapp||'18296759640')+'?text='+encodeURIComponent(msg);$('orderCreated').classList.remove('hidden');$('orderCreated').innerHTML=`<div class="adminpanel"><h3>¡Pedido creado!</h3><p>Tu código de seguimiento es <b>${esc(d.code)}</b>. Guárdalo para consultar el estado.</p><button class="btn" onclick="navigator.clipboard?.writeText('${d.code}')">Copiar código</button> <a class="btn" href="${wa}" target="_blank">Continuar por WhatsApp</a><p class="muted">Al finalizar tu experiencia, podrás dejar tu reseña aquí: <a href="#reviews" onclick="go('reviews')">Publicar reseña</a></p></div>`;state.cart=[];$('cartCount').textContent='0';renderCart();}catch(err){alert(err.message)}});
