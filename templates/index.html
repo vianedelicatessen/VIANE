@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIANE Delicatessen</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"><style>
 :root{--dark:#3A0007;--crimson:#7A0C16;--ruby:#900010;--bright:#C40C1A;--goldLight:#F7E7A9;--gold:#D4AF37;--goldDark:#9A7B1C;--cream:#FFFDF5;--ink:#29252a;--muted:#77717a;--line:#eee5dc}*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif}h1,h2,h3,.serif{font-family:'Playfair Display',serif}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.top{position:sticky;top:0;z-index:5;background:#fffdf7ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px 5%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:10px;color:var(--crimson);font-weight:800;letter-spacing:2px}.logo{width:48px;height:48px;border:2px solid var(--gold);border-radius:50%;object-fit:cover;background:var(--dark)}nav{display:flex;gap:7px;flex-wrap:wrap}nav button,.pill{padding:10px 15px;border-radius:30px;background:#f5eee2;color:var(--crimson);font-size:12px;font-weight:800}.primary{background:var(--crimson)!important;color:#fff!important}.gold{color:var(--goldDark)}.hero{background:radial-gradient(circle at 50% 0,#a91826,var(--dark) 72%);color:white;text-align:center;padding:56px 18px 50px}.hero .logo{width:94px;height:94px;margin-bottom:14px}.eyebrow{color:var(--goldLight);letter-spacing:3px;font-size:11px;font-weight:800}.hero h1{font-size:clamp(30px,5vw,53px);margin:12px 0}.hero p{max-width:720px;margin:0 auto;color:#f9eac5;line-height:1.8}.wrap{max-width:1200px;margin:auto;padding:30px 18px}.section-title{text-align:center;color:var(--crimson);margin:8px 0 24px}.filters,.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}.filters button{border:1px solid #e6d7b4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px}.card{background:white;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 8px 28px #3a00070d;display:flex;flex-direction:column;gap:10px}.product-img{width:100%;height:190px;object-fit:cover;border-radius:15px;background:#f5eee2}.product-img.placeholder{display:grid;place-items:center;font-size:45px;color:var(--goldDark)}.price{font-family:'Playfair Display';font-weight:800;color:var(--crimson);font-size:20px}.btn{padding:12px 15px;border-radius:12px;background:var(--crimson);color:white;font-weight:800;font-size:12px}.btn.goldbtn{background:var(--gold);color:var(--dark)}.btn.light{background:#f5eee2;color:var(--crimson)}.muted{color:var(--muted);font-size:13px;line-height:1.65}.formbox{max-width:680px;margin:0 auto;background:white;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 8px 28px #3a00070d}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:800;color:var(--crimson)}input,select,textarea{width:100%;padding:12px;border:1px solid #e4d9cf;border-radius:10px;background:#fffdf9;color:var(--ink)}textarea{min-height:90px}.stars{display:flex;gap:6px;font-size:28px;color:var(--gold);margin:4px 0 12px}.stars button{background:none;color:inherit;font-size:28px;padding:0}.review{background:#fff;border:1px solid var(--line);padding:18px;border-radius:18px;margin-bottom:12px}.hidden{display:none!important}.status{padding:7px 10px;border-radius:20px;background:#f7e7a9;color:var(--dark);font-size:11px;font-weight:800;display:inline-block}.modal{position:fixed;inset:0;background:#160207b8;z-index:20;display:grid;place-items:center;padding:14px;overflow:auto}.modalbox{background:white;border:2px solid var(--gold);border-radius:22px;padding:24px;width:min(560px,100%);max-height:92vh;overflow:auto}.adminnav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.adminnav button{padding:10px;border-radius:10px;background:#f4ebdc;color:var(--crimson);font-weight:800;font-size:12px}.adminpanel{background:white;border:1px solid var(--line);padding:18px;border-radius:18px;margin:12px 0}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.itemrow{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;justify-content:space-between}.tiny{font-size:11px}.footer{text-align:center;padding:28px;background:#fff;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.floating{position:fixed;bottom:18px;right:18px;background:#168653;color:#fff;border-radius:40px;padding:14px 18px;text-decoration:none;z-index:6;font-weight:800;box-shadow:0 8px 22px #0002}@media(max-width:600px){.top{justify-content:center}.hero{padding-top:38px}.wrap{padding:22px 13px}.formbox{padding:16px}}
-#visor{display:none;position:fixed;inset:0;z-index:30;background:#160207eb;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}#visor.open{display:flex}#visorImg{max-width:100%;max-height:82vh;border-radius:14px;object-fit:contain}#visorCap{margin:0;color:#f9eac5;font-family:'Playfair Display',serif;text-align:center}.visor-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:#ffffff26;color:#fff;font-size:20px}#products img.product-img{cursor:zoom-in}
+#visor{display:none;position:fixed;inset:0;z-index:30;background:#160207eb;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}#visor.open{display:flex}#visorImg{max-width:100%;max-height:82vh;border-radius:14px;object-fit:contain}#visorCap{margin:0;color:#f9eac5;font-family:'Playfair Display',serif;text-align:center}.visor-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:#ffffff26;color:#fff;font-size:20px}#products img.product-img{cursor:zoom-in}main section{scroll-margin-top:120px}
 </style></head><body>
 <header class="top"><div class="brand"><img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'"><div><div style="font-family:'Playfair Display';font-size:22px">VIANE</div><small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small></div></div><nav><button onclick="go('catalog')">Menú</button><button onclick="go('reviews')">Reseñas</button><button onclick="go('track')">Seguir pedido</button><button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button></nav>
 </header>
@@ -18,7 +18,6 @@
     <option value="delivery_santiago">Envío a Santiago</option>
     <option value="delivery_capital">Envío a Santo Domingo</option>
   </select>
-</label>
 </label><label class="field">Fecha deseada *<input id="orderDate" type="date" required></label></div><label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn">Crear pedido</button><button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button></div></form><div id="orderCreated" class="hidden"></div></div></div>
 <div id="tipModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">¿Te gustaría dejar una propina?</h2><p class="muted">Tu apoyo nos ayuda a seguir creando detalles especiales.</p><div id="tipLinks"></div><div class="row" style="margin-top:14px"><button class="btn" onclick="document.getElementById('tipModal').classList.add('hidden')">Ahora no, gracias</button></div></div></div>
 <div id="visor" onclick="closeVisor()"><button type="button" class="visor-x" aria-label="Cerrar">✕</button><img id="visorImg" alt=""><p id="visorCap"></p></div>
@@ -27,7 +26,7 @@ const $=id=>document.getElementById(id);let state={products:[],reviews:[],paymen
 async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Ocurrió un error');return d}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function money(n){return 'RD$ '+Number(n||0).toLocaleString('es-DO',{maximumFractionDigits:2})}
 async function load(){try{let d=await api('/api/public');state={...state,...d};applyBrand();renderProducts();renderReviews();renderFilters();renderReviewChoices();renderStars();renderAds()}catch(e){console.error(e)}}function applyBrand(){let s=state.settings||{};['brandLogo','heroLogo'].forEach(id=>{if(s.logo){$(id).src=s.logo;$(id).style.display=''}else $(id).style.display='none'});$('footerWa').href='https://wa.me/'+(s.whatsapp||'18296759640');$('footerWa').textContent=s.whatsapp||'829-675-9640';$('waFloat').href='https://wa.me/'+(s.whatsapp||'18296759640');$('footerIg').textContent=s.instagram||'vianedelicatessen';let bg=s.background_value||'#FFFDF5';if(s.background_type==='color')document.body.style.background=bg;else if(s.background_type==='image')document.body.style.background=`url('${bg}') center/cover fixed`;else if(s.background_type==='texture')document.body.style.background=`repeating-linear-gradient(45deg,${bg},${bg} 8px,#fff8e8 8px,#fff8e8 16px)`}
-function go(sec){['catalog','reviews','track','admin'].forEach(s=>$(s).classList.toggle('hidden',s!==sec));window.scrollTo({top:0,behavior:'smooth'});if(sec==='reviews'){renderReviewChoices();renderStars()}if(sec==='admin'&&state.admin)loadAdmin()}
+function go(sec){['catalog','reviews','track','admin'].forEach(s=>$(s).classList.toggle('hidden',s!==sec));$(sec).scrollIntoView({behavior:'smooth',block:'start'});if(sec==='reviews'){renderReviewChoices();renderStars()}if(sec==='admin'&&state.admin)loadAdmin()}
 function renderFilters(){$('filters').innerHTML=categories.map(c=>`<button class="pill ${state.category===c?'primary':''}" onclick="filterCategory('${c}')">${esc(c==='Todos'?'Todos':c[0].toUpperCase()+c.slice(1))}</button>`).join('')}
 function filterCategory(c){state.category=c;renderFilters();renderProducts()}
 function renderProducts(){let list=state.products.filter(p=>state.category==='Todos'||p.category===state.category);$('products').innerHTML=list.length?list.map(p=>`<article class="card">${p.image?`<img class="product-img" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`:`<div class="product-img placeholder">✦</div>`}<div class="eyebrow" style="color:var(--goldDark)">${esc(p.category)}</div><h3 style="margin:0;color:var(--crimson)">${esc(p.name)}</h3><p class="muted">${esc(p.description)}</p><div class="row" style="margin-top:auto"><span class="price">${money(p.price)}</span><button class="btn" onclick="addCart(${p.id})">Agregar</button></div></article>`).join(''):'<p class="muted">Estamos actualizando nuestro catálogo. Escríbenos por WhatsApp para consultar disponibilidad.</p>';}
@@ -43,17 +42,11 @@ function getCostoEnvio() {
 }
 
 function actualizarCostoEnvio() {
-  const costoEnvio = getCostoEnvio();
   const subtotal = state.cart.reduce((s, p) => s + Number(p.price), 0);
-const totalConImpuestos=subtotal;
-  const granTotal = totalConImpuestos + costoEnvio;
-
-  document.getElementById('invSubtotal').textContent = money(subtotal);
-  document.getElementById('invEnvio').textContent = money(costoEnvio);
-  document.getElementById('invTotal').textContent = money(granTotal);
-  
-  // Actualizamos también el total en el modal principal si es necesario
-  document.getElementById('cartTotal').textContent = money(granTotal);
+  const envio = state.cart.length ? getCostoEnvio() : 0;
+  if ($('invSubtotal')) $('invSubtotal').textContent = money(subtotal);
+  if ($('invEnvio')) $('invEnvio').textContent = money(envio);
+  $('cartTotal').textContent = money(subtotal + envio);
 }
 
 function openCart() {
@@ -66,27 +59,25 @@ function closeCart() {
 }
 
 function renderCart() {
-  const cartItems = document.getElementById('cartItems');
-
-  if (state.cart.length > 0) {
-    cartItems.innerHTML = state.cart.map((p, i) => `
-      <div class="itemrow">
-        <span>${esc(p.name)} · ${money(p.price)}</span>
-        <button class="btn light" onclick="removeCart(${i})">Quitar</button>
-      </div>
-    `).join('') + `
-      <div class="totals-breakdown" style="margin-top: 15px; border-top: 1px solid var(--line); padding-top: 10px;">
-        <p>Subtotal: <span 
-        <p>Envío: <span id="invEnvio">${money(0)}</span></p>
-        <h3>Total: <span id="invTotal">${money(0)}</span></h3>
-      </div>
-    `;
-  } else {
-    cartItems.innerHTML = '<p class="muted">Todavía no agregaste productos.</p>';
-actualizarCostoEnvío();. } 
+  const box = $('cartItems');
+  if (!state.cart.length) {
+    box.innerHTML = '<p class="muted">Todavía no agregaste productos.</p>';
+    $('cartTotal').textContent = money(0);
+    return;
+  }
+  box.innerHTML = state.cart.map((p, i) => `
+    <div class="itemrow">
+      <span>${esc(p.name)} · ${money(p.price)}</span>
+      <button type="button" class="btn light" onclick="removeCart(${i})">Quitar</button>
+    </div>`).join('') + `
+    <div style="margin-top:15px;border-top:1px solid var(--line);padding-top:10px">
+      <p>Subtotal: <span id="invSubtotal">${money(0)}</span></p>
+      <p>Envío: <span id="invEnvio">${money(0)}</span></p>
+    </div>`;
+  actualizarCostoEnvio();
 }
 function removeCart(i){state.cart.splice(i,1);$('cartCount').textContent=state.cart.length;renderCart()}
-$('orderForm').addEventListener('submit',async e=>{e.preventDefault();try{let d=await api('/api/orders',{method:'POST',body:JSON.stringify({name:$('orderName').value,phone:$('orderPhone').value,province:$('orderProvince').value,delivery_date:$('orderDate').value,notes:$('orderNotes').value,items:state.cart.map(p=>({id:p.id}))})});let msg=`Hola, soy ${$('orderName').value}. Acabo de crear el pedido ${d.code} de VIANE Delicatessen por ${money(d.total)}. ¿Me ayudan con el pago?`+(d.review_url?`\n\nCuando finalice mi experiencia, puedo dejar mi reseña aquí: ${d.review_url}`:'');let wa='https://wa.me/'+(d.whatsapp||'18296759640')+'?text='+encodeURIComponent(msg);$('orderCreated').classList.remove('hidden');$('orderCreated').innerHTML=`<div class="adminpanel"><h3>¡Pedido creado!</h3><p>Tu código de seguimiento es <b>${esc(d.code)}</b>. Guárdalo para consultar el estado.</p><button class="btn" onclick="navigator.clipboard?.writeText('${d.code}')">Copiar código</button> <a class="btn" href="${wa}" target="_blank">Continuar por WhatsApp</a><p class="muted">Al finalizar tu experiencia, podrás dejar tu reseña aquí: <a href="#reviews" onclick="go('reviews')">Publicar reseña</a></p></div>`;state.cart=[];$('cartCount').textContent='0';renderCart();}catch(err){alert(err.message)}});
+$('orderForm').addEventListener('submit',async e=>{e.preventDefault();try{let d=await api('/api/orders',{method:'POST',body:JSON.stringify({name:$('orderName').value,phone:$('orderPhone').value,province:$('deliveryMethod').selectedOptions[0].text,delivery_method:$('deliveryMethod').value,delivery_date:$('orderDate').value,notes:$('orderNotes').value,items:state.cart.map(p=>({id:p.id}))})});let msg=`Hola, soy ${$('orderName').value}. Acabo de crear el pedido ${d.code} de VIANE Delicatessen por ${money(d.total)}. ¿Me ayudan con el pago?`+(d.review_url?`\n\nCuando finalice mi experiencia, puedo dejar mi reseña aquí: ${d.review_url}`:'');let wa='https://wa.me/'+(d.whatsapp||'18296759640')+'?text='+encodeURIComponent(msg);$('orderCreated').classList.remove('hidden');$('orderCreated').innerHTML=`<div class="adminpanel"><h3>¡Pedido creado!</h3><p>Tu código de seguimiento es <b>${esc(d.code)}</b>. Guárdalo para consultar el estado.</p><button class="btn" onclick="navigator.clipboard?.writeText('${d.code}')">Copiar código</button> <a class="btn" href="${wa}" target="_blank">Continuar por WhatsApp</a><p class="muted">Al finalizar tu experiencia, podrás dejar tu reseña aquí: <a href="#reviews" onclick="go('reviews')">Publicar reseña</a></p></div>`;state.cart=[];$('cartCount').textContent='0';renderCart();}catch(err){alert(err.message)}});
 $('trackForm').addEventListener('submit',async e=>{e.preventDefault();$('trackResult').innerHTML='<p class="muted">Consultando…</p>';try{let d=await api('/api/track/'+encodeURIComponent($('trackCode').value.trim()));$('trackResult').innerHTML=`<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p><p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident?`<p>Observación: ${esc(d.incident)}</p>`:''}</div>`}catch(err){$('trackResult').textContent=err.message}});
 function renderStars(){$('starButtons').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" aria-label="${n} estrellas" onclick="setRating(${n})" style="color:${n<=state.rating?'var(--gold)':'#d6d0c9'}">★</button>`).join('')}function setRating(n){state.rating=n;renderStars()}
 function renderReviewChoices(){let products=state.products;$('reviewProductChoices').innerHTML=products.slice(0,200).map(p=>`<label style="font-weight:600;color:#51464b"><input type="checkbox" name="revProduct" value="${p.id}" style="width:auto"> ${esc(p.name)}</label>`).join('')||'<p class="muted">No hay productos disponibles.</p>'}
@@ -166,4 +157,3 @@ load();
 var _t=0,_iv=setInterval(function(){if(state.products.length||++_t>4){clearInterval(_iv);return}load()},3000);
 if(location.hash==='#productos')openLogin();
 </script></body></html>
-
