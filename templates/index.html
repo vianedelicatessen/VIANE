@@ -74,7 +74,7 @@ if(file.size>80*1024*1024)throw Error('El archivo supera 80 MB.');
 if(file.size<=4*1024*1024){let fd=new FormData();fd.append('file',file);fd.append('kind',kind);let r=await fetch('/api/upload',{method:'POST',body:fd});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'No se pudo subir');return d.url}
 let rt=file.type.startsWith('image/')?'image':'video';
 let s=await api('/api/upload-signature',{method:'POST',body:JSON.stringify({resource_type:rt})});
-let fd=new FormData();fd.append('file',file);fd.append('api_key',s.api_key);fd.append('timestamp',s.timestamp);fd.append('folder',s.folder);fd.append('signature',s.signature);
+let fd=new FormData();fd.append('file',file);fd.append('timestamp',s.timestamp);fd.append('folder',s.folder);fd.append('signature',s.signature);
 let r=await fetch(s.upload_url,{method:'POST',body:fd});let d=await r.json().catch(()=>({}));
 if(!r.ok)throw Error((d.error&&d.error.message)||'No se pudo subir el archivo a Cloudinary');return d.secure_url}
 
