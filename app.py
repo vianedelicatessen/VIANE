@@ -573,15 +573,26 @@ def upload_signature():
     del navegador a Cloudinary, sin pasar por Vercel (limite 4.5 MB)."""
     if not cloudinary_ready():
         return jsonify({'error': 'Cloudinary no está configurado (revisa CLOUDINARY_URL en Vercel).'}), 503
+    
     resource_type = body().get('resource_type', 'image')
     if resource_type not in ('image', 'video'):
         return jsonify({'error': 'resource_type inválido'}), 400
+        
     cfg = cloudinary.config()
-    params = {'timestamp': int(datetime.now(timezone.utc).timestamp()), 'folder': 'viane'}
+    
+    # Ordenamos los parámetros alfabéticamente para evitar conflictos en la firma (folder antes que timestamp)
+    params = {
+        'folder': 'viane',
+        'timestamp': int(datetime.now(timezone.utc).timestamp())
+    }
+    
     signature = cloudinary.utils.api_sign_request(params, cfg.api_secret)
+    
     return jsonify({
         'upload_url': f'https://api.cloudinary.com/v1_1/{cfg.cloud_name}/{resource_type}/upload',
-        'api_key': cfg.api_key, 'timestamp': params['timestamp'], 'folder': params['folder'],
+        'api_key': cfg.api_key, 
+        'timestamp': params['timestamp'], 
+        'folder': params['folder'],
         'signature': signature,
     })
 
