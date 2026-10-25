@@ -45,12 +45,10 @@ function getCostoEnvio() {
 function actualizarCostoEnvio() {
   const costoEnvio = getCostoEnvio();
   const subtotal = state.cart.reduce((s, p) => s + Number(p.price), 0);
-  const itbis = subtotal * 0.18;
-  const totalConImpuestos = subtotal + itbis;
+const totalconImpuestos=subtotal;.
   const granTotal = totalConImpuestos + costoEnvio;
 
   document.getElementById('invSubtotal').textContent = money(subtotal);
-  document.getElementById('invITBIS').textContent = money(itbis);
   document.getElementById('invEnvio').textContent = money(costoEnvio);
   document.getElementById('invTotal').textContent = money(granTotal);
   
@@ -70,8 +68,7 @@ function closeCart(){$('cartModal').classList.add('hidden')}function renderCart(
       </div>
     `).join('') + `
       <div class="totals-breakdown" style="margin-top: 15px; border-top: 1px solid var(--line); padding-top: 10px;">
-        <p>Subtotal: <span id="invSubtotal">${money(0)}</span></p>
-        <p>ITBIS (18%): <span id="invITBIS">${money(0)}</span></p>
+        <p>Subtotal: <span 
         <p>Envío: <span id="invEnvio">${money(0)}</span></p>
         <h3>Total: <span id="invTotal">${money(0)}</span></h3>
       </div>
