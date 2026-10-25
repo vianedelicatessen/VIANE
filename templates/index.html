@@ -11,7 +11,15 @@
 <section id="admin" class="hidden"><h2 class="section-title">Panel de administración</h2><div class="adminpanel"><div class="row"><div><b>VIANE Delicatessen</b><div class="muted">Sesión administrativa segura</div></div><button class="btn light" onclick="logout()">Cerrar sesión</button></div><div class="adminnav"><button onclick="adminTab('orders')">Pedidos</button><button onclick="adminTab('products')">Productos</button><button onclick="adminTab('reviews')">Reseñas</button><button onclick="adminTab('brand')">Logo y diseño</button><button onclick="adminTab('payments')">Pagos y propinas</button><button onclick="adminTab('ads')">Publicidad</button><button onclick="adminTab('media')">Multimedia</button></div><div id="adminContent"></div></div></section></main>
 <footer class="footer"><b style="font-family:'Playfair Display';color:var(--crimson);font-size:17px">VIANE DELICATESSEN</b><p>Detalles especiales, desayunos, picaderas y regalos.</p><p>WhatsApp: <a id="footerWa" href="https://wa.me/18296759640">829-675-9640</a> · Instagram: <span id="footerIg">vianedelicatessen</span></p><p>© 2026 VIANE Delicatessen</p></footer><a class="floating" id="waFloat" href="https://wa.me/18296759640" target="_blank">WhatsApp</a>
 <div id="loginModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Acceso administrativo</h2><p class="muted">Solo personal autorizado.</p><form id="loginForm"><label class="field">Correo electrónico<input id="loginEmail" type="email" required></label><label class="field" style="margin-top:12px">Contraseña<input id="loginPassword" type="password" required></label><div class="row" style="margin-top:16px"><button class="btn">Entrar</button><button type="button" class="btn light" onclick="closeLogin()">Cancelar</button></div><p id="loginError" class="muted"></p></form></div></div>
-<div id="cartModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Tu pedido</h2><div id="cartItems"></div><h3 id="cartTotal" class="price">RD$ 0</h3><form id="orderForm"><div class="fields"><label class="field">Nombre *<input id="orderName" required></label><label class="field">WhatsApp *<input id="orderPhone" required></label><label class="field">Provincia<select id="orderProvince"><option>Puerto Plata</option><option>Santiago</option><option>Santo Domingo</option><option>La Vega</option><option>Otra provincia</option></select></label><label class="field">Fecha deseada *<input id="orderDate" type="date" required></label></div><label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn">Crear pedido</button><button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button></div></form><div id="orderCreated" class="hidden"></div></div></div>
+<div id="cartModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Tu pedido</h2><div id="cartItems"></div><h3 id="cartTotal" class="price">RD$ 0</h3><form id="orderForm"><div class="fields"><label class="field">Nombre *<input id="orderName" required></label><label class="field">WhatsApp *<input id="orderPhone" required></label><label class="field">Método de entrega *
+  <select id="deliveryMethod" onchange="actualizarCostoEnvio()">
+    <option value="pickup">Pasar a recoger en el local</option>
+    <option value="delivery_pp">Delivery en Pto. Plata (Ciudad)</option>
+    <option value="delivery_santiago">Envío a Santiago</option>
+    <option value="delivery_capital">Envío a Santo Domingo</option>
+  </select>
+</label>
+</label><label class="field">Fecha deseada *<input id="orderDate" type="date" required></label></div><label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn">Crear pedido</button><button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button></div></form><div id="orderCreated" class="hidden"></div></div></div>
 <div id="tipModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">¿Te gustaría dejar una propina?</h2><p class="muted">Tu apoyo nos ayuda a seguir creando detalles especiales.</p><div id="tipLinks"></div><div class="row" style="margin-top:14px"><button class="btn" onclick="document.getElementById('tipModal').classList.add('hidden')">Ahora no, gracias</button></div></div></div>
 <div id="visor" onclick="closeVisor()"><button type="button" class="visor-x" aria-label="Cerrar">✕</button><img id="visorImg" alt=""><p id="visorCap"></p></div>
 <script>
@@ -24,7 +32,54 @@ function renderFilters(){$('filters').innerHTML=categories.map(c=>`<button class
 function filterCategory(c){state.category=c;renderFilters();renderProducts()}
 function renderProducts(){let list=state.products.filter(p=>state.category==='Todos'||p.category===state.category);$('products').innerHTML=list.length?list.map(p=>`<article class="card">${p.image?`<img class="product-img" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`:`<div class="product-img placeholder">✦</div>`}<div class="eyebrow" style="color:var(--goldDark)">${esc(p.category)}</div><h3 style="margin:0;color:var(--crimson)">${esc(p.name)}</h3><p class="muted">${esc(p.description)}</p><div class="row" style="margin-top:auto"><span class="price">${money(p.price)}</span><button class="btn" onclick="addCart(${p.id})">Agregar</button></div></article>`).join(''):'<p class="muted">Estamos actualizando nuestro catálogo. Escríbenos por WhatsApp para consultar disponibilidad.</p>';}
 function addCart(id){let p=state.products.find(p=>p.id===id);if(p){state.cart.push(p);$('cartCount').textContent=state.cart.length;}}
-function openCart(){$('cartModal').classList.remove('hidden');renderCart()}function closeCart(){$('cartModal').classList.add('hidden')}function renderCart(){$('cartItems').innerHTML=state.cart.length?state.cart.map((p,i)=>`<div class="itemrow"><span>${esc(p.name)} · ${money(p.price)}</span><button class="btn light" onclick="removeCart(${i})">Quitar</button></div>`).join(''):'<p class="muted">Todavía no agregaste productos.</p>';$('cartTotal').textContent=money(state.cart.reduce((s,p)=>s+Number(p.price),0))}function removeCart(i){state.cart.splice(i,1);$('cartCount').textContent=state.cart.length;renderCart()}
+function getCostoEnvio() {
+  const method = document.getElementById('deliveryMethod').value;
+  switch (method) {
+    case 'delivery_pp': return 250;
+    case 'delivery_santiago': return 600;
+    case 'delivery_capital': return 700;
+    default: return 0;
+  }
+}
+
+function actualizarCostoEnvio() {
+  const costoEnvio = getCostoEnvio();
+  const subtotal = state.cart.reduce((s, p) => s + Number(p.price), 0);
+  const itbis = subtotal * 0.18;
+  const totalConImpuestos = subtotal + itbis;
+  const granTotal = totalConImpuestos + costoEnvio;
+
+  document.getElementById('invSubtotal').textContent = money(subtotal);
+  document.getElementById('invITBIS').textContent = money(itbis);
+  document.getElementById('invEnvio').textContent = money(costoEnvio);
+  document.getElementById('invTotal').textContent = money(granTotal);
+  
+  // Actualizamos también el total en el modal principal si es necesario
+  document.getElementById('cartTotal').textContent = money(granTotal);
+}
+
+function openCart(){$('cartModal').classList.remove('hidden');renderCart()}function closeCart(){$('cartModal').classList.add('hidden')}function renderCart() {
+  const cartItems = document.getElementById('cartItems');
+  
+  if (state.cart.length > 0) {
+    cartItems.innerHTML = state.cart.map((p, i) => `
+      <div class="itemrow">
+        <span>${esc(p.name)} · ${money(p.price)}</span>
+        <button class="btn light" onclick="removeCart(${i})">Quitar</button>
+      </div>
+    `).join('') + `
+      <div class="totals-breakdown" style="margin-top: 15px; border-top: 1px solid var(--line); padding-top: 10px;">
+        <p>Subtotal: <span id="invSubtotal">${money(0)}</span></p>
+        <p>ITBIS (18%): <span id="invITBIS">${money(0)}</span></p>
+        <p>Envío: <span id="invEnvio">${money(0)}</span></p>
+        <h3>Total: <span id="invTotal">${money(0)}</span></h3>
+      </div>
+    `;
+  } else {
+    cartItems.innerHTML = '<p class="muted">Todavía no agregaste productos.</p>';
+  }
+}
+.reduce((s,p)=>s+Number(p.price),0))}function removeCart(i){state.cart.splice(i,1);$('cartCount').textContent=state.cart.length;renderCart()}
 $('orderForm').addEventListener('submit',async e=>{e.preventDefault();try{let d=await api('/api/orders',{method:'POST',body:JSON.stringify({name:$('orderName').value,phone:$('orderPhone').value,province:$('orderProvince').value,delivery_date:$('orderDate').value,notes:$('orderNotes').value,items:state.cart.map(p=>({id:p.id}))})});let msg=`Hola, soy ${$('orderName').value}. Acabo de crear el pedido ${d.code} de VIANE Delicatessen por ${money(d.total)}. ¿Me ayudan con el pago?`+(d.review_url?`\n\nCuando finalice mi experiencia, puedo dejar mi reseña aquí: ${d.review_url}`:'');let wa='https://wa.me/'+(d.whatsapp||'18296759640')+'?text='+encodeURIComponent(msg);$('orderCreated').classList.remove('hidden');$('orderCreated').innerHTML=`<div class="adminpanel"><h3>¡Pedido creado!</h3><p>Tu código de seguimiento es <b>${esc(d.code)}</b>. Guárdalo para consultar el estado.</p><button class="btn" onclick="navigator.clipboard?.writeText('${d.code}')">Copiar código</button> <a class="btn" href="${wa}" target="_blank">Continuar por WhatsApp</a><p class="muted">Al finalizar tu experiencia, podrás dejar tu reseña aquí: <a href="#reviews" onclick="go('reviews')">Publicar reseña</a></p></div>`;state.cart=[];$('cartCount').textContent='0';renderCart();}catch(err){alert(err.message)}});
 $('trackForm').addEventListener('submit',async e=>{e.preventDefault();$('trackResult').innerHTML='<p class="muted">Consultando…</p>';try{let d=await api('/api/track/'+encodeURIComponent($('trackCode').value.trim()));$('trackResult').innerHTML=`<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p><p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident?`<p>Observación: ${esc(d.incident)}</p>`:''}</div>`}catch(err){$('trackResult').textContent=err.message}});
 function renderStars(){$('starButtons').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" aria-label="${n} estrellas" onclick="setRating(${n})" style="color:${n<=state.rating?'var(--gold)':'#d6d0c9'}">★</button>`).join('')}function setRating(n){state.rating=n;renderStars()}
