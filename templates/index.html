@@ -5,6 +5,78 @@
 
 :root{--dark:#3A0007;--crimson:#7A0C16;--ruby:#900010;--bright:#C40C1A;--goldLight:#F7E7A9;--gold:#D4AF37;--goldDark:#9A7B1C;--cream:#FFFDF5;--ink:#29252a;--muted:#77717a;--line:#eee5dc}*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif}h1,h2,h3,.serif{font-family:'Playfair Display',serif}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.top{position:sticky;top:0;z-index:5;background:#fffdf7ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px 5%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:10px;color:var(--crimson);font-weight:800;letter-spacing:2px}.logo{width:48px;height:48px;border:2px solid var(--gold);border-radius:50%;object-fit:cover;background:var(--dark)}nav{display:flex;gap:7px;flex-wrap:wrap}nav button,.pill{padding:10px 15px;border-radius:30px;background:#f5eee2;color:var(--crimson);font-size:12px;font-weight:800}.primary{background:var(--crimson)!important;color:#fff!important}.gold{color:var(--goldDark)}.hero{background:radial-gradient(circle at 50% 0,#a91826,var(--dark) 72%);color:white;text-align:center;padding:56px 18px 50px}.hero .logo{width:94px;height:94px;margin-bottom:14px}.eyebrow{color:var(--goldLight);letter-spacing:3px;font-size:11px;font-weight:800}.hero h1{font-size:clamp(30px,5vw,53px);margin:12px 0}.hero p{max-width:720px;margin:0 auto;color:#f9eac5;line-height:1.8}.wrap{max-width:1200px;margin:auto;padding:30px 18px}.section-title{text-align:center;color:var(--crimson);margin:8px 0 24px}.filters,.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}.filters button{border:1px solid #e6d7b4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px}.card{background:white;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 8px 28px #3a00070d;display:flex;flex-direction:column;gap:10px}.product-img{width:100%;height:190px;object-fit:cover;border-radius:15px;background:#f5eee2}.product-img.placeholder{display:grid;place-items:center;font-size:45px;color:var(--goldDark)}.price{font-family:'Playfair Display';font-weight:800;color:var(--crimson);font-size:20px}.btn{padding:12px 15px;border-radius:12px;background:var(--crimson);color:white;font-weight:800;font-size:12px}.btn.goldbtn{background:var(--gold);color:var(--dark)}.btn.light{background:#f5eee2;color:var(--crimson)}.muted{color:var(--muted);font-size:13px;line-height:1.65}.formbox{max-width:680px;margin:0 auto;background:white;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 8px 28px #3a00070d}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:800;color:var(--crimson)}input,select,textarea{width:100%;padding:12px;border:1px solid #e4d9cf;border-radius:10px;background:#fffdf9;color:var(--ink)}textarea{min-height:90px}.stars{display:flex;gap:6px;font-size:28px;color:var(--gold);margin:4px 0 12px}.stars button{background:none;color:inherit;font-size:28px;padding:0}.review{background:#fff;border:1px solid var(--line);padding:18px;border-radius:18px;margin-bottom:12px}.hidden{display:none!important}.status{padding:7px 10px;border-radius:20px;background:#f7e7a9;color:var(--dark);font-size:11px;font-weight:800;display:inline-block}.modal{position:fixed;inset:0;background:#160207b8;z-index:20;display:grid;place-items:center;padding:14px;overflow:auto}.modalbox{background:white;border:2px solid var(--gold);border-radius:22px;padding:24px;width:min(560px,100%);max-height:92vh;overflow:auto}.adminnav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.adminnav button{padding:10px;border-radius:10px;background:#f4ebdc;color:var(--crimson);font-weight:800;font-size:12px}.adminpanel{background:white;border:1px solid var(--line);padding:18px;border-radius:18px;margin:12px 0}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.itemrow{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;justify-content:space-between}.tiny{font-size:11px}.footer{text-align:center;padding:28px;background:#fff;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.floating{position:fixed;bottom:18px;right:18px;background:#168653;color:#fff;border-radius:40px;padding:14px 18px;text-decoration:none;z-index:6;font-weight:800;box-shadow:0 8px 22px #0002}@media(max-width:600px){.top{justify-content:center}.hero{padding-top:38px}.wrap{padding:22px 13px}.formbox{padding:16px}}
 #visor{display:none;position:fixed;inset:0;z-index:30;background:#160207eb;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}#visor.open{display:flex}#visorImg{max-width:100%;max-height:82vh;border-radius:14px;object-fit:contain}#visorCap{margin:0;color:#f9eac5;font-family:'Playfair Display',serif;text-align:center}.visor-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:#ffffff26;color:#fff;font-size:20px}#products img.product-img{cursor:zoom-in}main section{scroll-margin-top:120px}
+  /* ===== Efecto dorado + copos de nieve al pasar el mouse por los botones ===== */
+:is(.btn,nav button,.pill,.adminnav button){
+  position:relative;
+  overflow:visible;
+  transition:transform .25s ease,box-shadow .25s ease;
+}
+
+/* Copos de nieve: dos capas con distinto tamaño y velocidad */
+:is(.btn,nav button,.pill,.adminnav button)::before,
+:is(.btn,nav button,.pill,.adminnav button)::after{
+  content:"\2744\FE0E";
+  position:absolute;
+  left:50%;
+  top:70%;
+  line-height:1;
+  opacity:0;
+  pointer-events:none;
+  z-index:3;
+}
+:is(.btn,nav button,.pill,.adminnav button)::before{
+  font-size:13px;
+  color:var(--gold);
+  text-shadow:-38px 2px 0 var(--goldLight),-20px -6px 0 var(--gold),22px 0 0 var(--goldLight),40px -5px 0 var(--gold);
+}
+:is(.btn,nav button,.pill,.adminnav button)::after{
+  font-size:9px;
+  color:var(--goldLight);
+  text-shadow:-30px -4px 0 var(--gold),-10px 4px 0 var(--goldLight),12px -2px 0 var(--gold),32px 3px 0 var(--goldLight);
+}
+
+/* Al pasar el mouse (o tocar en el celular): brillo dorado que se mueve */
+:is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active){
+  background:linear-gradient(110deg,#9A7B1C 0%,#D4AF37 25%,#F7E7A9 50%,#D4AF37 75%,#9A7B1C 100%)!important;
+  background-size:200% 100%!important;
+  color:var(--dark)!important;
+  box-shadow:0 0 0 1px var(--goldLight),0 8px 20px #d4af3766;
+  transform:translateY(-2px);
+  animation:goldShine 1.6s linear infinite;
+}
+
+/* ...y los copos caen y se desvanecen en el fondo de la página */
+:is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::before{
+  animation:snowFallA 1.9s ease-in infinite;
+}
+:is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::after{
+  animation:snowFallB 2.5s ease-in .6s infinite;
+}
+
+@keyframes goldShine{
+  from{background-position:0% 50%}
+  to{background-position:200% 50%}
+}
+@keyframes snowFallA{
+  0%{opacity:0;transform:translate(-50%,-4px) rotate(0deg) scale(.6)}
+  15%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,90px) rotate(200deg) scale(1)}
+}
+@keyframes snowFallB{
+  0%{opacity:0;transform:translate(-50%,-8px) rotate(0deg) scale(.5)}
+  20%{opacity:1}
+  100%{opacity:0;transform:translate(calc(-50% + 16px),115px) rotate(-240deg) scale(.9)}
+}
+
+/* Dentro de las ventanas emergentes solo brillo dorado, sin copos (evita barras de desplazamiento) */
+.modalbox .btn::before,
+.modalbox .btn::after{display:none}
+
+/* Si la persona tiene activada la opción de reducir movimiento, no se muestran los copos */
+@media (prefers-reduced-motion:reduce){
+  :is(.btn,nav button,.pill,.adminnav button)::before,
+  :is(.btn,nav button,.pill,.adminnav button)::after{display:none}
+}
 </style><!-- Favicon: la miniatura que muestran Google y Bing -->
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="48x48" href="/static/favicon-48x48.png">
