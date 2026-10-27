@@ -267,8 +267,6 @@ SAMPLE_PRODUCTS = [
 ]
 
 
-
-
 def now():
     return datetime.now(timezone.utc).isoformat()
 
