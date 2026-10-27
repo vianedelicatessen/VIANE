@@ -228,7 +228,8 @@ SCHEMA = [
     'ALTER TABLE settings ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE ads ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE payments ENABLE ROW LEVEL SECURITY',
-    'ALTER TABLE media ENABLE ROW LEVEL SECURITY', CREATE TABLE IF NOT EXISTS categories(
+    'ALTER TABLE media ENABLE ROW LEVEL SECURITY',
+  '''CREATE TABLE IF NOT EXISTS categories(
         id BIGSERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL,
         active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL)''',
     '''CREATE TABLE IF NOT EXISTS sales(
@@ -239,6 +240,18 @@ SCHEMA = [
     'ALTER TABLE categories ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE sales ENABLE ROW LEVEL SECURITY',
 ]
+_schema_ready = False
+_schema_lock = Lock()
+
+try:  # categorias iniciales, ordenar productos y pasar pedidos ya entregados a ventas
+                    with con.transaction():
+                        for n in DEFAULT_CATEGORIES:
+                            ensure_category(con, n)
+                        reclassify_all(con)
+                        for o in con.execute("SELECT * FROM orders WHERE status='Entregado'").fetchall():
+                            save_sale(con, o, _dr_date(o['updated_at']))
+                except Exception as exc:
+                    print(f'[VIANE] Migracion de categorias/ventas: {exc!r}')
 
 DEFAULT_SETTINGS = {
     'brand_name': 'VIANE DELICATESSEN', 'logo': '', 'whatsapp': '18296759640',
@@ -251,18 +264,9 @@ SAMPLE_PRODUCTS = [
      'Desayuno especial personalizado. Confirma disponibilidad y detalles por WhatsApp.', '', 0),
     ('Bandeja Romántica', 'bandejas', 4200, 'Bandeja premium personalizada para sorprender.', '', 0),
     ('Picaderas para Cumpleaños', 'picaderas', 4500, 'Variedad de bocadillos para compartir.', '', 0),
-] try:  # categorias iniciales, ordenar productos y pasar pedidos ya entregados a ventas
-                    with con.transaction():
-                        for n in DEFAULT_CATEGORIES:
-                            ensure_category(con, n)
-                        reclassify_all(con)
-                        for o in con.execute("SELECT * FROM orders WHERE status='Entregado'").fetchall():
-                            save_sale(con, o, _dr_date(o['updated_at']))
-                except Exception as exc:
-                    print(f'[VIANE] Migracion de categorias/ventas: {exc!r}')
+]
 
-_schema_ready = False
-_schema_lock = Lock()
+
 
 
 def now():
