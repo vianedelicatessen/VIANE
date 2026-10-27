@@ -10,6 +10,16 @@ VIANE DELICATESSEN - backend Flask listo para Vercel.
 
 Vercel NO conserva archivos locales entre peticiones, por eso no se usa
 SQLite ni la carpeta static/uploads.
+
+Novedades de esta version (esquema v3, se migra solo, sin perder datos):
+- Seguimiento de pedidos tolerante: acepta minusculas, espacios, guiones raros o sin el
+  prefijo "VIA-", y distingue "pedido no existe" de "error de conexion".
+- El costo de envio se calcula en el servidor y se suma al total del pedido.
+- Los pedidos guardan direccion, metodo de entrega y sector.
+- Categoria "personalizado": solo aparece en "Todos" y en su propia categoria.
+- Pedidos "Entregado" o "Terminado" pasan solos a Ventas; /api/sales devuelve
+  desglose de montos y porcentaje de ventas por sector.
+- Reproductor flotante: ajustes music_url, music_title y music_kind.
 """
 import io
 import os
@@ -84,7 +94,18 @@ MEDIA_TYPES = {
     'ogg': 'audio/ogg', 'm4a': 'audio/mp4',
 }
 STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación',
-            'En creación', 'Enviado', 'En camino', 'Entregado', 'Incidencia']
+            'En creación', 'Enviado', 'En camino', 'Entregado', 'Terminado', 'Incidencia']
+# Los pedidos con alguno de estos estados salen de "Pedidos" y pasan a "Ventas".
+SALE_STATUSES = ('Entregado', 'Terminado')
+
+# Metodos de entrega. Los textos (label) deben coincidir con las opciones del <select>
+# de index.html. El costo se calcula AQUI (no se confia en el navegador).
+DELIVERY = {
+    'pickup': {'label': 'Pasar a recoger en el local', 'sector': 'Recoger en local', 'cost': 0},
+    'delivery_pp': {'label': 'Delivery en Pto. Plata (Ciudad)', 'sector': 'Puerto Plata', 'cost': 250},
+    'delivery_santiago': {'label': 'Envío a Santiago', 'sector': 'Santiago', 'cost': 600},
+    'delivery_capital': {'label': 'Envío a Santo Domingo', 'sector': 'Santo Domingo', 'cost': 700},
+}
 
 # Vercel limita el cuerpo de una peticion a 4.5 MB. Archivos mas grandes deben
 # subirse directo a Cloudinary con /api/upload-signature (ver README).
@@ -240,6 +261,20 @@ SCHEMA = [
     'ALTER TABLE categories ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE sales ENABLE ROW LEVEL SECURITY',
 ]
+
+# Migracion v3: columnas nuevas. Se aplican UNA sola vez (marca "_schema_version" en settings)
+# y son seguras de repetir (IF NOT EXISTS), asi que no se pierde ningun dato existente.
+SCHEMA_VERSION = '3'
+MIGRATIONS = [
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS address TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping DOUBLE PRECISION NOT NULL DEFAULT 0",
+    "ALTER TABLE sales ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE sales ADD COLUMN IF NOT EXISTS shipping DOUBLE PRECISION NOT NULL DEFAULT 0",
+    "ALTER TABLE sales ADD COLUMN IF NOT EXISTS subtotal DOUBLE PRECISION NOT NULL DEFAULT 0",
+]
+
 _schema_ready = False
 _schema_lock = Lock()
 
@@ -247,6 +282,7 @@ DEFAULT_SETTINGS = {
     'brand_name': 'VIANE DELICATESSEN', 'logo': '', 'whatsapp': '18296759640',
     'instagram': 'vianedelicatessen', 'background_type': 'color', 'background_value': '#FFFDF5',
     'review_url': '', 'tips_message': '¡Gracias por apoyar a VIANE Delicatessen!',
+    'music_url': '', 'music_title': '', 'music_kind': 'audio',
 }
 
 SAMPLE_PRODUCTS = [
@@ -263,6 +299,32 @@ def now():
 
 REQUIRED_TABLES = {'products', 'reviews', 'orders', 'settings', 'ads', 'payments', 'media',
                    'categories', 'sales'}
+
+
+def migrate(con):
+    """Aplica la migracion v3 una sola vez. Usa un candado para que dos instancias
+    de Vercel arrancando a la vez no choquen."""
+    def current():
+        row = con.execute("SELECT value FROM settings WHERE key='_schema_version'").fetchone()
+        return row['value'] if row else None
+
+    if current() == SCHEMA_VERSION:
+        return
+    con.execute('SELECT pg_advisory_xact_lock(%s)', (918273646,))
+    if current() == SCHEMA_VERSION:  # otra instancia la termino mientras esperabamos
+        return
+    for stmt in MIGRATIONS:
+        con.execute(stmt)
+    try:  # categoria "personalizado" y pedidos ya entregados -> ventas (no duplica nada)
+        with con.transaction():
+            ensure_category(con, PROTECTED_CATEGORY)
+            for o in con.execute('SELECT * FROM orders WHERE status = ANY(%s)',
+                                 (list(SALE_STATUSES),)).fetchall():
+                save_sale(con, o, _dr_date(o['updated_at']))
+    except Exception as exc:
+        print(f'[VIANE] Migracion v3 (categoria/ventas): {exc!r}')
+    con.execute("INSERT INTO settings(key,value) VALUES('_schema_version',%s) "
+                "ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (SCHEMA_VERSION,))
 
 
 def ensure_schema():
@@ -286,15 +348,14 @@ def ensure_schema():
                         con.execute(
                             'INSERT INTO products(name,category,price,description,image,active,created_at) '
                             'VALUES(%s,%s,%s,%s,%s,%s,%s)', (*p, now()))
-                try:  # categorias iniciales, ordenar productos y pasar pedidos ya entregados a ventas
+                try:  # categorias iniciales y ordenar los productos que ya existan
                     with con.transaction():
                         for n in DEFAULT_CATEGORIES:
                             ensure_category(con, n)
                         reclassify_all(con)
-                        for o in con.execute("SELECT * FROM orders WHERE status='Entregado'").fetchall():
-                            save_sale(con, o, _dr_date(o['updated_at']))
                 except Exception as exc:
-                    print(f'[VIANE] Migracion de categorias/ventas: {exc!r}')
+                    print(f'[VIANE] Migracion de categorias: {exc!r}')
+            migrate(con)  # columnas nuevas (direccion, sector, envio...) y ventas
         _schema_ready = True
 
 
@@ -324,6 +385,11 @@ def setting_map(c):
     return {r['key']: r['value'] for r in c.execute('SELECT key,value FROM settings').fetchall()}
 
 
+def public_settings(c):
+    """Ajustes visibles al navegador: sin las claves internas (empiezan con _)."""
+    return {k: v for k, v in setting_map(c).items() if not k.startswith('_')}
+
+
 def rows(c, sql, params=()):
     return c.execute(sql, params).fetchall()
 
@@ -348,9 +414,19 @@ def to_float(value):
         return None
 
 
+def safe_media_url(v):
+    """Solo se acepta un archivo propio (/media/<id>) o un enlace https (Cloudinary)."""
+    v = str(v or '').strip()[:1000]
+    return v if (v.startswith('/media/') or v.lower().startswith('https://')) else ''
+
+
 # --- Categorias automaticas y ventas -----------------------------------------
 DR_TZ = timezone(timedelta(hours=-4))  # Republica Dominicana (UTC-4, sin horario de verano)
-DEFAULT_CATEGORIES = ['desayunos', 'bandejas', 'picaderas', 'bizcochos', 'mariscos', 'regalos', 'eventos']
+DEFAULT_CATEGORIES = ['desayunos', 'bandejas', 'picaderas', 'bizcochos', 'mariscos', 'regalos',
+                      'eventos', 'personalizado']
+# "personalizado" es una categoria protegida: solo se asigna a mano (nunca por palabras del
+# nombre) y nunca se reclasifica. Sus productos salen en "Todos" y en "Personalizado" solamente.
+PROTECTED_CATEGORY = 'personalizado'
 # El orden es la prioridad: "Bandeja Desayuno" va a desayunos, no a bandejas.
 CATEGORY_RULES = [
     ('desayunos', ('desayuno',)),
@@ -361,6 +437,11 @@ CATEGORY_RULES = [
     ('regalos', ('regalo', 'ramo', 'arreglo', 'rosas')),
     ('eventos', ('evento', 'boda', 'compromiso', 'aniversario')),
 ]
+
+
+# Categorias que el sistema asigna solo (por palabras del nombre) o que tienen reglas propias:
+# se pueden ocultar o eliminar, pero NO renombrar (si no, volverian a crearse con el nombre viejo).
+LOCKED_CATEGORIES = {c for c, _ in CATEGORY_RULES} | {PROTECTED_CATEGORY, 'otros'}
 
 
 def _norm(s):
@@ -381,8 +462,10 @@ def detect_category(text, custom=()):
         if any(re.search(r'\b' + w, t) for w in words):
             return cat
     for cat in sorted(custom, key=len, reverse=True):  # categorias creadas desde el panel
+        if cat in ('otros', PROTECTED_CATEGORY):
+            continue
         n = _norm(cat).rstrip('s')
-        if cat != 'otros' and len(n) >= 3 and re.search(r'\b' + re.escape(n), t):
+        if len(n) >= 3 and re.search(r'\b' + re.escape(n), t):
             return cat
     return None
 
@@ -397,6 +480,11 @@ def category_names(c):
 
 
 def resolve_category(c, name, typed=''):
+    # Regla de visibilidad: si se elige "personalizado", se respeta SIEMPRE (aunque el
+    # nombre diga "Desayuno" o "Bandeja") para que no se cuele en otras secciones.
+    if clean_cat(typed) == PROTECTED_CATEGORY:
+        ensure_category(c, PROTECTED_CATEGORY)
+        return PROTECTED_CATEGORY
     names = category_names(c)
     cat = detect_category(name, names) or detect_category(typed, names) or clean_cat(typed) or 'otros'
     ensure_category(c, cat)
@@ -406,6 +494,9 @@ def resolve_category(c, name, typed=''):
 def reclassify_all(c):
     names, changed = category_names(c), 0
     for p in c.execute('SELECT id,name,category FROM products').fetchall():
+        if p['category'] == PROTECTED_CATEGORY:  # los personalizados no se mueven nunca
+            ensure_category(c, PROTECTED_CATEGORY)
+            continue
         cat = (detect_category(p['name'], names) or detect_category(p['category'], names)
                or clean_cat(p['category']) or 'otros')
         ensure_category(c, cat)
@@ -427,6 +518,47 @@ def _dr_date(iso=None):
         return datetime.now(DR_TZ).strftime('%Y-%m-%d')
 
 
+# --- Entrega, sector y codigo de seguimiento ---------------------------------
+def sector_from(method='', text=''):
+    """Sector de entrega. Pedidos nuevos: sale del metodo. Pedidos viejos: del texto de
+    'province' (por ejemplo 'Envío a Santiago')."""
+    if method in DELIVERY:
+        return DELIVERY[method]['sector']
+    t = _norm(text)
+    if 'recoger' in t:
+        return 'Recoger en local'
+    if 'santiago' in t:
+        return 'Santiago'
+    if 'santo domingo' in t or 'capital' in t:
+        return 'Santo Domingo'
+    if 'plata' in t:
+        return 'Puerto Plata'
+    return str(text or '').strip()[:60] or 'Sin sector'
+
+
+def method_from(method='', province=''):
+    """Metodo de entrega valido. Si el navegador no lo manda (pagina vieja en cache),
+    se deduce del texto de la provincia; si no se entiende, se usa 'recoger en local'."""
+    if method in DELIVERY:
+        return method
+    sector = sector_from('', province)
+    for key, info in DELIVERY.items():
+        if info['sector'] == sector:
+            return key
+    return 'pickup'
+
+
+def normalize_code(raw):
+    """Convierte lo que escribe el cliente en la parte unica del codigo.
+    'via-49478bb8', ' VIA 49478BB8 ', 'VIA‑49478BB8' (guion raro) y '49478BB8' dan lo mismo.
+    El codigo solo usa 0-9 y A-F, por eso O -> 0 e I/L -> 1 son correcciones seguras."""
+    s = unicodedata.normalize('NFKC', str(raw or '')).upper()
+    s = re.sub(r'[^A-Z0-9]', '', s)  # quita espacios, guiones de cualquier tipo, invisibles...
+    if s.startswith('VIA'):
+        s = s[3:]
+    return s.translate(str.maketrans('OIL', '011'))
+
+
 def items_text(raw):
     try:
         items = json.loads(raw or '[]')
@@ -440,12 +572,35 @@ def items_text(raw):
     return ' · '.join(f'{q} x {n}' for n, q in count.items())
 
 
+def product_lines(raw):
+    """Productos de un pedido con cantidad y precio unitario (para la vista de ventas)."""
+    try:
+        items = json.loads(raw or '[]')
+    except Exception:
+        return []
+    agg = {}
+    for i in (items if isinstance(items, list) else []):
+        if not isinstance(i, dict):
+            continue
+        n = str(i.get('name', '')).strip()
+        if not n:
+            continue
+        key = (n, to_float(i.get('price')) or 0.0)
+        agg[key] = agg.get(key, 0) + 1
+    return [{'name': n, 'qty': q, 'price': p} for (n, p), q in agg.items()]
+
+
 def save_sale(c, o, sold_date=None):
+    method = o.get('delivery_method') or ''
+    sector = o.get('sector') or sector_from(method, o.get('province'))
+    shipping = float(o.get('shipping') or 0)
+    total = float(o['total'])
     c.execute(
-        'INSERT INTO sales(order_id,code,customer,contact,purchase,address,amount,sold_date,created_at) '
-        'VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (order_id) DO NOTHING',
-        (o['id'], o['code'], o['name'], o['phone'], items_text(o['items']), o['province'],
-         o['total'], sold_date or _dr_date(), now()))
+        'INSERT INTO sales(order_id,code,customer,contact,purchase,address,amount,sold_date,created_at,'
+        'sector,shipping,subtotal) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) '
+        'ON CONFLICT (order_id) DO NOTHING',
+        (o['id'], o['code'], o['name'], o['phone'], items_text(o['items']), o.get('address') or '',
+         total, sold_date or _dr_date(), now(), sector, shipping, total - shipping))
 
 
 @app.after_request
@@ -539,13 +694,17 @@ def public_data():
         categories = [r['name'] for r in rows(
             c, 'SELECT k.name FROM categories k WHERE k.active=1 AND EXISTS '
                '(SELECT 1 FROM products p WHERE p.category=k.name AND p.active=1) ORDER BY k.id')]
+        # Botones de la barra del catalogo: todas las categorias visibles (aunque esten vacias).
+        category_list = [r['name'] for r in rows(c, 'SELECT name FROM categories WHERE active=1 ORDER BY id')]
         reviews = rows(c, 'SELECT id,name,rating,products,comment,admin_reply,created_at '
                           'FROM reviews WHERE approved=1 ORDER BY id DESC')
         ads = rows(c, 'SELECT * FROM ads WHERE active=1 ORDER BY id')
         payments = rows(c, 'SELECT id,title,url,details,tip_enabled FROM payments WHERE active=1 ORDER BY id')
-        settings = setting_map(c)
-    return jsonify({'products': products, 'categories': categories, 'reviews': reviews, 'ads': ads,
-                    'payments': payments, 'settings': settings, 'statuses': STATUSES})
+        settings = public_settings(c)
+    return jsonify({'products': products, 'categories': categories, 'category_list': category_list,
+                    'reviews': reviews, 'ads': ads,
+                    'payments': payments, 'settings': settings, 'statuses': STATUSES,
+                    'delivery': DELIVERY})
 
 
 @app.post('/api/reviews')
@@ -586,34 +745,60 @@ def create_order():
             ids.append(int(i['id']))
     if not ids:
         return jsonify({'error': 'Productos inválidos'}), 400
+
+    # El envio lo decide el servidor: el navegador solo dice QUE metodo eligio.
+    method = method_from(str(d.get('delivery_method', '')).strip(), d.get('province', ''))
+    delivery = DELIVERY[method]
+    address = str(d.get('address', '')).strip()[:300]
+
     with db() as c:
         found = rows(c, 'SELECT * FROM products WHERE active=1 AND id = ANY(%s)', (list(set(ids)),))
         byid = {r['id']: r for r in found}
-        clean, total = [], 0.0
+        clean, subtotal = [], 0.0
         for pid in ids:  # cada elemento del carrito cuenta una vez (igual que antes)
             p = byid.get(pid)
             if p:
                 clean.append({'id': pid, 'name': p['name'], 'price': p['price']})
-                total += p['price']
+                subtotal += p['price']
         if not clean:
             return jsonify({'error': 'No hay productos válidos'}), 400
+        shipping = float(delivery['cost'])
+        total = subtotal + shipping
         code = 'VIA-' + secrets.token_hex(4).upper()
         c.execute(
             'INSERT INTO orders(code,name,phone,province,delivery_date,items,total,payment_status,status,'
-            'notes,created_at,updated_at) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-            (code, name, phone, str(d.get('province', 'Puerto Plata'))[:100],
-             str(d.get('delivery_date', ''))[:100], json.dumps(clean, ensure_ascii=False), total,
-             'Pago pendiente', 'Pago pendiente', str(d.get('notes', ''))[:2000], now(), now()))
+            'notes,created_at,updated_at,delivery_method,sector,address,shipping) '
+            'VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+            (code, name, phone, delivery['label'], str(d.get('delivery_date', ''))[:100],
+             json.dumps(clean, ensure_ascii=False), total, 'Pago pendiente', 'Pago pendiente',
+             str(d.get('notes', ''))[:2000], now(), now(), method, delivery['sector'], address, shipping))
         s = setting_map(c)
-    return jsonify({'ok': True, 'code': code, 'total': total, 'review_url': s.get('review_url', ''),
-                    'whatsapp': s.get('whatsapp', '18296759640')})
+    return jsonify({'ok': True, 'code': code, 'subtotal': subtotal, 'shipping': shipping, 'total': total,
+                    'delivery_label': delivery['label'], 'sector': delivery['sector'],
+                    'review_url': s.get('review_url', ''), 'whatsapp': s.get('whatsapp', '18296759640')})
 
 
 @app.get('/api/track/<code>')
 def track_order(code):
-    with db() as c:
-        row = c.execute('SELECT code,status,payment_status,delivery_date,updated_at,incident '
-                        'FROM orders WHERE code=%s', (code.strip().upper(),)).fetchone()
+    key = normalize_code(code)
+    if len(key) < 4:
+        return jsonify({'error': 'Escribe el código completo de tu pedido (ejemplo: VIA-A1B2C3D4).'}), 404
+    cols = 'code,status,payment_status,delivery_date,updated_at,incident'
+    try:
+        with db() as c:
+            # 1) Busqueda exacta (usa el indice de la columna code).
+            row = c.execute(f'SELECT {cols} FROM orders WHERE code=%s', ('VIA-' + key,)).fetchone()
+            # 2) Respaldo: compara sin guiones ni espacios y sin importar mayusculas, por si el
+            #    codigo guardado trae algun caracter distinto al que escribe el cliente.
+            if not row:
+                row = c.execute(
+                    f"SELECT {cols} FROM orders WHERE REGEXP_REPLACE(UPPER(code),'[^A-Z0-9]','','g')=%s "
+                    'ORDER BY id DESC LIMIT 1', ('VIA' + key,)).fetchone()
+    except Exception:
+        # Un fallo de conexion YA NO se disfraza de "pedido no existe".
+        app.logger.exception('Seguimiento: fallo al consultar la base de datos')
+        return jsonify({'error': 'No pudimos consultar el pedido en este momento (problema de conexión). '
+                                 'Intenta de nuevo en un minuto.'}), 503
     if not row:
         return jsonify({'error': 'No encontramos un pedido con ese código. Revisa e inténtalo otra vez.'}), 404
     return jsonify(row)
@@ -653,15 +838,20 @@ def logout():
 @admin_required
 def admin_data():
     with db() as c:
+        cats = rows(c, 'SELECT k.id,k.name,k.active,(SELECT COUNT(*) FROM products p '
+                       'WHERE p.category=k.name) AS total FROM categories k ORDER BY k.id')
+        for k in cats:
+            k['locked'] = k['name'] in LOCKED_CATEGORIES
         return jsonify({
             'products': rows(c, 'SELECT * FROM products ORDER BY id DESC'),
             'reviews': rows(c, 'SELECT * FROM reviews ORDER BY id DESC'),
-            'orders': rows(c, "SELECT * FROM orders WHERE status<>'Entregado' ORDER BY id DESC"),
-            'categories': rows(c, 'SELECT k.id,k.name,k.active,(SELECT COUNT(*) FROM products p '
-                                  'WHERE p.category=k.name) AS total FROM categories k ORDER BY k.id'),
+            # Entregado / Terminado ya no se listan aqui: viven en Ventas.
+            'orders': rows(c, 'SELECT * FROM orders WHERE NOT (status = ANY(%s)) ORDER BY id DESC',
+                           (list(SALE_STATUSES),)),
+            'categories': cats,
             'ads': rows(c, 'SELECT * FROM ads ORDER BY id DESC'),
             'payments': rows(c, 'SELECT * FROM payments ORDER BY id DESC'),
-            'settings': setting_map(c),
+            'settings': public_settings(c),
             'statuses': STATUSES,
         })
 
@@ -670,8 +860,8 @@ def admin_data():
 @app.post('/api/upload')
 @admin_required
 def upload():
-    """Guarda un archivo (hasta 4 MB) en Supabase. Devuelve {'url', 'filename'}.
-    La url (/media/<id>) es la que se guarda en el producto, logo o anuncio."""
+    """Guarda un archivo (hasta 4 MB) en Supabase. Devuelve {'url', 'filename', 'type'}.
+    La url (/media/<id>) es la que se guarda en el producto, logo, anuncio o reproductor."""
     f = request.files.get('file')
     kind = request.form.get('kind', 'image')
     if not f or not f.filename:
@@ -692,7 +882,7 @@ def upload():
         row = c.execute(
             'INSERT INTO media(filename,content_type,data,size,created_at) VALUES(%s,%s,%s,%s,%s) RETURNING id',
             (name, MEDIA_TYPES[ext], data, len(data), now())).fetchone()
-    return jsonify({'url': f"/media/{row['id']}", 'filename': name})
+    return jsonify({'url': f"/media/{row['id']}", 'filename': name, 'type': MEDIA_TYPES[ext]})
 
 
 @app.post('/api/upload-signature')
@@ -814,12 +1004,12 @@ def update_order(oid):
             (status, payment, notes, str(d.get('incident', ''))[:1000], now(), oid))
         if cur.rowcount == 0:
             return jsonify({'error': 'Pedido no encontrado'}), 404
-        # Entregado -> pasa a Ventas; cualquier otro estado -> se quita de Ventas.
-        if status == 'Entregado':
+        # Entregado / Terminado -> pasa solo a Ventas; cualquier otro estado -> se quita de Ventas.
+        if status in SALE_STATUSES:
             save_sale(c, c.execute('SELECT * FROM orders WHERE id=%s', (oid,)).fetchone())
         else:
             c.execute('DELETE FROM sales WHERE order_id=%s', (oid,))
-    return jsonify({'ok': True})
+    return jsonify({'ok': True, 'moved_to_sales': status in SALE_STATUSES})
 
 
 # --- Ajustes ----------------------------------------------------------------------
@@ -828,12 +1018,19 @@ def update_order(oid):
 def update_settings():
     d = body()
     allowed = {'brand_name', 'logo', 'whatsapp', 'instagram', 'background_type',
-               'background_value', 'review_url', 'tips_message'}
+               'background_value', 'review_url', 'tips_message',
+               'music_url', 'music_title', 'music_kind'}
     with db() as c:
         for k, v in d.items():
-            if k in allowed:
-                c.execute('INSERT INTO settings(key,value) VALUES(%s,%s) '
-                          'ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value', (k, str(v)[:4000]))
+            if k not in allowed:
+                continue
+            v = '' if v is None else str(v)
+            if k == 'music_url':
+                v = safe_media_url(v)
+            elif k == 'music_kind':
+                v = v if v in ('audio', 'video') else 'audio'
+            c.execute('INSERT INTO settings(key,value) VALUES(%s,%s) '
+                      'ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value', (k, v[:4000]))
     return jsonify({'ok': True})
 
 
@@ -920,9 +1117,27 @@ def add_category():
 @app.put('/api/categories/<int:cid>')
 @admin_required
 def update_category(cid):
+    """Renombra y/o muestra-oculta una categoria. Solo cambia lo que viene en la peticion:
+    {'name': 'nuevo'} renombra (y mueve sus productos), {'active': false} la oculta."""
+    d = body()
     with db() as c:
-        c.execute('UPDATE categories SET active=%s WHERE id=%s',
-                  (int(bool(body().get('active', True))), cid))
+        row = c.execute('SELECT name FROM categories WHERE id=%s', (cid,)).fetchone()
+        if not row:
+            return jsonify({'error': 'Categoría no encontrada'}), 404
+        if 'name' in d:
+            old, new = row['name'], clean_cat(d.get('name'))
+            if not new:
+                return jsonify({'error': 'Escribe el nombre de la categoría'}), 400
+            if new != old:
+                if old in LOCKED_CATEGORIES:
+                    return jsonify({'error': 'Esta categoría se asigna automáticamente por el nombre del '
+                                             'producto y no se puede renombrar. Puedes ocultarla.'}), 400
+                if c.execute('SELECT 1 FROM categories WHERE name=%s AND id<>%s', (new, cid)).fetchone():
+                    return jsonify({'error': 'Ya existe una categoría con ese nombre'}), 400
+                c.execute('UPDATE categories SET name=%s WHERE id=%s', (new, cid))
+                c.execute('UPDATE products SET category=%s WHERE category=%s', (new, old))
+        if 'active' in d:
+            c.execute('UPDATE categories SET active=%s WHERE id=%s', (int(bool(d['active'])), cid))
     return jsonify({'ok': True})
 
 
@@ -950,21 +1165,59 @@ def reclassify():
     return jsonify({'ok': True, 'changed': changed})
 
 
-# --- Ventas (pedidos entregados) -----------------------------------------------
+# --- Ventas (pedidos entregados o terminados) -----------------------------------
 @app.get('/api/sales')
 @admin_required
 def list_sales():
-    sql = ('SELECT id,order_id,code,customer,contact,purchase,address,amount,sold_date '
-           'FROM sales WHERE 1=1')
+    """Ventas con filtro por rango de fechas (?from=AAAA-MM-DD&to=AAAA-MM-DD).
+    Devuelve cada venta (sin imagenes), los totales y el porcentaje por sector."""
+    sql = ('SELECT s.id,s.order_id,s.code,s.customer,s.contact,s.purchase,s.address,s.amount,'
+           's.sold_date,s.sector,s.shipping,s.subtotal,o.items,o.delivery_method,o.province '
+           'FROM sales s LEFT JOIN orders o ON o.id=s.order_id WHERE 1=1')
     params = []
     for arg, op in (('from', '>='), ('to', '<=')):
         v = (request.args.get(arg) or '').strip()
         if re.fullmatch(r'\d{4}-\d{2}-\d{2}', v):
-            sql += f' AND sold_date {op} %s'
+            sql += f' AND s.sold_date {op} %s'
             params.append(v)
     with db() as c:
-        data = rows(c, sql + ' ORDER BY sold_date DESC, id DESC', tuple(params))
-    return jsonify({'sales': data, 'count': len(data), 'total': sum(r['amount'] for r in data)})
+        data = rows(c, sql + ' ORDER BY s.sold_date DESC, s.id DESC', tuple(params))
+
+    sales, sectors = [], {}
+    total = subtotal_sum = shipping_sum = 0.0
+    for r in data:
+        amount = float(r['amount'] or 0)
+        shipping = float(r['shipping'] or 0)
+        subtotal = float(r['subtotal'] or 0)
+        if not subtotal and not shipping:  # ventas anteriores a la v3: el monto era solo productos
+            subtotal = amount
+        sector = r['sector'] or sector_from(r['delivery_method'], r['province'] or r['address'])
+        # En ventas viejas "address" guardaba el texto del metodo de entrega, no una direccion.
+        address = r['address'] if r['sector'] else ''
+        lines = product_lines(r['items']) or [{'name': r['purchase'] or 'Pedido', 'qty': 1, 'price': None}]
+
+        info = sectors.setdefault(sector, {'sector': sector, 'count': 0, 'amount': 0.0})
+        info['count'] += 1
+        info['amount'] += amount
+        total += amount
+        subtotal_sum += subtotal
+        shipping_sum += shipping
+        sales.append({
+            'id': r['id'], 'order_id': r['order_id'], 'code': r['code'], 'customer': r['customer'],
+            'contact': r['contact'], 'sector': sector, 'address': address, 'amount': amount,
+            'subtotal': subtotal, 'shipping': shipping, 'sold_date': r['sold_date'], 'lines': lines,
+        })
+
+    by_sector = sorted(sectors.values(), key=lambda s: s['amount'], reverse=True)
+    for s in by_sector:
+        s['amount'] = round(s['amount'], 2)
+        s['percent'] = round(s['amount'] / total * 100, 1) if total else 0.0
+    count = len(sales)
+    return jsonify({
+        'sales': sales, 'count': count, 'total': round(total, 2),
+        'subtotal': round(subtotal_sum, 2), 'shipping': round(shipping_sum, 2),
+        'average': round(total / count, 2) if count else 0.0, 'by_sector': by_sector,
+    })
 
 
 @app.delete('/api/sales/<int:sid>')
