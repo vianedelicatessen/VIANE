@@ -1,283 +1,1439 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Viane Delicatessen | Bandejas decorativas y desayunos</title>
-<meta name="description" content="Viane Delicatessen: desayunos personalizados, bandejas decorativas, picaderas y regalos para bodas, aniversarios y cumpleaños. Haz tu pedido por WhatsApp.">
-<link rel="canonical" href="https://www.vianedelicatessen.com/">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"><style>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Viane Delicatessen | Bandejas decorativas y desayunos</title>
+  <meta name="description" content="Viane Delicatessen: desayunos personalizados, bandejas decorativas, picaderas y regalos para bodas, aniversarios y cumpleaños. Haz tu pedido por WhatsApp.">
+  <link rel="canonical" href="https://www.vianedelicatessen.com/">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --dark: #3A0007;
+      --crimson: #7A0C16;
+      --ruby: #900010;
+      --bright: #C40C1A;
+      --goldLight: #F7E7A9;
+      --gold: #D4AF37;
+      --goldDark: #9A7B1C;
+      --cream: #FFFDF5;
+      --ink: #29252a;
+      --muted: #77717a;
+      --line: #eee5dc;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      margin: 0;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    
+    h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
+    
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; border: 0; }
+    
+    /* Toast System for Custom UI Alerts */
+    #vianeToastContainer {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      width: min(400px, 90vw);
+    }
+    .viane-toast {
+      background: var(--dark);
+      color: #fff;
+      border: 1px solid var(--gold);
+      padding: 14px 20px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      pointer-events: auto;
+      animation: toastFadeIn 0.3s ease-out forwards;
+    }
+    @keyframes toastFadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Top Header Bar */
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #fffdf7ee;
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--crimson);
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+    
+    .logo {
+      width: 48px;
+      height: 48px;
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--dark);
+    }
+    
+    nav { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+    
+    nav button, .pill {
+      padding: 10px 15px;
+      border-radius: 30px;
+      background: #f5eee2;
+      color: var(--crimson);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    
+    .primary { background: var(--crimson) !important; color: #fff !important; }
+    .gold { color: var(--goldDark); }
+    
+    /* Volume Bar Control */
+    .viane-volume-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(122, 12, 22, 0.08);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+    .viane-volume-control input[type="range"] {
+      accent-color: var(--goldDark);
+      cursor: pointer;
+      width: 70px;
+    }
+    
+    /* Hero Section */
+    .hero {
+      background: radial-gradient(circle at 50% 0, #a91826, var(--dark) 72%);
+      color: white;
+      text-align: center;
+      padding: 56px 18px 50px;
+    }
+    .hero .logo { width: 94px; height: 94px; margin-bottom: 14px; }
+    .eyebrow { color: var(--goldLight); letter-spacing: 3px; font-size: 11px; font-weight: 800; }
+    .hero h1 { font-size: clamp(30px, 5vw, 53px); margin: 12px 0; }
+    .hero p { max-width: 720px; margin: 0 auto; color: #f9eac5; line-height: 1.8; }
+    
+    /* 3 Video Grid */
+    .viane-video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      max-width: 1200px;
+      margin: 26px auto 10px;
+      padding: 0 18px;
+    }
+    .viane-video-card {
+      position: relative;
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(58, 0, 7, 0.08);
+      border: 1px solid var(--line);
+    }
+    .viane-video-card video {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+    .video-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(58, 0, 7, 0.75);
+      color: var(--goldLight);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 12px;
+      backdrop-filter: blur(4px);
+    }
 
-:root{--dark:#3A0007;--crimson:#7A0C16;--ruby:#900010;--bright:#C40C1A;--goldLight:#F7E7A9;--gold:#D4AF37;--goldDark:#9A7B1C;--cream:#FFFDF5;--ink:#29252a;--muted:#77717a;--line:#eee5dc}*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif}h1,h2,h3,.serif{font-family:'Playfair Display',serif}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.top{position:sticky;top:0;z-index:5;background:#fffdf7ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px 5%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:10px;color:var(--crimson);font-weight:800;letter-spacing:2px}.logo{width:48px;height:48px;border:2px solid var(--gold);border-radius:50%;object-fit:cover;background:var(--dark)}nav{display:flex;gap:7px;flex-wrap:wrap}nav button,.pill{padding:10px 15px;border-radius:30px;background:#f5eee2;color:var(--crimson);font-size:12px;font-weight:800}.primary{background:var(--crimson)!important;color:#fff!important}.gold{color:var(--goldDark)}.hero{background:radial-gradient(circle at 50% 0,#a91826,var(--dark) 72%);color:white;text-align:center;padding:56px 18px 50px}.hero .logo{width:94px;height:94px;margin-bottom:14px}.eyebrow{color:var(--goldLight);letter-spacing:3px;font-size:11px;font-weight:800}.hero h1{font-size:clamp(30px,5vw,53px);margin:12px 0}.hero p{max-width:720px;margin:0 auto;color:#f9eac5;line-height:1.8}.wrap{max-width:1200px;margin:auto;padding:30px 18px}.section-title{text-align:center;color:var(--crimson);margin:8px 0 24px}.filters,.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}.filters button{border:1px solid #e6d7b4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:18px}.card{background:white;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 8px 28px #3a00070d;display:flex;flex-direction:column;gap:10px}.product-img{width:100%;height:190px;object-fit:cover;border-radius:15px;background:#f5eee2}.product-img.placeholder{display:grid;place-items:center;font-size:45px;color:var(--goldDark)}.price{font-family:'Playfair Display';font-weight:800;color:var(--crimson);font-size:20px}.btn{padding:12px 15px;border-radius:12px;background:var(--crimson);color:white;font-weight:800;font-size:12px}.btn.goldbtn{background:var(--gold);color:var(--dark)}.btn.light{background:#f5eee2;color:var(--crimson)}.muted{color:var(--muted);font-size:13px;line-height:1.65}.formbox{max-width:680px;margin:0 auto;background:white;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 8px 28px #3a00070d}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:800;color:var(--crimson)}input,select,textarea{width:100%;padding:12px;border:1px solid #e4d9cf;border-radius:10px;background:#fffdf9;color:var(--ink)}textarea{min-height:90px}.stars{display:flex;gap:6px;font-size:28px;color:var(--gold);margin:4px 0 12px}.stars button{background:none;color:inherit;font-size:28px;padding:0}.review{background:#fff;border:1px solid var(--line);padding:18px;border-radius:18px;margin-bottom:12px}.hidden{display:none!important}.status{padding:7px 10px;border-radius:20px;background:#f7e7a9;color:var(--dark);font-size:11px;font-weight:800;display:inline-block}.modal{position:fixed;inset:0;background:#160207b8;z-index:20;display:grid;place-items:center;padding:14px;overflow:auto}.modalbox{background:white;border:2px solid var(--gold);border-radius:22px;padding:24px;width:min(560px,100%);max-height:92vh;overflow:auto}.adminnav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.adminnav button{padding:10px;border-radius:10px;background:#f4ebdc;color:var(--crimson);font-weight:800;font-size:12px}.adminpanel{background:white;border:1px solid var(--line);padding:18px;border-radius:18px;margin:12px 0}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.itemrow{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;justify-content:space-between}.tiny{font-size:11px}.footer{text-align:center;padding:28px;background:#fff;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.floating{position:fixed;bottom:18px;right:18px;background:#168653;color:#fff;border-radius:40px;padding:14px 18px;text-decoration:none;z-index:6;font-weight:800;box-shadow:0 8px 22px #0002}@media(max-width:600px){.top{justify-content:center}.hero{padding-top:38px}.wrap{padding:22px 13px}.formbox{padding:16px}}
-#visor{display:none;position:fixed;inset:0;z-index:30;background:#160207eb;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}#visor.open{display:flex}#visorImg{max-width:100%;max-height:82vh;border-radius:14px;object-fit:contain}#visorCap{margin:0;color:#f9eac5;font-family:'Playfair Display',serif;text-align:center}.visor-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;width:42px;height:42px;border-radius:50%;background:#ffffff26;color:#fff;font-size:20px}#products img.product-img{cursor:zoom-in}main section{scroll-margin-top:120px}
-  /* ===== Efecto dorado + copos de nieve al pasar el mouse por los botones ===== */
-:is(.btn,nav button,.pill,.adminnav button){
-  position:relative;
-  overflow:visible;
-  transition:transform .25s ease,box-shadow .25s ease;
-}
+    /* Wrap & Grids */
+    .wrap { max-width: 1200px; margin: auto; padding: 30px 18px; }
+    .section-title { text-align: center; color: var(--crimson); margin: 8px 0 24px; }
+    
+    .filters, .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+    .filter-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px 10px;
+      border-radius: 16px;
+      background: white;
+      border: 1px solid var(--line);
+      color: var(--crimson);
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(58, 0, 7, 0.04);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      min-width: 90px;
+    }
+    .filter-btn img, .filter-btn .filter-thumb-placeholder {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--goldLight);
+      background: #f5eee2;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+    .filter-btn.active {
+      background: var(--crimson);
+      color: #fff;
+      border-color: var(--gold);
+      box-shadow: 0 6px 16px rgba(122, 12, 22, 0.25);
+    }
+    .filter-btn.active img, .filter-btn.active .filter-thumb-placeholder {
+      border-color: var(--gold);
+    }
 
-/* Copos de nieve: dos capas con distinto tamaño y velocidad */
-:is(.btn,nav button,.pill,.adminnav button)::before,
-:is(.btn,nav button,.pill,.adminnav button)::after{
-  content:"\2744\FE0E";
-  position:absolute;
-  left:50%;
-  top:70%;
-  line-height:1;
-  opacity:0;
-  pointer-events:none;
-  z-index:3;
-}
-:is(.btn,nav button,.pill,.adminnav button)::before{
-  font-size:13px;
-  color:var(--gold);
-  text-shadow:-38px 2px 0 var(--goldLight),-20px -6px 0 var(--gold),22px 0 0 var(--goldLight),40px -5px 0 var(--gold);
-}
-:is(.btn,nav button,.pill,.adminnav button)::after{
-  font-size:9px;
-  color:var(--goldLight);
-  text-shadow:-30px -4px 0 var(--gold),-10px 4px 0 var(--goldLight),12px -2px 0 var(--gold),32px 3px 0 var(--goldLight);
-}
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 18px;
+    }
+    
+    .card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 8px 28px #3a00070d;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .product-img {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      border-radius: 15px;
+      background: #f5eee2;
+      cursor: pointer;
+    }
+    .product-img.placeholder { display: grid; place-items: center; font-size: 45px; color: var(--goldDark); }
+    .price { font-family: 'Playfair Display'; font-weight: 800; color: var(--crimson); font-size: 20px; }
+    
+    .btn {
+      padding: 12px 15px;
+      border-radius: 12px;
+      background: var(--crimson);
+      color: white;
+      font-weight: 800;
+      font-size: 12px;
+      text-align: center;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .btn.goldbtn { background: var(--gold); color: var(--dark); }
+    .btn.light { background: #f5eee2; color: var(--crimson); }
+    .muted { color: var(--muted); font-size: 13px; line-height: 1.65; }
+    
+    /* Forms & Reviews */
+    .formbox {
+      max-width: 680px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 8px 28px #3a00070d;
+    }
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 800; color: var(--crimson); }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #e4d9cf;
+      border-radius: 10px;
+      background: #fffdf9;
+      color: var(--ink);
+    }
+    textarea { min-height: 90px; }
+    .stars { display: flex; gap: 6px; font-size: 28px; color: var(--gold); margin: 4px 0 12px; }
+    .stars button { background: none; color: inherit; font-size: 28px; padding: 0; }
+    .review { background: #fff; border: 1px solid var(--line); padding: 18px; border-radius: 18px; margin-bottom: 12px; }
+    .hidden { display: none !important; }
+    .status { padding: 7px 10px; border-radius: 20px; background: #f7e7a9; color: var(--dark); font-size: 11px; font-weight: 800; display: inline-block; }
+    
+    /* Modals */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: #160207b8;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 14px;
+      overflow: auto;
+    }
+    .modalbox {
+      background: white;
+      border: 2px solid var(--gold);
+      border-radius: 22px;
+      padding: 24px;
+      width: min(560px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      position: relative;
+    }
+    
+    /* Custom Product Details Modal Carousel */
+    .viane-carousel-container {
+      position: relative;
+      width: 100%;
+      height: 260px;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #000;
+      margin: 14px 0;
+    }
+    .viane-carousel-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .viane-carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(58, 0, 7, 0.75);
+      color: var(--goldLight);
+      border: 1px solid var(--gold);
+      padding: 10px 14px;
+      cursor: pointer;
+      border-radius: 50%;
+      font-weight: bold;
+      z-index: 10;
+    }
+    .viane-carousel-btn.prev { left: 10px; }
+    .viane-carousel-btn.next { right: 10px; }
 
-/* Al pasar el mouse (o tocar en el celular): brillo dorado que se mueve */
-:is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active){
-  background:linear-gradient(110deg,#9A7B1C 0%,#D4AF37 25%,#F7E7A9 50%,#D4AF37 75%,#9A7B1C 100%)!important;
-  background-size:200% 100%!important;
-  color:var(--dark)!important;
-  box-shadow:0 0 0 1px var(--goldLight),0 8px 20px #d4af3766;
-  transform:translateY(-2px);
-  animation:goldShine 1.6s linear infinite;
-}
+    /* Admin Panel */
+    .adminnav { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
+    .adminnav button { padding: 10px; border-radius: 10px; background: #f4ebdc; color: var(--crimson); font-weight: 800; font-size: 12px; }
+    .adminpanel { background: white; border: 1px solid var(--line); padding: 18px; border-radius: 18px; margin: 12px 0; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row > * { flex: 1; }
+    .itemrow { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+    
+    .footer { text-align: center; padding: 28px; background: #fff; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+    .floating { position: fixed; bottom: 18px; right: 18px; background: #168653; color: #fff; border-radius: 40px; padding: 14px 18px; text-decoration: none; z-index: 6; font-weight: 800; box-shadow: 0 8px 22px #0002; }
+    
+    @media(max-width:600px) {
+      .top { justify-content: center; }
+      .hero { padding-top: 38px; }
+      .wrap { padding: 22px 13px; }
+      .formbox { padding: 16px; }
+    }
+    
+    /* Photo Visor Zoom */
+    #visor { display: none; position: fixed; inset: 0; z-index: 200; background: #160207eb; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; }
+    #visor.open { display: flex; }
+    #visorImg { max-width: 100%; max-height: 82vh; border-radius: 14px; object-fit: contain; }
+    #visorCap { margin: 0; color: #f9eac5; font-family: 'Playfair Display', serif; text-align: center; }
+    .visor-x { position: absolute; top: calc(env(safe-area-inset-top,0px) + 14px); right: 16px; width: 42px; height: 42px; border-radius: 50%; background: #ffffff26; color: #fff; font-size: 20px; }
+    
+    main section { scroll-margin-top: 120px; }
 
-/* ...y los copos caen y se desvanecen en el fondo de la página */
-:is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::before{
-  animation:snowFallA 1.9s ease-in infinite;
-}
-:is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::after{
-  animation:snowFallB 2.5s ease-in .6s infinite;
-}
+    /* Button Hover & Snowfall Effects */
+    :is(.btn, nav button, .pill, .adminnav button) {
+      position: relative;
+      overflow: visible;
+      transition: transform .25s ease, box-shadow .25s ease;
+    }
+    :is(.btn, nav button, .pill, .adminnav button)::before,
+    :is(.btn, nav button, .pill, .adminnav button)::after {
+      content: "\2744\FE0E";
+      position: absolute;
+      left: 50%;
+      top: 70%;
+      line-height: 1;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 3;
+    }
+    :is(.btn, nav button, .pill, .adminnav button)::before {
+      font-size: 13px;
+      color: var(--gold);
+      text-shadow: -38px 2px 0 var(--goldLight), -20px -6px 0 var(--gold), 22px 0 0 var(--goldLight), 40px -5px 0 var(--gold);
+    }
+    :is(.btn, nav button, .pill, .adminnav button)::after {
+      font-size: 9px;
+      color: var(--goldLight);
+      text-shadow: -30px -4px 0 var(--gold), -10px 4px 0 var(--goldLight), 12px -2px 0 var(--gold), 32px 3px 0 var(--goldLight);
+    }
+    :is(.btn, nav button, .pill, .adminnav button):is(:hover, :focus-visible, :active) {
+      background: linear-gradient(110deg, #9A7B1C 0%, #D4AF37 25%, #F7E7A9 50%, #D4AF37 75%, #9A7B1C 100%) !important;
+      background-size: 200% 100% !important;
+      color: var(--dark) !important;
+      box-shadow: 0 0 0 1px var(--goldLight), 0 8px 20px #d4af3766;
+      transform: translateY(-2px);
+      animation: goldShine 1.6s linear infinite;
+    }
+    :is(.btn, nav button, .pill, .adminnav button):is(:hover, :focus-visible, :active)::before {
+      animation: snowFallA 1.9s ease-in infinite;
+    }
+    :is(.btn, nav button, .pill, .adminnav button):is(:hover, :focus-visible, :active)::after {
+      animation: snowFallB 2.5s ease-in .6s infinite;
+    }
 
-@keyframes goldShine{
-  from{background-position:0% 50%}
-  to{background-position:200% 50%}
-}
-@keyframes snowFallA{
-  0%{opacity:0;transform:translate(-50%,-4px) rotate(0deg) scale(.6)}
-  15%{opacity:1}
-  100%{opacity:0;transform:translate(-50%,90px) rotate(200deg) scale(1)}
-}
-@keyframes snowFallB{
-  0%{opacity:0;transform:translate(-50%,-8px) rotate(0deg) scale(.5)}
-  20%{opacity:1}
-  100%{opacity:0;transform:translate(calc(-50% + 16px),115px) rotate(-240deg) scale(.9)}
-}
+    @keyframes goldShine {
+      from { background-position: 0% 50%; }
+      to { background-position: 200% 50%; }
+    }
+    @keyframes snowFallA {
+      0% { opacity: 0; transform: translate(-50%, -4px) rotate(0deg) scale(.6); }
+      15% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, 90px) rotate(200deg) scale(1); }
+    }
+    @keyframes snowFallB {
+      0% { opacity: 0; transform: translate(-50%, -8px) rotate(0deg) scale(.5); }
+      20% { opacity: 1; }
+      100% { opacity: 0; transform: translate(calc(-50% + 16px), 115px) rotate(-240deg) scale(.9); }
+    }
+    .modalbox .btn::before, .modalbox .btn::after { display: none; }
+    @media (prefers-reduced-motion: reduce) {
+      :is(.btn, nav button, .pill, .adminnav button)::before,
+      :is(.btn, nav button, .pill, .adminnav button)::after { display: none; }
+    }
+  </style>
 
-/* Dentro de las ventanas emergentes solo brillo dorado, sin copos (evita barras de desplazamiento) */
-.modalbox .btn::before,
-.modalbox .btn::after{display:none}
+  <!-- Favicon -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="/static/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192x192.png">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 
-/* Si la persona tiene activada la opción de reducir movimiento, no se muestran los copos */
-@media (prefers-reduced-motion:reduce){
-  :is(.btn,nav button,.pill,.adminnav button)::before,
-  :is(.btn,nav button,.pill,.adminnav button)::after{display:none}
-}
-</style><!-- Favicon: la miniatura que muestran Google y Bing -->
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="48x48" href="/static/favicon-48x48.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192x192.png">
-<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Viane Delicatessen">
+  <meta property="og:title" content="Viane Delicatessen | Bandejas decorativas y desayunos">
+  <meta property="og:description" content="Desayunos personalizados, bandejas, bodas, aniversarios y ramos con dinero.">
+  <meta property="og:url" content="https://www.vianedelicatessen.com/">
+  <meta property="og:image" content="https://www.vianedelicatessen.com/static/logo-viane.png">
+  <meta name="twitter:card" content="summary">
 
-<!-- Vista previa al compartir el link (WhatsApp, Facebook, Instagram) -->
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Viane Delicatessen">
-<meta property="og:title" content="Viane Delicatessen | Bandejas decorativas y desayunos">
-<meta property="og:description" content="Desayunos personalizados, bandejas, bodas, aniversarios y ramos con dinero.">
-<meta property="og:url" content="https://www.vianedelicatessen.com/">
-<meta property="og:image" content="https://www.vianedelicatessen.com/static/logo-viane.png">
-<meta name="twitter:card" content="summary">
-
-<!-- Datos estructurados: le dicen a Google cuál es tu logo y el nombre del sitio -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Viane Delicatessen",
-  "url": "https://www.vianedelicatessen.com/",
-  "logo": "https://www.vianedelicatessen.com/static/logo-viane.png",
-  "telephone": "+1-829-675-9640",
-  "sameAs": ["https://www.instagram.com/vianedelicatessen"]
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Viane Delicatessen",
-  "url": "https://www.vianedelicatessen.com/"
-}
-</script></head><body>
-<header class="top"><div class="brand"><img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'"><div><div style="font-family:'Playfair Display';font-size:22px">VIANE</div><small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small></div></div><nav><button onclick="go('catalog')">Menú</button><button onclick="go('reviews')">Reseñas</button><button onclick="go('track')">Seguir pedido</button><button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button></nav>
-</header>
-<section class="hero" id="hero"><img id="heroLogo" class="logo" src="" alt="Logo" onerror="this.style.display='none'"><div class="eyebrow">DETALLES QUE SE CONVIERTEN EN RECUERDOS</div><h1>Un detalle especial, hecho para ti</h1><p>Desayunos, bandejas personalizadas, picaderas y regalos con el sello de VIANE Delicatessen.</p><div class="actions" style="margin-top:22px"><button class="btn goldbtn" onclick="go('catalog')">Explorar productos</button><button class="btn" onclick="go('reviews')">Compartir mi experiencia</button></div></section>
-<main class="wrap"><section id="catalog"><h2 class="section-title">Nuestro catálogo</h2><div class="filters" id="filters"></div><div class="grid" id="products"></div><div id="ads" class="grid" style="margin-top:20px"></div></section>
-<section id="reviews" class="hidden"><h2 class="section-title">Tu experiencia nos inspira</h2><div class="formbox"><form id="reviewForm"><div class="field">Tu calificación *<div class="stars" id="starButtons"></div></div><div class="fields"><label class="field">Nombre completo *<input id="reviewName" required maxlength="120"></label><label class="field">WhatsApp (opcional)<input id="reviewPhone" placeholder="829-000-0000"></label></div><div class="field" style="margin-top:12px">Productos recibidos (elige de 1 a 3) *<div id="reviewProductChoices" class="fields"></div></div><label class="field" style="margin-top:12px">Tu comentario *<textarea id="reviewComment" required maxlength="2000" placeholder="Cuéntanos cómo fue tu experiencia..."></textarea></label><button class="btn" style="width:100%;margin-top:12px">Enviar reseña</button></form><p class="muted">Las reseñas se revisan antes de aparecer públicamente.</p></div><h3 class="section-title" style="margin-top:30px">Lo que dicen nuestros clientes</h3><div id="reviewsFeed"></div></section>
-<section id="track" class="hidden"><h2 class="section-title">Seguimiento de tu pedido</h2><div class="formbox"><p class="muted">Introduce el código que recibiste al realizar tu pedido.</p><form id="trackForm" class="row"><input id="trackCode" placeholder="Ej. VIA-A1B2C3D4" required><button class="btn">Consultar</button></form><div id="trackResult" style="margin-top:18px"></div></div></section>
-<section id="admin" class="hidden"><h2 class="section-title">Panel de administración</h2><div class="adminpanel"><div class="row"><div><b>VIANE Delicatessen</b><div class="muted">Sesión administrativa segura</div></div><button class="btn light" onclick="logout()">Cerrar sesión</button></div><div class="adminnav"><button onclick="adminTab('orders')">Pedidos</button><button onclick="adminTab('products')">Productos</button><button onclick="adminTab('reviews')">Reseñas</button><button onclick="adminTab('brand')">Logo y diseño</button><button onclick="adminTab('payments')">Pagos y propinas</button><button onclick="adminTab('ads')">Publicidad</button><button onclick="adminTab('media')">Multimedia</button></div><div id="adminContent"></div></div></section></main>
-<footer class="footer"><b style="font-family:'Playfair Display';color:var(--crimson);font-size:17px">VIANE DELICATESSEN</b><p>Detalles especiales, desayunos, picaderas y regalos.</p><p>WhatsApp: <a id="footerWa" href="https://wa.me/18296759640">829-675-9640</a> · Instagram: <span id="footerIg">vianedelicatessen</span></p><p>© 2026 VIANE Delicatessen</p></footer><a class="floating" id="waFloat" href="https://wa.me/18296759640" target="_blank">WhatsApp</a>
-<div id="loginModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Acceso administrativo</h2><p class="muted">Solo personal autorizado.</p><form id="loginForm"><label class="field">Correo electrónico<input id="loginEmail" type="email" required></label><label class="field" style="margin-top:12px">Contraseña<input id="loginPassword" type="password" required></label><div class="row" style="margin-top:16px"><button class="btn">Entrar</button><button type="button" class="btn light" onclick="closeLogin()">Cancelar</button></div><p id="loginError" class="muted"></p></form></div></div>
-<div id="cartModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Tu pedido</h2><div id="cartItems"></div><h3 id="cartTotal" class="price">RD$ 0</h3><form id="orderForm"><div class="fields"><label class="field">Nombre *<input id="orderName" required></label><label class="field">WhatsApp *<input id="orderPhone" required></label><label class="field">Método de entrega *
-  <select id="deliveryMethod" onchange="actualizarCostoEnvio()">
-    <option value="pickup">Pasar a recoger en el local</option>
-    <option value="delivery_pp">Delivery en Pto. Plata (Ciudad)</option>
-    <option value="delivery_santiago">Envío a Santiago</option>
-    <option value="delivery_capital">Envío a Santo Domingo</option>
-  </select>
-</label><label class="field">Fecha deseada *<input id="orderDate" type="date" required></label></div><label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn">Crear pedido</button><button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button></div></form><div id="orderCreated" class="hidden"></div></div></div>
-<div id="tipModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">¿Te gustaría dejar una propina?</h2><p class="muted">Tu apoyo nos ayuda a seguir creando detalles especiales.</p><div id="tipLinks"></div><div class="row" style="margin-top:14px"><button class="btn" onclick="document.getElementById('tipModal').classList.add('hidden')">Ahora no, gracias</button></div></div></div>
-<div id="visor" onclick="closeVisor()"><button type="button" class="visor-x" aria-label="Cerrar">✕</button><img id="visorImg" alt=""><p id="visorCap"></p></div>
-<script>
-const $=id=>document.getElementById(id);let state={products:[],reviews:[],payments:[],ads:[],settings:{},cart:[],rating:5,admin:false,adminData:null,category:'Todos'};const categories=['Todos','desayunos','bandejas','picaderas','bizcochos','mariscos','regalos','eventos'];
-async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Ocurrió un error');return d}
-function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function money(n){return 'RD$ '+Number(n||0).toLocaleString('es-DO',{maximumFractionDigits:2})}
-async function load(){try{let d=await api('/api/public');state={...state,...d};applyBrand();renderProducts();renderReviews();renderFilters();renderReviewChoices();renderStars();renderAds()}catch(e){console.error(e)}}function applyBrand(){let s=state.settings||{};['brandLogo','heroLogo'].forEach(id=>{if(s.logo){$(id).src=s.logo;$(id).style.display=''}else $(id).style.display='none'});$('footerWa').href='https://wa.me/'+(s.whatsapp||'18296759640');$('footerWa').textContent=s.whatsapp||'829-675-9640';$('waFloat').href='https://wa.me/'+(s.whatsapp||'18296759640');$('footerIg').textContent=s.instagram||'vianedelicatessen';let bg=s.background_value||'#FFFDF5';if(s.background_type==='color')document.body.style.background=bg;else if(s.background_type==='image')document.body.style.background=`url('${bg}') center/cover fixed`;else if(s.background_type==='texture')document.body.style.background=`repeating-linear-gradient(45deg,${bg},${bg} 8px,#fff8e8 8px,#fff8e8 16px)`}
-function go(sec){['catalog','reviews','track','admin'].forEach(s=>$(s).classList.toggle('hidden',s!==sec));$(sec).scrollIntoView({behavior:'smooth',block:'start'});if(sec==='reviews'){renderReviewChoices();renderStars()}if(sec==='admin'&&state.admin)loadAdmin()}
-function renderFilters(){$('filters').innerHTML=categories.map(c=>`<button class="pill ${state.category===c?'primary':''}" onclick="filterCategory('${c}')">${esc(c==='Todos'?'Todos':c[0].toUpperCase()+c.slice(1))}</button>`).join('')}
-function filterCategory(c){state.category=c;renderFilters();renderProducts()}
-function renderProducts(){let list=state.products.filter(p=>state.category==='Todos'||p.category===state.category);$('products').innerHTML=list.length?list.map(p=>`<article class="card">${p.image?`<img class="product-img" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`:`<div class="product-img placeholder">✦</div>`}<div class="eyebrow" style="color:var(--goldDark)">${esc(p.category)}</div><h3 style="margin:0;color:var(--crimson)">${esc(p.name)}</h3><p class="muted">${esc(p.description)}</p><div class="row" style="margin-top:auto"><span class="price">${money(p.price)}</span><button class="btn" onclick="addCart(${p.id})">Agregar</button></div></article>`).join(''):'<p class="muted">Estamos actualizando nuestro catálogo. Escríbenos por WhatsApp para consultar disponibilidad.</p>';}
-function addCart(id){let p=state.products.find(p=>p.id===id);if(p){state.cart.push(p);$('cartCount').textContent=state.cart.length;}}
-function getCostoEnvio() {
-  const method = document.getElementById('deliveryMethod').value;
-  switch (method) {
-    case 'delivery_pp': return 250;
-    case 'delivery_santiago': return 600;
-    case 'delivery_capital': return 700;
-    default: return 0;
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Viane Delicatessen",
+    "url": "https://www.vianedelicatessen.com/",
+    "logo": "https://www.vianedelicatessen.com/static/logo-viane.png",
+    "telephone": "+1-829-675-9640",
+    "sameAs": ["https://www.instagram.com/vianedelicatessen"]
   }
-}
+  </script>
+</head>
+<body>
 
-function actualizarCostoEnvio() {
-  const subtotal = state.cart.reduce((s, p) => s + Number(p.price), 0);
-  const envio = state.cart.length ? getCostoEnvio() : 0;
-  if ($('invSubtotal')) $('invSubtotal').textContent = money(subtotal);
-  if ($('invEnvio')) $('invEnvio').textContent = money(envio);
-  $('cartTotal').textContent = money(subtotal + envio);
-}
+  <!-- Toast Container -->
+  <div id="vianeToastContainer"></div>
 
-function openCart() {
-  $('cartModal').classList.remove('hidden');
-  renderCart();
-}
+  <!-- Top Navigation Header with Integrated Volume Slider -->
+  <header class="top">
+    <div class="brand">
+      <img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'">
+      <div>
+        <div style="font-family:'Playfair Display';font-size:22px">VIANE</div>
+        <small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small>
+      </div>
+    </div>
+    
+    <nav>
+      <!-- Audio Volume Control Bar -->
+      <div class="viane-volume-control" title="Control de volumen general">
+        <span id="vianeSpeakerIcon" style="cursor: pointer; user-select: none;">🔊</span>
+        <input type="range" id="vianeVolumeSlider" min="5" max="100" value="30">
+        <span id="vianeVolLabel" style="font-size: 0.8rem; font-weight: 800; color: var(--crimson);">30%</span>
+      </div>
 
-function closeCart() {
-  $('cartModal').classList.add('hidden');
-}
+      <button onclick="go('catalog')">Menú</button>
+      <button onclick="go('reviews')">Reseñas</button>
+      <button onclick="go('track')">Seguir pedido</button>
+      <button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button>
+    </nav>
+  </header>
 
-function renderCart() {
-  const box = $('cartItems');
-  if (!state.cart.length) {
-    box.innerHTML = '<p class="muted">Todavía no agregaste productos.</p>';
-    $('cartTotal').textContent = money(0);
-    return;
-  }
-  box.innerHTML = state.cart.map((p, i) => `
-    <div class="itemrow">
-      <span>${esc(p.name)} · ${money(p.price)}</span>
-      <button type="button" class="btn light" onclick="removeCart(${i})">Quitar</button>
-    </div>`).join('') + `
-    <div style="margin-top:15px;border-top:1px solid var(--line);padding-top:10px">
-      <p>Subtotal: <span id="invSubtotal">${money(0)}</span></p>
-      <p>Envío: <span id="invEnvio">${money(0)}</span></p>
-    </div>`;
-  actualizarCostoEnvio();
-}
-function removeCart(i){state.cart.splice(i,1);$('cartCount').textContent=state.cart.length;renderCart()}
-$('orderForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  try{
-    let d=await api('/api/orders',{method:'POST',body:JSON.stringify({name:$('orderName').value,phone:$('orderPhone').value,province:$('deliveryMethod').selectedOptions[0].text,delivery_method:$('deliveryMethod').value,delivery_date:$('orderDate').value,notes:$('orderNotes').value,items:state.cart.map(p=>({id:p.id}))})});
-    let cnt={};
-    state.cart.forEach(p=>{cnt[p.name]=(cnt[p.name]||0)+1});
-    let detalle=Object.entries(cnt).map(([n,q])=>'• '+q+' x '+n).join('\n');
-    let msg='Hola, soy '+$('orderName').value+'. Acabo de crear el pedido '+d.code+' de VIANE Delicatessen.\n\nProductos:\n'+detalle+'\n\nTotal: '+money(d.total)+'\n\n¿Me ayudan con el pago?'+(d.review_url?'\n\nCuando finalice mi experiencia, puedo dejar mi reseña aquí: '+d.review_url:'');
-    let wa='https://wa.me/'+(d.whatsapp||'18296759640')+'?text='+encodeURIComponent(msg);
-    $('orderCreated').classList.remove('hidden');
-    $('orderCreated').innerHTML=`<div class="adminpanel"><h3>¡Pedido creado!</h3><p>Tu código de seguimiento es <b>${esc(d.code)}</b>. Guárdalo para consultar el estado.</p><button class="btn" onclick="navigator.clipboard?.writeText('${d.code}')">Copiar código</button> <a class="btn" href="${wa}" target="_blank">Continuar por WhatsApp</a><p class="muted">Al finalizar tu experiencia, podrás dejar tu reseña aquí: <a href="#reviews" onclick="go('reviews')">Publicar reseña</a></p></div>`;
-    state.cart=[];$('cartCount').textContent='0';renderCart();
-  }catch(err){alert(err.message)}
-});
-$('trackForm').addEventListener('submit',async e=>{e.preventDefault();$('trackResult').innerHTML='<p class="muted">Consultando…</p>';try{let d=await api('/api/track/'+encodeURIComponent($('trackCode').value.trim()));$('trackResult').innerHTML=`<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p><p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident?`<p>Observación: ${esc(d.incident)}</p>`:''}</div>`}catch(err){$('trackResult').textContent=err.message}});
-function renderStars(){$('starButtons').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" aria-label="${n} estrellas" onclick="setRating(${n})" style="color:${n<=state.rating?'var(--gold)':'#d6d0c9'}">★</button>`).join('')}function setRating(n){state.rating=n;renderStars()}
-function renderReviewChoices(){let products=state.products;$('reviewProductChoices').innerHTML=products.slice(0,200).map(p=>`<label style="font-weight:600;color:#51464b"><input type="checkbox" name="revProduct" value="${p.id}" style="width:auto"> ${esc(p.name)}</label>`).join('')||'<p class="muted">No hay productos disponibles.</p>'}
-$('reviewForm').addEventListener('submit',async e=>{e.preventDefault();let selected=[...document.querySelectorAll('[name=revProduct]:checked')];if(selected.length<1||selected.length>3){alert('Elige entre 1 y 3 productos.');return}try{let products=selected.map(x=>{let p=state.products.find(p=>p.id===Number(x.value));return p?p.name:''}).filter(Boolean);let d=await api('/api/reviews',{method:'POST',body:JSON.stringify({name:$('reviewName').value,rating:state.rating,products,comment:$('reviewComment').value,phone:$('reviewPhone').value})});alert(d.message);$('reviewForm').reset();state.rating=5;renderStars();let wants=confirm('¿Te gustaría dejar una propina para apoyar a VIANE Delicatessen?');if(wants){let tips=state.payments.filter(p=>p.tip_enabled);$('tipLinks').innerHTML=tips.length?tips.map(p=>`<div class="itemrow"><div><b>${esc(p.title)}</b><p class="muted">${esc(p.details||'')}</p></div><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Dar propina</a></div>`).join(''):'<p class="muted">Aún no hay métodos de propina configurados. Gracias por tu intención.</p>';$('tipModal').classList.remove('hidden')}}catch(err){alert(err.message)}});
-function renderReviews(){$('reviewsFeed').innerHTML=state.reviews.length?state.reviews.map(r=>{let products=Array.isArray(r.products)?r.products:JSON.parse(r.products||'[]');return `<article class="review"><div class="row"><b>${esc(r.name)}</b><span style="color:var(--gold)">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span></div><p class="muted">${products.map(esc).join(' · ')}</p><p>${esc(r.comment)}</p>${r.admin_reply?`<p class="muted"><b>VIANE Delicatessen:</b> ${esc(r.admin_reply)}</p>`:''}</article>`}).join(''):'<p class="muted" style="text-align:center">Sé de las primeras personas en compartir su experiencia.</p>'}
-function renderAds(){$('ads').innerHTML=state.ads.map(a=>`<a class="card" href="${esc(a.url)}" target="_blank" rel="noopener">${a.image?`<img class="product-img" src="${esc(a.image)}">`:''}<b>${esc(a.title)}</b><span class="muted">Ver más ↗</span></a>`).join('')}
-function openLogin(){$('loginModal').classList.remove('hidden')}function closeLogin(){$('loginModal').classList.add('hidden')}$('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/login',{method:'POST',body:JSON.stringify({email:$('loginEmail').value,password:$('loginPassword').value})});state.admin=true;closeLogin();go('admin');loadAdmin()}catch(err){$('loginError').textContent=err.message}});async function logout(){await api('/api/logout',{method:'POST'}).catch(()=>{});state.admin=false;go('catalog')}
-async function loadAdmin(){if(!state.admin)return;try{state.adminData=await api('/api/admin/data');adminTab(window.currentAdminTab||'orders')}catch(e){state.admin=false;openLogin()}}
-function adminTab(tab){window.currentAdminTab=tab;let d=state.adminData;if(!d)return;let out='';if(tab==='orders'){out='<h3>Seguimiento de pedidos</h3>'+d.orders.map(o=>`<div class="adminpanel"><div class="row"><b>${esc(o.code)} · ${esc(o.name)}</b><span>${money(o.total)}</span></div><p class="muted">${esc(o.phone)} · ${esc(o.province)} · ${esc(o.delivery_date)}</p><p><b>Productos:</b> ${(()=>{try{return JSON.parse(o.items||'[]').map(i=>esc(i.name)).join(' · ')}catch(e){return ''}})()}</p><div class="fields"><label class="field">Estado<select id="os${o.id}">${d.statuses.map(s=>`<option ${s===o.status?'selected':''}>${esc(s)}</option>`).join('')}</select></label><label class="field">Pago<select id="op${o.id}">${['Pago pendiente','Pago recibido','Pago confirmado','Reembolsado'].map(s=>`<option ${s===o.payment_status?'selected':''}>${esc(s)}</option>`).join('')}</select></label></div><label class="field">Observación / incidencia<textarea id="on${o.id}">${esc(o.incident||o.notes||'')}</textarea></label><button class="btn" onclick="saveOrder(${o.id})">Guardar estado</button></div>`).join('')||'<p class="muted">No hay pedidos todavía.</p>'}
+  <!-- Hero Banner -->
+  <section class="hero" id="hero">
+    <img id="heroLogo" class="logo" src="" alt="Logo" onerror="this.style.display='none'">
+    <div class="eyebrow">DETALLES QUE SE CONVIERTEN EN RECUERDOS</div>
+    <h1>Un detalle especial, hecho para ti</h1>
+    <p>Desayunos, bandejas personalizadas, picaderas y regalos con el sello de VIANE Delicatessen.</p>
+    <div class="actions" style="margin-top:22px">
+      <button class="btn goldbtn" onclick="go('catalog')">Explorar productos</button>
+      <button class="btn" onclick="go('reviews')">Compartir mi experiencia</button>
+    </div>
+  </section>
 
-if(tab==='products'){out='<h3>Crear producto / Bandeja</h3><form id="productForm" class="adminpanel"><div class="fields"><label class="field">Nombre *<input id="pn" required></label><label class="field">Categoría<input id="pc" value="Bandejas" required></label><label class="field">Precio RD$ *<input id="pp" type="number" min="0" step="0.01" required></label><label class="field">Imagen (URL) <input id="pi" placeholder="URL o pega enlace"></label><label class="field">O subir imagen <input type="file" id="productFile" accept="image/*"></label></div><label class="field">Descripción *<textarea id="pd" required></textarea></label><label><input id="pa" type="checkbox" checked style="width:auto"> Publicar producto</label><button class="btn">Crear producto</button></form><h3>Productos existentes ('+d.products.length+')</h3>'+d.products.map(p=>`<div class="itemrow"><div><b>${esc(p.name)}</b><div class="muted">${money(p.price)} · ${p.active?'Publicado':'Oculto'}</div></div><button class="btn light" onclick="editProduct(${p.id})">Editar</button><button class="btn light" onclick="toggleProduct(${p.id},${p.active?0:1})">${p.active?'Ocultar':'Publicar'}</button><button class="btn" onclick="deleteProduct(${p.id})">Eliminar</button></div>`).join('');setTimeout(()=>{let f=$('productForm');if(f)f.onsubmit=createProduct},0)}
-if(tab==='reviews'){out='<h3>Moderación de reseñas</h3>'+d.reviews.map(r=>`<div class="adminpanel"><div class="row"><b>${esc(r.name)} · ${r.rating}/5</b><span class="status">${r.approved?'Publicada':'Pendiente'}</span></div><p>${esc(r.comment)}</p><p class="muted">${esc(r.products)}</p><label class="field">Respuesta de VIANE<textarea id="rr${r.id}">${esc(r.admin_reply||'')}</textarea></label><div class="row"><button class="btn" onclick="moderate(${r.id},true)">Aprobar / guardar respuesta</button><button class="btn light" onclick="moderate(${r.id},false)">Ocultar</button><button class="btn" onclick="deleteReview(${r.id})">Eliminar</button></div></div>`).join('')||'<p class="muted">No hay reseñas recibidas.</p>'}
-if(tab==='brand'){let s=d.settings;out=`<h3>Logo, marca y redes</h3><form id="brandForm" class="adminpanel"><label class="field">Nombre de marca<input id="bs_brand_name" value="${esc(s.brand_name||'VIANE DELICATESSEN')}"></label><label class="field">Logo actual / URL<input id="bs_logo" value="${esc(s.logo||'')}" placeholder="Sube archivo abajo o pega URL"></label><label class="field">Subir logo<input type="file" id="logoFile" accept="image/*"></label><div class="fields"><label class="field">WhatsApp sin + ni espacios<input id="bs_whatsapp" value="${esc(s.whatsapp||'18296759640')}"></label><label class="field">Instagram<input id="bs_instagram" value="${esc(s.instagram||'vianedelicatessen')}"></label></div><h4>Fondo de la página</h4><label class="field">Tipo<select id="bs_background_type"><option value="color" ${s.background_type==='color'?'selected':''}>Color sólido</option><option value="image" ${s.background_type==='image'?'selected':''}>Imagen (URL o archivo subido)</option><option value="texture" ${s.background_type==='texture'?'selected':''}>Textura (usa un color base)</option></select></label><label class="field">Color o URL de imagen<input id="bs_background_value" value="${esc(s.background_value||'#FFFDF5')}"></label><label class="field">Enlace público de reseñas<input id="bs_review_url" value="${esc(s.review_url||'')}" placeholder="Se completa cuando publiques la web"></label><button class="btn">Guardar identidad y diseño</button></form><div class="adminpanel"><label class="field">Subir imagen para fondo<input type="file" id="bgFile" accept="image/*"></label><button class="btn" onclick="uploadBackground()">Subir y aplicar</button></div>`;setTimeout(()=>{$('brandForm').onsubmit=saveBrand},0)}
-if(tab==='payments'){out='<h3>Métodos de pago y propinas</h3><form id="paymentForm" class="adminpanel"><div class="fields"><label class="field">Nombre del botón<input id="payTitle" required placeholder="Banco Popular / Transferencia"></label><label class="field">Enlace o URL de pago<input id="payUrl" required placeholder="https://..."></label></div><label class="field">Instrucciones<input id="payDetails"></label><label><input id="payTip" type="checkbox" style="width:auto"> Mostrar también como opción de propina</label><button class="btn">Agregar método de pago</button></form>'+d.payments.map(p=>`<div class="itemrow"><div><b>${esc(p.title)}</b><div class="muted">${esc(p.url)} ${p.tip_enabled?'· Acepta propinas':''}</div></div><button class="btn light" onclick="togglePay(${p.id},${p.active?0:1},${p.tip_enabled})">${p.active?'Desactivar':'Activar'}</button><button class="btn" onclick="deletePay(${p.id})">Eliminar</button></div>`).join('');setTimeout(()=>{$('paymentForm').onsubmit=addPayment},0)}
-if(tab==='ads'){out='<h3>Publicidad y enlaces</h3><form id="adForm" class="adminpanel"><div class="fields"><label class="field">Título<input id="adTitle" required></label><label class="field">Enlace destino<input id="adUrl" type="url" required></label><label class="field">Imagen (URL opcional)<input id="adImage"></label></div><button class="btn">Agregar publicidad</button></form>'+d.ads.map(a=>`<div class="itemrow"><div><b>${esc(a.title)}</b><div class="muted">${esc(a.url)}</div></div><button class="btn light" onclick="toggleAd(${a.id},${a.active?0:1})">${a.active?'Ocultar':'Publicar'}</button><button class="btn" onclick="deleteAd(${a.id})">Eliminar</button></div>`).join('');setTimeout(()=>{$('adForm').onsubmit=addAd},0)}
-if(tab==='media'){out='<h3>Subir multimedia</h3><p class="muted">Admite imágenes JPG, PNG, WEBP, GIF y archivos MP4, MP3, WAV, OGG, M4A (máximo 80 MB por archivo). El navegador puede bloquear la reproducción automática de música; el visitante deberá iniciar la reproducción.</p><div class="adminpanel"><label class="field">Selecciona archivo<input id="mediaFile" type="file" accept="image/*,video/mp4,audio/*"></label><button class="btn" onclick="uploadMedia()">Subir archivo</button><div id="mediaResult"></div></div>'}
-$('adminContent').innerHTML=out}
-async function refreshAdmin(){state.adminData=await api('/api/admin/data');adminTab(window.currentAdminTab)}async function saveOrder(id){try{await api('/api/orders/'+id,{method:'PATCH',body:JSON.stringify({status:$('os'+id).value,payment_status:$('op'+id).value,incident:$('on'+id).value})});await refreshAdmin();alert('Pedido actualizado.')}catch(e){alert(e.message)}}
-async function createProduct(e){
-    e.preventDefault();
-    try{
+  <!-- Responsive 3-Video Window Grid -->
+  <section class="viane-video-grid">
+    <div class="viane-video-card">
+      <span class="video-badge">VIANE EXPERIENCE #1</span>
+      <video class="viane-seq-video" src="https://res.cloudinary.com/sdcdugz6/video/upload/v1793061806/viane/p78mdmcdm8t7aumgnova.mp4" muted playsinline></video>
+    </div>
+    <div class="viane-video-card">
+      <span class="video-badge">VIANE EXPERIENCE #2</span>
+      <video class="viane-seq-video" src="https://res.cloudinary.com/sdcdugz6/video/upload/v1793061806/viane/p78mdmcdm8t7aumgnova.mp4" muted playsinline></video>
+    </div>
+    <div class="viane-video-card">
+      <span class="video-badge">VIANE EXPERIENCE #3</span>
+      <video class="viane-seq-video" src="https://res.cloudinary.com/sdcdugz6/video/upload/v1793061806/viane/p78mdmcdm8t7aumgnova.mp4" muted playsinline></video>
+    </div>
+  </section>
+
+  <!-- Main Content Area -->
+  <main class="wrap">
+    
+    <!-- Catalog Section with Dynamic Categories -->
+    <section id="catalog">
+      <h2 class="section-title">Nuestro catálogo</h2>
+      <div class="filters" id="filters"></div>
+      <div class="grid" id="products"></div>
+      <div id="ads" class="grid" style="margin-top:20px"></div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section id="reviews" class="hidden">
+      <h2 class="section-title">Tu experiencia nos inspira</h2>
+      <div class="formbox">
+        <form id="reviewForm">
+          <div class="field">Tu calificación *
+            <div class="stars" id="starButtons"></div>
+          </div>
+          <div class="fields">
+            <label class="field">Nombre completo *<input id="reviewName" required maxlength="120"></label>
+            <label class="field">WhatsApp (opcional)<input id="reviewPhone" placeholder="829-000-0000"></label>
+          </div>
+          <div class="field" style="margin-top:12px">Productos recibidos (elige de 1 a 3) *
+            <div id="reviewProductChoices" class="fields"></div>
+          </div>
+          <label class="field" style="margin-top:12px">Tu comentario *
+            <textarea id="reviewComment" required maxlength="2000" placeholder="Cuéntanos cómo fue tu experiencia..."></textarea>
+          </label>
+          <button class="btn" style="width:100%;margin-top:12px">Enviar reseña</button>
+        </form>
+        <p class="muted">Las reseñas se revisan antes de aparecer públicamente.</p>
+      </div>
+      <h3 class="section-title" style="margin-top:30px">Lo que dicen nuestros clientes</h3>
+      <div id="reviewsFeed"></div>
+    </section>
+
+    <!-- Tracking Section -->
+    <section id="track" class="hidden">
+      <h2 class="section-title">Seguimiento de tu pedido</h2>
+      <div class="formbox">
+        <p class="muted">Introduce el código que recibiste al realizar tu pedido.</p>
+        <form id="trackForm" class="row">
+          <input id="trackCode" placeholder="Ej. VIA-A1B2C3D4" required>
+          <button class="btn">Consultar</button>
+        </form>
+        <div id="trackResult" style="margin-top:18px"></div>
+      </div>
+    </section>
+
+    <!-- Admin Section -->
+    <section id="admin" class="hidden">
+      <h2 class="section-title">Panel de administración</h2>
+      <div class="adminpanel">
+        <div class="row">
+          <div>
+            <b>VIANE Delicatessen</b>
+            <div class="muted">Sesión administrativa segura</div>
+          </div>
+          <button class="btn light" onclick="logout()">Cerrar sesión</button>
+        </div>
+        <div class="adminnav">
+          <button onclick="adminTab('orders')">Pedidos</button>
+          <button onclick="adminTab('products')">Productos</button>
+          <button onclick="adminTab('reviews')">Reseñas</button>
+          <button onclick="adminTab('brand')">Logo y diseño</button>
+          <button onclick="adminTab('payments')">Pagos y propinas</button>
+          <button onclick="adminTab('ads')">Publicidad</button>
+          <button onclick="adminTab('media')">Multimedia</button>
+        </div>
+        <div id="adminContent"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <b style="font-family:'Playfair Display';color:var(--crimson);font-size:17px">VIANE DELICATESSEN</b>
+    <p>Detalles especiales, desayunos, picaderas y regalos.</p>
+    <p>WhatsApp: <a id="footerWa" href="https://wa.me/18296759640">829-675-9640</a> · Instagram: <span id="footerIg">vianedelicatessen</span></p>
+    <p>© 2026 VIANE Delicatessen</p>
+  </footer>
+
+  <a class="floating" id="waFloat" href="https://wa.me/18296759640" target="_blank">WhatsApp</a>
+
+  <!-- Modals -->
+  <!-- Admin Login Modal -->
+  <div id="loginModal" class="modal hidden">
+    <div class="modalbox">
+      <h2 style="color:var(--crimson)">Acceso administrativo</h2>
+      <p class="muted">Solo personal autorizado.</p>
+      <form id="loginForm">
+        <label class="field">Correo electrónico<input id="loginEmail" type="email" required></label>
+        <label class="field" style="margin-top:12px">Contraseña<input id="loginPassword" type="password" required></label>
+        <div class="row" style="margin-top:16px">
+          <button class="btn">Entrar</button>
+          <button type="button" class="btn light" onclick="closeLogin()">Cancelar</button>
+        </div>
+        <p id="loginError" class="muted"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div id="cartModal" class="modal hidden">
+    <div class="modalbox">
+      <h2 style="color:var(--crimson)">Tu pedido</h2>
+      <div id="cartItems"></div>
+      <h3 id="cartTotal" class="price">RD$ 0</h3>
+      <form id="orderForm">
+        <div class="fields">
+          <label class="field">Nombre *<input id="orderName" required></label>
+          <label class="field">WhatsApp *<input id="orderPhone" required></label>
+          <label class="field">Método de entrega *
+            <select id="deliveryMethod" onchange="actualizarCostoEnvio()">
+              <option value="pickup">Pasar a recoger en el local</option>
+              <option value="delivery_pp">Delivery en Pto. Plata (Ciudad)</option>
+              <option value="delivery_santiago">Envío a Santiago</option>
+              <option value="delivery_capital">Envío a Santo Domingo</option>
+            </select>
+          </label>
+          <label class="field">Fecha deseada *<input id="orderDate" type="date" required></label>
+        </div>
+        <label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label>
+        <div class="row" style="margin-top:14px">
+          <button class="btn">Crear pedido</button>
+          <button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button>
+        </div>
+      </form>
+      <div id="orderCreated" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- Product Carousel Modal -->
+  <div id="vianeProductModal" class="modal hidden">
+    <div class="modalbox">
+      <h2 id="vianeModalTitle" style="color:var(--crimson); margin:0 0 4px;">Detalle del Producto</h2>
+      <div id="vianeModalPrice" class="price" style="font-size: 18px;">RD$ 0</div>
+      <p id="vianeModalDesc" class="muted" style="margin: 6px 0 10px;"></p>
+      
+      <div class="viane-carousel-container">
+        <img id="vianeCarouselImg" src="" alt="Viane Delicatessen">
+        <button type="button" class="viane-carousel-btn prev" onclick="vianePrevImage()">&#10094;</button>
+        <button type="button" class="viane-carousel-btn next" onclick="vianeNextImage()">&#10095;</button>
+      </div>
+
+      <div class="row" style="margin-top:15px">
+        <button id="vianeModalAddBtn" class="btn">Agregar al carrito</button>
+        <button type="button" class="btn light" onclick="document.getElementById('vianeProductModal').classList.add('hidden')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tip Modal -->
+  <div id="tipModal" class="modal hidden">
+    <div class="modalbox">
+      <h2 style="color:var(--crimson)">¿Te gustaría dejar una propina?</h2>
+      <p class="muted">Tu apoyo nos ayuda a seguir creando detalles especiales.</p>
+      <div id="tipLinks"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" onclick="document.getElementById('tipModal').classList.add('hidden')">Ahora no, gracias</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photo Visor Modal -->
+  <div id="visor" onclick="closeVisor()">
+    <button type="button" class="visor-x" aria-label="Cerrar">✕</button>
+    <img id="visorImg" alt="">
+    <p id="visorCap"></p>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    
+    // Non-blocking toast notification helper
+    function showToast(message, duration = 3500) {
+      const container = $('vianeToastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'viane-toast';
+      toast.innerText = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    let state = {
+      products: [],
+      reviews: [],
+      payments: [],
+      ads: [],
+      settings: {},
+      categories: ['Todos'],
+      cart: [],
+      rating: 5,
+      admin: false,
+      adminData: null,
+      category: 'Todos'
+    };
+
+    let vianeCurrentImages = [];
+    let vianeCurrentImgIdx = 0;
+    let vianeMinVol = 5;
+    let vianeMaxVol = 100;
+
+    // Standalone / Preview environment mock dataset fallback
+    const MOCK_INITIAL_DATA = {
+      products: [
+        { id: 1, name: 'Bandeja Desayuno Especial', price: 2500, category: 'Desayunos', description: 'Incluye jugo natural, sándwich gourmet, frutas frescas, café y postre decorado.', image: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&auto=format&fit=crop&q=80' },
+        { id: 2, name: 'Ramo de Rosas & Golosinas', price: 1800, category: 'Regalos', description: 'Hermoso arreglo con rosas rojas seleccionadas y chocolates finos.', image: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=600&auto=format&fit=crop&q=80' },
+        { id: 3, name: 'Tabla de Picaderas Premium', price: 3200, category: 'Picaderas', description: 'Selección de quesos madurados, jamón serrano, uvas, nueces y crackers artesanas.', image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=600&auto=format&fit=crop&q=80' },
+        { id: 4, name: 'Bandeja Romántica Aniversario', price: 3500, category: 'Bandejas', description: 'Detalle exclusivo para parejas con copa personalizables y aperitivos finos.', image: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop&q=80' }
+      ],
+      reviews: [
+        { id: 1, name: 'María Rodríguez', rating: 5, products: ['Bandeja Desayuno Especial'], comment: '¡Excelente servicio! El desayuno llegó puntual y hermoso. A mi esposo le encantó.', admin_reply: '¡Gracias por confiar en VIANE Delicatessen!' },
+        { id: 2, name: 'Carlos Gómez', rating: 5, products: ['Tabla de Picaderas Premium'], comment: 'La presentación de las picaderas fue impecable y todo súper fresco.', admin_reply: null }
+      ],
+      payments: [
+        { id: 1, title: 'Transferencia Banco Popular', url: '#', details: 'Cuenta corriente: 123456789 - VIANE SRL', tip_enabled: true, active: true }
+      ],
+      ads: [],
+      settings: {
+        brand_name: 'VIANE DELICATESSEN',
+        whatsapp: '18296759640',
+        instagram: 'vianedelicatessen',
+        min_volume: '5',
+        max_volume: '100',
+        background_type: 'color',
+        background_value: '#FFFDF5'
+      },
+      categories: ['Desayunos', 'Bandejas', 'Picaderas', 'Regalos', 'Cumpleaños y Eventos', 'Personalización']
+    };
+
+    async function api(url, opts = {}) {
+      try {
+        let fetchUrl = url;
+        if (url.startsWith('/')) {
+          if (window.location.origin && window.location.origin !== 'null' && !window.location.protocol.startsWith('blob')) {
+            fetchUrl = new URL(url, window.location.origin).href;
+          } else {
+            throw new Error('LOCAL_PREVIEW_MODE');
+          }
+        }
+        let r = await fetch(fetchUrl, {
+          headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+          ...opts
+        });
+        let d = await r.json().catch(() => ({}));
+        if (!r.ok) throw Error(d.error || 'Ocurrió un error en el servidor');
+        return d;
+      } catch (err) {
+        if (url === '/api/public') {
+          return MOCK_INITIAL_DATA;
+        }
+        throw err;
+      }
+    }
+
+    function esc(s = '') {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    function money(n) {
+      return 'RD$ ' + Number(n || 0).toLocaleString('es-DO', { maximumFractionDigits: 2 });
+    }
+
+    async function load() {
+      try {
+        let d = await api('/api/public');
+        state = { ...state, ...d };
+
+        if (state.settings) {
+          if (state.settings.min_volume) vianeMinVol = parseInt(state.settings.min_volume);
+          if (state.settings.max_volume) vianeMaxVol = parseInt(state.settings.max_volume);
+          const slider = $('vianeVolumeSlider');
+          slider.min = vianeMinVol;
+          slider.max = vianeMaxVol;
+          if (parseInt(slider.value) > vianeMaxVol) slider.value = vianeMaxVol;
+          if (parseInt(slider.value) < vianeMinVol) slider.value = vianeMinVol;
+          $('vianeVolLabel').innerText = slider.value + '%';
+        }
+
+        if (d.categories && Array.isArray(d.categories) && d.categories.length) {
+          const cleanCats = d.categories.filter(c => c && c.toLowerCase() !== 'todos');
+          state.categories = ['Todos', ...cleanCats];
+        } else {
+          const catSet = new Set(state.products.map(p => p.category).filter(Boolean));
+          catSet.delete('Todos');
+          state.categories = ['Todos', ...Array.from(catSet)];
+        }
+
+        applyBrand();
+        renderProducts();
+        renderReviews();
+        renderFilters();
+        renderReviewChoices();
+        renderStars();
+        renderAds();
+        vianeInitSequentialVideos();
+        vianeInitVolumeControl();
+      } catch (e) {
+        console.error('Error cargando los datos:', e);
+      }
+    }
+
+    function applyBrand() {
+      let s = state.settings || {};
+      ['brandLogo', 'heroLogo'].forEach(id => {
+        if (s.logo) { $(id).src = s.logo; $(id).style.display = ''; }
+        else $(id).style.display = 'none';
+      });
+      $('footerWa').href = 'https://wa.me/' + (s.whatsapp || '18296759640');
+      $('footerWa').textContent = s.whatsapp || '829-675-9640';
+      $('waFloat').href = 'https://wa.me/' + (s.whatsapp || '18296759640');
+      $('footerIg').textContent = s.instagram || 'vianedelicatessen';
+      
+      let bg = s.background_value || '#FFFDF5';
+      if (s.background_type === 'color') document.body.style.background = bg;
+      else if (s.background_type === 'image') document.body.style.background = `url('${bg}') center/cover fixed`;
+      else if (s.background_type === 'texture') document.body.style.background = `repeating-linear-gradient(45deg,${bg},${bg} 8px,#fff8e8 8px,#fff8e8 16px)`;
+    }
+
+    function go(sec) {
+      ['catalog', 'reviews', 'track', 'admin'].forEach(s => $(s).classList.toggle('hidden', s !== sec));
+      $(sec).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (sec === 'reviews') { renderReviewChoices(); renderStars(); }
+      if (sec === 'admin' && state.admin) loadAdmin();
+    }
+
+    function renderFilters() {
+      if (!state.categories || state.categories.length <= 1) {
+        const catSet = new Set(state.products.map(p => p.category).filter(Boolean));
+        catSet.delete('Todos');
+        state.categories = ['Todos', ...Array.from(catSet)];
+      }
+
+      $('filters').innerHTML = state.categories.map(c => {
+        let thumbUrl = '';
+        if (c === 'Todos') {
+          thumbUrl = state.products.find(p => p.image)?.image || '';
+        } else {
+          thumbUrl = state.products.find(p => p.category?.toLowerCase() === c.toLowerCase() && p.image)?.image || '';
+        }
+
+        const isActive = state.category === c;
+
+        return `
+          <button type="button" class="filter-btn ${isActive ? 'active' : ''}" onclick="filterCategory('${esc(c)}')">
+            ${thumbUrl 
+              ? `<img src="${esc(thumbUrl)}" alt="${esc(c)}" loading="lazy">` 
+              : `<div class="filter-thumb-placeholder">✦</div>`}
+            <span>${esc(c === 'Todos' ? 'Todos' : c)}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function filterCategory(c) {
+      state.category = c;
+      renderFilters();
+      renderProducts();
+    }
+
+    function renderProducts() {
+      let list = state.products.filter(p => state.category === 'Todos' || p.category.toLowerCase() === state.category.toLowerCase());
+      $('products').innerHTML = list.length ? list.map(p => `
+        <article class="card">
+          ${p.image ? `<img class="product-img" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onclick="vianeOpenModal(${p.id})">` : `<div class="product-img placeholder" onclick="vianeOpenModal(${p.id})">✦</div>`}
+          <div class="eyebrow" style="color:var(--goldDark)">${esc(p.category)}</div>
+          <h3 style="margin:0;color:var(--crimson);cursor:pointer;" onclick="vianeOpenModal(${p.id})">${esc(p.name)}</h3>
+          <p class="muted">${esc(p.description)}</p>
+          <div class="row" style="margin-top:auto">
+            <span class="price">${money(p.price)}</span>
+            <button class="btn" onclick="addCart(${p.id})">Agregar</button>
+          </div>
+        </article>
+      `).join('') : '<p class="muted">Estamos actualizando nuestro catálogo. Escríbenos por WhatsApp para consultar disponibilidad.</p>';
+    }
+
+    function vianeOpenModal(id) {
+      let p = state.products.find(item => item.id === id);
+      if (!p) return;
+      
+      $('vianeModalTitle').innerText = p.name;
+      $('vianeModalPrice').innerText = money(p.price);
+      $('vianeModalDesc').innerText = p.description || '';
+      
+      let images = [];
+      if (p.image) images.push(p.image);
+      if (Array.isArray(p.gallery) && p.gallery.length) {
+        images.push(...p.gallery);
+      }
+      vianeCurrentImages = [...new Set(images)].filter(Boolean);
+      if (!vianeCurrentImages.length) {
+        vianeCurrentImages = ['/static/logo-viane.png'];
+      }
+
+      vianeCurrentImgIdx = 0;
+      $('vianeCarouselImg').src = vianeCurrentImages[0];
+      
+      const prevBtn = document.querySelector('.viane-carousel-btn.prev');
+      const nextBtn = document.querySelector('.viane-carousel-btn.next');
+      if (prevBtn && nextBtn) {
+        const displayVal = vianeCurrentImages.length > 1 ? 'block' : 'none';
+        prevBtn.style.display = displayVal;
+        nextBtn.style.display = displayVal;
+      }
+
+      $('vianeModalAddBtn').onclick = () => {
+        addCart(p.id);
+        $('vianeProductModal').classList.add('hidden');
+      };
+      
+      $('vianeProductModal').classList.remove('hidden');
+    }
+
+    function vianeNextImage() {
+      if (!vianeCurrentImages || vianeCurrentImages.length <= 1) return;
+      vianeCurrentImgIdx = (vianeCurrentImgIdx + 1) % vianeCurrentImages.length;
+      $('vianeCarouselImg').src = vianeCurrentImages[vianeCurrentImgIdx];
+    }
+
+    function vianePrevImage() {
+      if (!vianeCurrentImages || vianeCurrentImages.length <= 1) return;
+      vianeCurrentImgIdx = (vianeCurrentImgIdx - 1 + vianeCurrentImages.length) % vianeCurrentImages.length;
+      $('vianeCarouselImg').src = vianeCurrentImages[vianeCurrentImgIdx];
+    }
+
+    function vianeInitSequentialVideos() {
+      const videos = document.querySelectorAll('.viane-seq-video');
+      if (!videos.length) return;
+      
+      let currentIndex = 0;
+      function playVideo(index) {
+        videos.forEach((v, idx) => {
+          v.pause();
+          if(idx === index) {
+            v.currentTime = 0;
+            v.play().catch(() => {});
+          }
+        });
+      }
+
+      videos.forEach((vid, idx) => {
+        vid.onended = () => {
+          currentIndex = (currentIndex + 1) % videos.length;
+          playVideo(currentIndex);
+        };
+      });
+
+      playVideo(0);
+    }
+
+    function vianeInitVolumeControl() {
+      const slider = $('vianeVolumeSlider');
+      const label = $('vianeVolLabel');
+      const icon = $('vianeSpeakerIcon');
+      let isMuted = false;
+
+      slider.oninput = (e) => {
+        let val = parseInt(e.target.value);
+        if (val > vianeMaxVol) val = vianeMaxVol;
+        if (val < vianeMinVol) val = vianeMinVol;
+        
+        label.innerText = val + '%';
+        isMuted = (val === 0);
+        
+        document.querySelectorAll('.viane-seq-video').forEach(v => {
+          v.volume = val / 100;
+          v.muted = isMuted;
+        });
+      };
+
+      icon.onclick = () => {
+        isMuted = !isMuted;
+        document.querySelectorAll('.viane-seq-video').forEach(v => {
+          v.muted = isMuted;
+        });
+        icon.innerText = isMuted ? '🔇' : '🔊';
+      };
+    }
+
+    function addCart(id) {
+      let p = state.products.find(p => p.id === id);
+      if (p) {
+        state.cart.push(p);
+        $('cartCount').textContent = state.cart.length;
+        showToast(`" ${p.name} " añadido a tu pedido.`);
+      }
+    }
+
+    function getCostoEnvio() {
+      const method = document.getElementById('deliveryMethod').value;
+      switch (method) {
+        case 'delivery_pp': return 250;
+        case 'delivery_santiago': return 600;
+        case 'delivery_capital': return 700;
+        default: return 0;
+      }
+    }
+
+    function actualizarCostoEnvio() {
+      const subtotal = state.cart.reduce((s, p) => s + Number(p.price), 0);
+      const envio = state.cart.length ? getCostoEnvio() : 0;
+      if ($('invSubtotal')) $('invSubtotal').textContent = money(subtotal);
+      if ($('invEnvio')) $('invEnvio').textContent = money(envio);
+      $('cartTotal').textContent = money(subtotal + envio);
+    }
+
+    function openCart() {
+      $('cartModal').classList.remove('hidden');
+      renderCart();
+    }
+
+    function closeCart() {
+      $('cartModal').classList.add('hidden');
+    }
+
+    function renderCart() {
+      const box = $('cartItems');
+      if (!state.cart.length) {
+        box.innerHTML = '<p class="muted">Todavía no agregaste productos.</p>';
+        $('cartTotal').textContent = money(0);
+        return;
+      }
+      box.innerHTML = state.cart.map((p, i) => `
+        <div class="itemrow">
+          <span>${esc(p.name)} · ${money(p.price)}</span>
+          <button type="button" class="btn light" onclick="removeCart(${i})">Quitar</button>
+        </div>
+      `).join('') + `
+        <div style="margin-top:15px;border-top:1px solid var(--line);padding-top:10px">
+          <p>Subtotal: <span id="invSubtotal">${money(0)}</span></p>
+          <p>Envío: <span id="invEnvio">${money(0)}</span></p>
+        </div>
+      `;
+      actualizarCostoEnvio();
+    }
+
+    function removeCart(i) {
+      state.cart.splice(i, 1);
+      $('cartCount').textContent = state.cart.length;
+      renderCart();
+    }
+
+    $('orderForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        let d = await api('/api/orders', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: $('orderName').value,
+            phone: $('orderPhone').value,
+            province: $('deliveryMethod').selectedOptions[0].text,
+            delivery_method: $('deliveryMethod').value,
+            delivery_date: $('orderDate').value,
+            notes: $('orderNotes').value,
+            items: state.cart.map(p => ({ id: p.id }))
+          })
+        });
+
+        let cnt = {};
+        state.cart.forEach(p => { cnt[p.name] = (cnt[p.name] || 0) + 1; });
+        let detalle = Object.entries(cnt).map(([n, q]) => '• ' + q + ' x ' + n).join('\n');
+        let msg = 'Hola, soy ' + $('orderName').value + '. Acabo de crear el pedido ' + (d.code || 'VIA-NUEVO') + ' de VIANE Delicatessen.\n\nProductos:\n' + detalle + '\n\nTotal: ' + money(d.total) + '\n\n¿Me ayudan con el pago?';
+        let wa = 'https://wa.me/' + (d.whatsapp || '18296759640') + '?text=' + encodeURIComponent(msg);
+        
+        $('orderCreated').classList.remove('hidden');
+        $('orderCreated').innerHTML = `<div class="adminpanel"><h3>¡Pedido creado!</h3><p>Tu código de seguimiento es <b>${esc(d.code || 'VIA-PROCESANDO')}</b>. Guárdalo para consultar el estado.</p><button class="btn" onclick="navigator.clipboard?.writeText('${d.code || ''}')">Copiar código</button> <a class="btn" href="${wa}" target="_blank">Continuar por WhatsApp</a></div>`;
+        state.cart = [];
+        $('cartCount').textContent = '0';
+        renderCart();
+      } catch (err) {
+        showToast(err.message || 'No se pudo registrar el pedido');
+      }
+    });
+
+    $('trackForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('trackResult').innerHTML = '<p class="muted">Consultando…</p>';
+      try {
+        let d = await api('/api/track/' + encodeURIComponent($('trackCode').value.trim()));
+        $('trackResult').innerHTML = `<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p><p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident ? `<p>Observación: ${esc(d.incident)}</p>` : ''}</div>`;
+      } catch (err) {
+        $('trackResult').textContent = err.message || 'Código de pedido no encontrado';
+      }
+    });
+
+    function renderStars() {
+      $('starButtons').innerHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" aria-label="${n} estrellas" onclick="setRating(${n})" style="color:${n <= state.rating ? 'var(--gold)' : '#d6d0c9'}">★</button>`).join('');
+    }
+    function setRating(n) { state.rating = n; renderStars(); }
+
+    function renderReviewChoices() {
+      let products = state.products;
+      $('reviewProductChoices').innerHTML = products.slice(0, 200).map(p => `<label style="font-weight:600;color:#51464b"><input type="checkbox" name="revProduct" value="${p.id}" style="width:auto"> ${esc(p.name)}</label>`).join('') || '<p class="muted">No hay productos disponibles.</p>';
+    }
+
+    $('reviewForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      let selected = [...document.querySelectorAll('[name=revProduct]:checked')];
+      if (selected.length < 1 || selected.length > 3) {
+        showToast('Elige entre 1 y 3 productos.');
+        return;
+      }
+      try {
+        let products = selected.map(x => {
+          let p = state.products.find(p => p.id === Number(x.value));
+          return p ? p.name : '';
+        }).filter(Boolean);
+        let d = await api('/api/reviews', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: $('reviewName').value,
+            rating: state.rating,
+            products,
+            comment: $('reviewComment').value,
+            phone: $('reviewPhone').value
+          })
+        });
+        showToast(d.message || 'Reseña enviada con éxito');
+        $('reviewForm').reset();
+        state.rating = 5;
+        renderStars();
+
+        let tips = state.payments.filter(p => p.tip_enabled);
+        if (tips.length) {
+          $('tipLinks').innerHTML = tips.map(p => `<div class="itemrow"><div><b>${esc(p.title)}</b><p class="muted">${esc(p.details || '')}</p></div><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Dar propina</a></div>`).join('');
+          $('tipModal').classList.remove('hidden');
+        }
+      } catch (err) {
+        showToast(err.message || 'Error al enviar la reseña');
+      }
+    });
+
+    function renderReviews() {
+      $('reviewsFeed').innerHTML = state.reviews.length ? state.reviews.map(r => {
+        let products = Array.isArray(r.products) ? r.products : JSON.parse(r.products || '[]');
+        return `<article class="review"><div class="row"><b>${esc(r.name)}</b><span style="color:var(--gold)">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span></div><p class="muted">${products.map(esc).join(' · ')}</p><p>${esc(r.comment)}</p>${r.admin_reply ? `<p class="muted"><b>VIANE Delicatessen:</b> ${esc(r.admin_reply)}</p>` : ''}</article>`;
+      }).join('') : '<p class="muted" style="text-align:center">Sé de las primeras personas en compartir su experiencia.</p>';
+    }
+
+    function renderAds() {
+      $('ads').innerHTML = state.ads.map(a => `<a class="card" href="${esc(a.url)}" target="_blank" rel="noopener">${a.image ? `<img class="product-img" src="${esc(a.image)}">` : ''}<b>${esc(a.title)}</b><span class="muted">Ver más ↗</span></a>`).join('');
+    }
+
+    /* Admin Authentication & Control Panel */
+    function openLogin() { $('loginModal').classList.remove('hidden'); }
+    function closeLogin() { $('loginModal').classList.add('hidden'); }
+
+    $('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        await api('/api/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: $('loginEmail').value, password: $('loginPassword').value })
+        });
+        state.admin = true;
+        closeLogin();
+        go('admin');
+        loadAdmin();
+      } catch (err) {
+        $('loginError').textContent = err.message || 'Credenciales inválidas';
+      }
+    });
+
+    async function logout() {
+      await api('/api/logout', { method: 'POST' }).catch(() => {});
+      state.admin = false;
+      go('catalog');
+    }
+
+    async function loadAdmin() {
+      if (!state.admin) return;
+      try {
+        state.adminData = await api('/api/admin/data');
+        adminTab(window.currentAdminTab || 'orders');
+      } catch (e) {
+        state.admin = false;
+        openLogin();
+      }
+    }
+
+    function adminTab(tab) {
+      window.currentAdminTab = tab;
+      let d = state.adminData;
+      if (!d) return;
+      let out = '';
+
+      if (tab === 'orders') {
+        out = '<h3>Seguimiento de pedidos</h3>' + (d.orders.map(o => `<div class="adminpanel"><div class="row"><b>${esc(o.code)} · ${esc(o.name)}</b><span>${money(o.total)}</span></div><p class="muted">${esc(o.phone)} · ${esc(o.province)} · ${esc(o.delivery_date)}</p><p><b>Productos:</b> ${(() => { try { return JSON.parse(o.items || '[]').map(i => esc(i.name)).join(' · '); } catch (e) { return ''; } })()}</p><div class="fields"><label class="field">Estado<select id="os${o.id}">${d.statuses.map(s => `<option ${s === o.status ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label><label class="field">Pago<select id="op${o.id}">${['Pago pendiente', 'Pago recibido', 'Pago confirmado', 'Reembolsado'].map(s => `<option ${s === o.payment_status ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label></div><label class="field">Observación / incidencia<textarea id="on${o.id}">${esc(o.incident || o.notes || '')}</textarea></label><button class="btn" onclick="saveOrder(${o.id})">Guardar estado</button></div>`).join('') || '<p class="muted">No hay pedidos todavía.</p>');
+      }
+
+      if (tab === 'products') {
+        out = '<h3>Crear producto / Bandeja</h3><form id="productForm" class="adminpanel"><div class="fields"><label class="field">Nombre *<input id="pn" required></label><label class="field">Categoría<input id="pc" value="Bandejas" required></label><label class="field">Precio RD$ *<input id="pp" type="number" min="0" step="0.01" required></label><label class="field">Imagen (URL) <input id="pi" placeholder="URL o pega enlace"></label><label class="field">O subir imagen <input type="file" id="productFile" accept="image/*"></label></div><label class="field">Descripción *<textarea id="pd" required></textarea></label><label><input id="pa" type="checkbox" checked style="width:auto"> Publicar producto</label><button class="btn">Crear producto</button></form><h3>Productos existentes (' + d.products.length + ')</h3>' + d.products.map(p => `<div class="itemrow"><div><b>${esc(p.name)}</b><div class="muted">${money(p.price)} · ${p.active ? 'Publicado' : 'Oculto'}</div></div><button class="btn light" onclick="toggleProduct(${p.id},${p.active ? 0 : 1})">${p.active ? 'Ocultar' : 'Publicar'}</button><button class="btn" onclick="deleteProduct(${p.id})">Eliminar</button></div>`).join('');
+        setTimeout(() => { let f = $('productForm'); if (f) f.onsubmit = createProduct; }, 0);
+      }
+
+      if (tab === 'reviews') {
+        out = '<h3>Moderación de reseñas</h3>' + (d.reviews.map(r => `<div class="adminpanel"><div class="row"><b>${esc(r.name)} · ${r.rating}/5</b><span class="status">${r.approved ? 'Publicada' : 'Pendiente'}</span></div><p>${esc(r.comment)}</p><p class="muted">${esc(r.products)}</p><label class="field">Respuesta de VIANE<textarea id="rr${r.id}">${esc(r.admin_reply || '')}</textarea></label><div class="row"><button class="btn" onclick="moderate(${r.id},true)">Aprobar / guardar respuesta</button><button class="btn light" onclick="moderate(${r.id},false)">Ocultar</button><button class="btn" onclick="deleteReview(${r.id})">Eliminar</button></div></div>`).join('') || '<p class="muted">No hay reseñas recibidas.</p>');
+      }
+
+      if (tab === 'brand') {
+        let s = d.settings;
+        out = `<h3>Logo, marca y redes</h3><form id="brandForm" class="adminpanel"><label class="field">Nombre de marca<input id="bs_brand_name" value="${esc(s.brand_name || 'VIANE DELICATESSEN')}"></label><label class="field">Logo actual / URL<input id="bs_logo" value="${esc(s.logo || '')}" placeholder="Sube archivo abajo o pega URL"></label><label class="field">Subir logo<input type="file" id="logoFile" accept="image/*"></label><div class="fields"><label class="field">WhatsApp sin + ni espacios<input id="bs_whatsapp" value="${esc(s.whatsapp || '18296759640')}"></label><label class="field">Instagram<input id="bs_instagram" value="${esc(s.instagram || 'vianedelicatessen')}"></label></div><h4>Límites de Volumen Audio Web</h4><div class="fields"><label class="field">Volumen Mínimo (%)<input id="bs_min_volume" type="number" min="0" max="100" value="${esc(s.min_volume || '5')}"></label><label class="field">Volumen Máximo (%)<input id="bs_max_volume" type="number" min="0" max="100" value="${esc(s.max_volume || '100')}"></label></div><h4>Fondo de la página</h4><label class="field">Tipo<select id="bs_background_type"><option value="color" ${s.background_type === 'color' ? 'selected' : ''}>Color sólido</option><option value="image" ${s.background_type === 'image' ? 'selected' : ''}>Imagen (URL o archivo subido)</option><option value="texture" ${s.background_type === 'texture' ? 'selected' : ''}>Textura (usa un color base)</option></select></label><label class="field">Color o URL de imagen<input id="bs_background_value" value="${esc(s.background_value || '#FFFDF5')}"></label><label class="field">Enlace público de reseñas<input id="bs_review_url" value="${esc(s.review_url || '')}" placeholder="Se completa cuando publiques la web"></label><button class="btn">Guardar identidad y diseño</button></form>`;
+        setTimeout(() => { $('brandForm').onsubmit = saveBrand; }, 0);
+      }
+
+      if (tab === 'payments') {
+        out = '<h3>Métodos de pago y propinas</h3><form id="paymentForm" class="adminpanel"><div class="fields"><label class="field">Nombre del botón<input id="payTitle" required placeholder="Banco Popular / Transferencia"></label><label class="field">Enlace o URL de pago<input id="payUrl" required placeholder="https://..."></label></div><label class="field">Instrucciones<input id="payDetails"></label><label><input id="payTip" type="checkbox" style="width:auto"> Mostrar también como opción de propina</label><button class="btn">Agregar método de pago</button></form>' + d.payments.map(p => `<div class="itemrow"><div><b>${esc(p.title)}</b><div class="muted">${esc(p.url)} ${p.tip_enabled ? '· Acepta propinas' : ''}</div></div><button class="btn light" onclick="togglePay(${p.id},${p.active ? 0 : 1},${p.tip_enabled})">${p.active ? 'Desactivar' : 'Activar'}</button><button class="btn" onclick="deletePay(${p.id})">Eliminar</button></div>`).join('');
+        setTimeout(() => { $('paymentForm').onsubmit = addPayment; }, 0);
+      }
+
+      if (tab === 'ads') {
+        out = '<h3>Publicidad y enlaces</h3><form id="adForm" class="adminpanel"><div class="fields"><label class="field">Título<input id="adTitle" required></label><label class="field">Enlace destino<input id="adUrl" type="url" required></label><label class="field">Imagen (URL opcional)<input id="adImage"></label></div><button class="btn">Agregar publicidad</button></form>' + d.ads.map(a => `<div class="itemrow"><div><b>${esc(a.title)}</b><div class="muted">${esc(a.url)}</div></div><button class="btn light" onclick="toggleAd(${a.id},${a.active ? 0 : 1})">${a.active ? 'Ocultar' : 'Publicar'}</button><button class="btn" onclick="deleteAd(${a.id})">Eliminar</button></div>`).join('');
+        setTimeout(() => { $('adForm').onsubmit = addAd; }, 0);
+      }
+
+      if (tab === 'media') {
+        out = '<h3>Subir multimedia</h3><p class="muted">Admite imágenes JPG, PNG, WEBP y videos MP4 (máximo 80 MB).</p><div class="adminpanel"><label class="field">Selecciona archivo<input id="mediaFile" type="file" accept="image/*,video/mp4,audio/*"></label><button class="btn" onclick="uploadMedia()">Subir archivo</button><div id="mediaResult"></div></div>';
+      }
+
+      $('adminContent').innerHTML = out;
+    }
+
+    async function refreshAdmin() {
+      state.adminData = await api('/api/admin/data');
+      adminTab(window.currentAdminTab);
+    }
+
+    async function saveOrder(id) {
+      try {
+        await api('/api/orders/' + id, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: $('os' + id).value, payment_status: $('op' + id).value, incident: $('on' + id).value })
+        });
+        await refreshAdmin();
+        showToast('Pedido actualizado con éxito.');
+      } catch (e) { showToast(e.message); }
+    }
+
+    async function createProduct(e) {
+      e.preventDefault();
+      try {
         let imageUrl = $('pi').value;
         let pFile = $('productFile')?.files?.[0];
-        if(pFile){
-            imageUrl = await uploadFile(pFile);
-        }
-        await api('/api/products',{method:'POST',body:JSON.stringify({name:$('pn').value,category:$('pc').value,price:$('pp').value,image:imageUrl,description:$('pd').value,active:$('pa').checked})});
+        if (pFile) { imageUrl = await uploadFile(pFile); }
+        await api('/api/products', {
+          method: 'POST',
+          body: JSON.stringify({ name: $('pn').value, category: $('pc').value, price: $('pp').value, image: imageUrl, description: $('pd').value, active: $('pa').checked })
+        });
         await load();
         await refreshAdmin();
-        alert('Producto creado.');
-    }catch(err){alert(err.message)}
-}
-async function editProduct(id){let p=state.adminData.products.find(x=>x.id===id);if(!p)return;let name=prompt('Nombre',p.name);if(name===null)return;let price=prompt('Precio RD$',p.price);if(price===null)return;let desc=prompt('Descripción',p.description);if(desc===null)return;let image=prompt('URL de imagen',p.image);if(image===null)return;let category=prompt('Categoría',p.category);if(category===null)return;try{await api('/api/products/'+id,{method:'PUT',body:JSON.stringify({...p,name,price:Number(price),description:desc,image,category})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function toggleProduct(id,active){let p=state.adminData.products.find(x=>x.id===id);await api('/api/products/'+id,{method:'PUT',body:JSON.stringify({...p,active:!!active})});await load();await refreshAdmin()}async function deleteProduct(id){if(confirm('¿Eliminar este producto?')){await api('/api/products/'+id,{method:'DELETE'});await load();await refreshAdmin()}}
-async function moderate(id,approved){try{await api('/api/reviews/'+id,{method:'PATCH',body:JSON.stringify({approved,admin_reply:$('rr'+id).value})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function deleteReview(id){if(confirm('¿Eliminar reseña?')){await api('/api/reviews/'+id,{method:'DELETE'});await load();await refreshAdmin()}}
-async function saveBrand(e){e.preventDefault();try{let d={};['brand_name','logo','whatsapp','instagram','background_type','background_value','review_url'].forEach(k=>d[k]=$('bs_'+k).value);let logoFile=$('logoFile')?.files?.[0];if(logoFile)d.logo=await uploadFile(logoFile);await api('/api/settings',{method:'PUT',body:JSON.stringify(d)});await load();await refreshAdmin();alert('Diseño guardado.')}catch(e){alert(e.message)}}async function uploadBackground(){try{let f=$('bgFile').files[0];if(!f)throw Error('Selecciona una imagen');let url=await uploadFile(f);$('bs_background_type').value='image';$('bs_background_value').value=url;alert('Archivo subido. Pulsa Guardar identidad y diseño para aplicar.')}catch(e){alert(e.message)}}async function addPayment(e){e.preventDefault();try{await api('/api/payments',{method:'POST',body:JSON.stringify({title:$('payTitle').value,url:$('payUrl').value,details:$('payDetails').value,tip_enabled:$('payTip').checked,active:true})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function togglePay(id,active,tip){let p=state.adminData.payments.find(x=>x.id===id);await api('/api/payments/'+id,{method:'PUT',body:JSON.stringify({...p,active:!!active,tip_enabled:!!tip})});await load();await refreshAdmin()}async function deletePay(id){if(confirm('¿Eliminar método?')){await api('/api/payments/'+id,{method:'DELETE'});await load();await refreshAdmin()}}async function addAd(e){e.preventDefault();try{await api('/api/ads',{method:'POST',body:JSON.stringify({title:$('adTitle').value,url:$('adUrl').value,image:$('adImage').value,active:true})});await load();await refreshAdmin()}catch(e){alert(e.message)}}async function toggleAd(id,active){let a=state.adminData.ads.find(x=>x.id===id);await api('/api/ads/'+id,{method:'PUT',body:JSON.stringify({...a,active:!!active})});await load();await refreshAdmin()}async function deleteAd(id){if(confirm('¿Eliminar publicidad?')){await api('/api/ads/'+id,{method:'DELETE'});await load();await refreshAdmin()}}
-async function uploadMedia(){
-    try{
-        let f=$('mediaFile').files[0];
-        if(!f)throw Error('Selecciona un archivo');
-        let url=await uploadFile(f,'media');
-        $('mediaResult').innerHTML=`<p class="status" style="margin-top:10px">¡Archivo subido con éxito!</p><p><a href="${esc(url)}" target="_blank">${esc(url)}</a></p>`;
-        alert('Archivo subido correctamente.');
-    }catch(e){alert(e.message)}
-}
-async function uploadFile(file,kind='image'){
-if(file.size>80*1024*1024)throw Error('El archivo supera 80 MB.');
-if(file.size<=4*1024*1024){let fd=new FormData();fd.append('file',file);fd.append('kind',kind);let r=await fetch('/api/upload',{method:'POST',body:fd});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'No se pudo subir');return d.url}
-let rt=file.type.startsWith('image/')?'image':'video';
-let s=await api('/api/upload-signature',{method:'POST',body:JSON.stringify({resource_type:rt})});
-let fd=new FormData();fd.append('api_key',s.api_key);fd.append('file',file);fd.append('timestamp',s.timestamp);fd.append('folder',s.folder);fd.append('signature',s.signature);
-let r=await fetch(s.upload_url,{method:'POST',body:fd});let d=await r.json().catch(()=>({}));
-if(!r.ok)throw Error((d.error&&d.error.message)||'No se pudo subir el archivo a Cloudinary');return d.secure_url}
+        showToast('Producto creado exitosamente.');
+      } catch (err) { showToast(err.message); }
+    }
 
-/* ---- Ampliar la foto del producto al tocarla ---- */
-function closeVisor(){$('visor').classList.remove('open');$('visorImg').removeAttribute('src')}
-document.addEventListener('click',function(e){
-  var img=e.target.closest&&e.target.closest('#products img.product-img');
-  if(!img)return;
-  $('visorImg').src=(img.currentSrc||img.src).replace(/[?&]r=\d+$/,'');
-  $('visorCap').textContent=img.alt||'';
-  $('visor').classList.add('open');
-});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeVisor()});
+    async function toggleProduct(id, active) {
+      let p = state.adminData.products.find(x => x.id === id);
+      await api('/api/products/' + id, { method: 'PUT', body: JSON.stringify({ ...p, active: !!active }) });
+      await load();
+      await refreshAdmin();
+    }
 
-/* ---- Si una foto falla al cargar, reintenta sola (hasta 3 veces) ---- */
-function imgRetry(img){
-  var n=Number(img.dataset.r||0),src=img.getAttribute('src')||'';
-  if(!src||n>=3||img.id==='visorImg')return;
-  img.dataset.r=n+1;
-  src=src.replace(/[?&]r=\d+$/,'');
-  setTimeout(function(){img.src=src+(src.indexOf('?')>-1?'&':'?')+'r='+Date.now()},1200*(n+1));
-}
-document.addEventListener('error',function(e){if(e.target&&e.target.tagName==='IMG')imgRetry(e.target)},true);
-document.addEventListener('load',function(e){var t=e.target;if(t&&(t.id==='brandLogo'||t.id==='heroLogo'))t.style.display=''},true);
+    async function deleteProduct(id) {
+      await api('/api/products/' + id, { method: 'DELETE' });
+      await load();
+      await refreshAdmin();
+      showToast('Producto eliminado.');
+    }
 
-/* ---- Arranque: carga el catálogo y reintenta si la primera carga falla ---- */
-load();
-var _t=0,_iv=setInterval(function(){if(state.products.length||++_t>4){clearInterval(_iv);return}load()},3000);
-if(location.hash==='#productos')openLogin();
-</script></body></html>
+    async function moderate(id, approved) {
+      try {
+        await api('/api/reviews/' + id, { method: 'PATCH', body: JSON.stringify({ approved, admin_reply: $('rr' + id).value }) });
+        await load();
+        await refreshAdmin();
+        showToast('Reseña actualizada.');
+      } catch (e) { showToast(e.message); }
+    }
+
+    async function deleteReview(id) {
+      await api('/api/reviews/' + id, { method: 'DELETE' });
+      await load();
+      await refreshAdmin();
+      showToast('Reseña eliminada.');
+    }
+
+    async function saveBrand(e) {
+      e.preventDefault();
+      try {
+        let d = {};
+        ['brand_name', 'logo', 'whatsapp', 'instagram', 'background_type', 'background_value', 'review_url', 'min_volume', 'max_volume'].forEach(k => {
+          if ($( 'bs_' + k )) d[k] = $('bs_' + k).value;
+        });
+        let logoFile = $('logoFile')?.files?.[0];
+        if (logoFile) d.logo = await uploadFile(logoFile);
+        await api('/api/settings', { method: 'PUT', body: JSON.stringify(d) });
+        await load();
+        await refreshAdmin();
+        showToast('Diseño e identidad guardados.');
+      } catch (e) { showToast(e.message); }
+    }
+
+    async function addPayment(e) {
+      e.preventDefault();
+      try {
+        await api('/api/payments', {
+          method: 'POST',
+          body: JSON.stringify({ title: $('payTitle').value, url: $('payUrl').value, details: $('payDetails').value, tip_enabled: $('payTip').checked, active: true })
+        });
+        await load();
+        await refreshAdmin();
+        showToast('Método de pago registrado.');
+      } catch (e) { showToast(e.message); }
+    }
+
+    async function togglePay(id, active, tip) {
+      let p = state.adminData.payments.find(x => x.id === id);
+      await api('/api/payments/' + id, { method: 'PUT', body: JSON.stringify({ ...p, active: !!active, tip_enabled: !!tip }) });
+      await load();
+      await refreshAdmin();
+    }
+
+    async function deletePay(id) {
+      await api('/api/payments/' + id, { method: 'DELETE' });
+      await load();
+      await refreshAdmin();
+      showToast('Método de pago eliminado.');
+    }
+
+    async function addAd(e) {
+      e.preventDefault();
+      try {
+        await api('/api/ads', {
+          method: 'POST',
+          body: JSON.stringify({ title: $('adTitle').value, url: $('adUrl').value, image: $('adImage').value, active: true })
+        });
+        await load();
+        await refreshAdmin();
+        showToast('Publicidad creada.');
+      } catch (e) { showToast(e.message); }
+    }
+
+    async function toggleAd(id, active) {
+      let a = state.adminData.ads.find(x => x.id === id);
+      await api('/api/ads/' + id, { method: 'PUT', body: JSON.stringify({ ...a, active: !!active }) });
+      await load();
+      await refreshAdmin();
+    }
+
+    async function deleteAd(id) {
+      await api('/api/ads/' + id, { method: 'DELETE' });
+      await load();
+      await refreshAdmin();
+      showToast('Publicidad eliminada.');
+    }
+
+    async function uploadMedia() {
+      try {
+        let f = $('mediaFile').files[0];
+        if (!f) throw Error('Selecciona un archivo');
+        let url = await uploadFile(f, 'media');
+        $('mediaResult').innerHTML = `<p class="status" style="margin-top:10px">¡Archivo subido con éxito!</p><p><a href="${esc(url)}" target="_blank">${esc(url)}</a></p>`;
+        showToast('Archivo subido correctamente.');
+      } catch (e) { showToast(e.message); }
+    }
+
+    async function uploadFile(file, kind = 'image') {
+      if (file.size > 80 * 1024 * 1024) throw Error('El archivo supera 80 MB.');
+      if (file.size <= 4 * 1024 * 1024) {
+        let fd = new FormData();
+        fd.append('file', file);
+        fd.append('kind', kind);
+        let r = await fetch('/api/upload', { method: 'POST', body: fd });
+        let d = await r.json().catch(() => ({}));
+        if (!r.ok) throw Error(d.error || 'No se pudo subir');
+        return d.url;
+      }
+      let rt = file.type.startsWith('image/') ? 'image' : 'video';
+      let s = await api('/api/upload-signature', { method: 'POST', body: JSON.stringify({ resource_type: rt }) });
+      let fd = new FormData();
+      fd.append('api_key', s.api_key);
+      fd.append('file', file);
+      fd.append('timestamp', s.timestamp);
+      fd.append('folder', s.folder);
+      fd.append('signature', s.signature);
+      let r = await fetch(s.upload_url, { method: 'POST', body: fd });
+      let d = await r.json().catch(() => ({}));
+      if (!r.ok) throw Error((d.error && d.error.message) || 'No se pudo subir a Cloudinary');
+      return d.secure_url;
+    }
+
+    function closeVisor() { $('visor').classList.remove('open'); $('visorImg').removeAttribute('src'); }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeVisor(); });
+
+    /* Initialization */
+    load();
+    if (location.hash === '#admin' || location.hash === '#productos') openLogin();
+  </script>
+</body>
+</html>
