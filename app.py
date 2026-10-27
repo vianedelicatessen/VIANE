@@ -1,4 +1,16 @@
+"""
+VIANE DELICATESSEN - backend Flask listo para Vercel.
 
+- Base de datos: Postgres (Supabase) a traves de DATABASE_URL.
+- Imagenes / audio / video subidos desde el navegador: se guardan en Supabase
+  (tabla "media") y se muestran desde /media/<id>. No se pierden al actualizar
+  ni al cerrar la web, y no necesitan ninguna llave extra.
+- Sesion de administrador: SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD.
+- Cloudinary es OPCIONAL: solo se usa para videos/audios grandes (/api/upload-signature).
+
+Vercel NO conserva archivos locales entre peticiones, por eso no se usa
+SQLite ni la carpeta static/uploads.
+"""
 import io
 import os
 import json
@@ -972,4 +984,4 @@ def reopen_sale(sid):
 
 if __name__ == '__main__':
     # Desarrollo local: python app.py  ->  http://localhost:5000
-    app.run(debug=os.environ.get('FLASK_DEBUG') == '1', host='0.0.0.0', port=5000)           
+    app.run(debug=os.environ.get('FLASK_DEBUG') == '1', host='0.0.0.0', port=5000)
