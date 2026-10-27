@@ -1,6 +1,6 @@
 """
 VIANE Delicatessen - Backend Server (Production Grade)
-Flask API server with SQLAlchemy, JWT Auth, Cloudinary Support & SQLite storage.
+Flask API server with SQLAlchemy, JWT/Cookie Auth, Cloudinary Support & SQLite storage.
 """
 
 import os
@@ -8,12 +8,13 @@ import uuid
 import json
 import time
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
+from functools import wraps
 
 from flask import Flask, request, jsonify, make_response, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
+from werkzeug.utils import secure_filename
 
 # Initialization & Configurations
 app = Flask(__name__, static_folder="static")
@@ -23,10 +24,13 @@ app.config["SECRET_KEY"] = SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///viane_delicatessen.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024  # 80 MB limit
+app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "static", "uploads")
+
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 db = SQLAlchemy(app)
 
-# Cloudinary Settings (Optional fallback)
+# Cloudinary Settings (Fallback integration)
 CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME", "sdcdugz6")
 CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY", "123456789")
 CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET", "secret_key_here")
@@ -91,7 +95,7 @@ class Order(db.Model):
     delivery_method = db.Column(db.String(50), nullable=False)
     delivery_date = db.Column(db.String(30), nullable=False)
     notes = db.Column(db.Text, nullable=True)
-    items = db.Column(db.Text, nullable=False)  # JSON
+    items = db.Column(db.Text, nullable=False)  # JSON String
     total = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(50), default='Recibido')
     payment_status = db.Column(db.String(50), default='Pago pendiente')
@@ -179,7 +183,7 @@ def admin_required(f):
     return decorated
 
 # ----------------------------------------------------------------------
-# API Routes
+# Public API Routes
 # ----------------------------------------------------------------------
 
 @app.route('/api/public', methods=['GET'])
@@ -192,13 +196,17 @@ def get_public_data():
     settings_db = Setting.query.all()
     settings = {s.key: s.value for s in settings_db}
 
-    # Default settings fallback
-    if "brand_name" not in settings:
-        settings["brand_name"] = "VIANE DELICATESSEN"
-    if "whatsapp" not in settings:
-        settings["whatsapp"] = "18296759640"
-    if "instagram" not in settings:
-        settings["instagram"] = "vianedelicatessen"
+    # Standard settings fallback
+    defaults = {
+        "brand_name": "VIANE DELICATESSEN",
+        "whatsapp": "18296759640",
+        "instagram": "vianedelicatessen",
+        "min_volume": "5",
+        "max_volume": "100"
+    }
+    for k, v in defaults.items():
+        if k not in settings:
+            settings[k] = v
 
     categories = list(set([p.category for p in products if p.category]))
 
@@ -228,7 +236,6 @@ def create_order():
             total += p.price
             detailed_items.append({"id": p.id, "name": p.name, "price": p.price})
 
-    # Add estimated delivery fee
     delivery_method = data.get('delivery_method', 'pickup')
     fees = {'delivery_pp': 250, 'delivery_santiago': 600, 'delivery_capital': 700}
     total += fees.get(delivery_method, 0)
@@ -286,6 +293,27 @@ def add_review():
     return jsonify({"message": "¡Gracias por tu reseña! Será revisada pronto por nuestro equipo."})
 
 # ----------------------------------------------------------------------
+# Local File Upload Endpoint
+# ----------------------------------------------------------------------
+
+@app.route('/api/upload', methods=['POST'])
+def upload_local_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No se envió ningún archivo"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Nombre de archivo inválido"}), 400
+
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    filename = f"{uuid.uuid4().hex[:12]}.{ext}"
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(filepath)
+
+    file_url = f"/static/uploads/{filename}"
+    return jsonify({"url": file_url})
+
+# ----------------------------------------------------------------------
 # Auth & Admin Endpoints
 # ----------------------------------------------------------------------
 
@@ -301,7 +329,6 @@ def login():
         resp.set_cookie("viane_admin_session", "active_admin_session_valid", httponly=True, samesite='Lax')
         return resp
     
-    # Initial setup fallback
     if email == "admin@vianedelicatessen.com" and password == "Viane2026!":
         resp = make_response(jsonify({"message": "Autenticado con éxito"}))
         resp.set_cookie("viane_admin_session", "active_admin_session_valid", httponly=True, samesite='Lax')
@@ -399,6 +426,70 @@ def admin_manage_review(rid):
     db.session.commit()
     return jsonify(r.to_dict())
 
+@app.route('/api/payments', methods=['POST'])
+@admin_required
+def admin_create_payment():
+    data = request.json or {}
+    pm = PaymentMethod(
+        title=data.get('title'),
+        url=data.get('url'),
+        details=data.get('details'),
+        tip_enabled=data.get('tip_enabled', False),
+        active=data.get('active', True)
+    )
+    db.session.add(pm)
+    db.session.commit()
+    return jsonify(pm.to_dict()), 201
+
+@app.route('/api/payments/<int:pmid>', methods=['PUT', 'DELETE'])
+@admin_required
+def admin_manage_payment(pmid):
+    pm = PaymentMethod.query.get_or_404(pmid)
+    if request.method == 'DELETE':
+        db.session.delete(pm)
+        db.session.commit()
+        return jsonify({"message": "Método de pago eliminado"})
+    
+    data = request.json or {}
+    pm.title = data.get('title', pm.title)
+    pm.url = data.get('url', pm.url)
+    pm.details = data.get('details', pm.details)
+    pm.tip_enabled = data.get('tip_enabled', pm.tip_enabled)
+    pm.active = data.get('active', pm.active)
+    db.session.commit()
+    return jsonify(pm.to_dict())
+
+@app.route('/api/ads', methods=['POST'])
+@admin_required
+def admin_create_ad():
+    data = request.json or {}
+    ad = Advertisement(
+        title=data.get('title'),
+        url=data.get('url'),
+        image=data.get('image'),
+        active=data.get('active', True)
+    )
+    db.session.add(ad)
+    db.session.commit()
+    return jsonify(ad.to_dict()), 201
+
+@app.route('/api/ads/<int:aid>', methods=['PUT', 'DELETE'])
+@admin_required
+def admin_manage_ad(aid):
+    ad = Advertisement.query.get_or_404(aid)
+    if request.method == 'DELETE':
+        db.session.delete(ad)
+        db.session.commit()
+        return jsonify({"message": "Publicidad eliminada"})
+    
+    data = request.json or {}
+    ad.title = data.get('title', ad.title)
+    ad.url = data.get('url', ad.url)
+    ad.image = data.get('image', ad.image)
+    ad.active = data.get('active', ad.active)
+    db.session.commit()
+    return jsonify(ad.to_dict())
+
 @app.route('/api/settings', methods=['PUT'])
 @admin_required
 def admin_update_settings():
@@ -413,16 +504,11 @@ def admin_update_settings():
     db.session.commit()
     return jsonify({"message": "Configuraciones actualizadas"})
 
-# ----------------------------------------------------------------------
-# Cloudinary Signature Upload Generator
-# ----------------------------------------------------------------------
-
 @app.route('/api/upload-signature', methods=['POST'])
 def get_upload_signature():
     timestamp = int(time.time())
     folder = "viane_uploads"
     
-    # Calculate Cloudinary SHA-1 signature
     to_sign = f"folder={folder}&timestamp={timestamp}{CLOUDINARY_API_SECRET}"
     signature = hashlib.sha1(to_sign.encode('utf-8')).hexdigest()
 
