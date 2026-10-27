@@ -1235,7 +1235,7 @@
       }
 
       if (tab === 'reviews') {
-        out = '<h3>Moderación de reseñas</h3>' + (d.reviews.map(r => `<div class="adminpanel"><div class="row"><b>${esc(r.name)} · ${r.rating}/5</b><span class="status">${r.approved ? 'Publicada' : 'Pendiente'}</span></div><p>${esc(r.comment)}</p><p class="muted">${esc(r.products)}</p><label class="field">Respuesta de VIANE<textarea id="rr${r.id}">${esc(r.admin_reply || '')}</textarea></label><div class="row"><button class="btn" onclick="moderate(${r.id},true)">Aprobar / guardar respuesta</button><button class="btn light" onclick="moderate(${r.id},false)">Ocultar</button><button class="btn" onclick="deleteReview(${r.id})">Eliminar</button></div></div>`).join('') || '<p class="muted">No hay reseñas recibidas.</p>');
+        out = '<h3>Moderación de reseñas</h3>' + (d.reviews.map(r => `<div class="adminpanel"><div class="row"><b>${esc(r.name)} · ${r.rating}/5</b><span class="status">${r.approved ? 'Publicada' : 'Pendiente'}</span></div><p>${esc(r.comment)}</p><p class="muted">${esc(r.products)}</p><label class="field">Respuesta de VIANE<textarea id="rr${r.id}">${esc(r.admin_reply || '')}</textarea></label><div class="row"><button class="btn" onclick="moderate(${r.id},true)">Aprobar / guardar respuesta</button><button class="btn light" onclick="moderate(${r.id},false)">Ocultar</button><button class="btn" onclick="deleteReview(${r.id})">Eliminar</button></div></div>`).join('') || '<p class="muted">No hay reseñas recibidas.</p>';
       }
 
       if (tab === 'brand') {
