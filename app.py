@@ -229,7 +229,7 @@ SCHEMA = [
     'ALTER TABLE ads ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE payments ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE media ENABLE ROW LEVEL SECURITY',
-  '''CREATE TABLE IF NOT EXISTS categories(
+    '''CREATE TABLE IF NOT EXISTS categories(
         id BIGSERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL,
         active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL)''',
     '''CREATE TABLE IF NOT EXISTS sales(
@@ -242,16 +242,6 @@ SCHEMA = [
 ]
 _schema_ready = False
 _schema_lock = Lock()
-
-try:  # categorias iniciales, ordenar productos y pasar pedidos ya entregados a ventas
-                    with con.transaction():
-                        for n in DEFAULT_CATEGORIES:
-                            ensure_category(con, n)
-                        reclassify_all(con)
-                        for o in con.execute("SELECT * FROM orders WHERE status='Entregado'").fetchall():
-                            save_sale(con, o, _dr_date(o['updated_at']))
-                except Exception as exc:
-                    print(f'[VIANE] Migracion de categorias/ventas: {exc!r}')
 
 DEFAULT_SETTINGS = {
     'brand_name': 'VIANE DELICATESSEN', 'logo': '', 'whatsapp': '18296759640',
@@ -271,7 +261,10 @@ def now():
     return datetime.now(timezone.utc).isoformat()
 
 
-REQUIRED_TABLES = {'products', 'reviews', 'orders', 'settings', 'ads', 'payments', 'media', 'categories', 'sales'}
+REQUIRED_TABLES = {'products', 'reviews', 'orders', 'settings', 'ads', 'payments', 'media',
+                   'categories', 'sales'}
+
+
 def ensure_schema():
     global _schema_ready
     if _schema_ready:
@@ -293,8 +286,16 @@ def ensure_schema():
                         con.execute(
                             'INSERT INTO products(name,category,price,description,image,active,created_at) '
                             'VALUES(%s,%s,%s,%s,%s,%s,%s)', (*p, now()))
+                try:  # categorias iniciales, ordenar productos y pasar pedidos ya entregados a ventas
+                    with con.transaction():
+                        for n in DEFAULT_CATEGORIES:
+                            ensure_category(con, n)
+                        reclassify_all(con)
+                        for o in con.execute("SELECT * FROM orders WHERE status='Entregado'").fetchall():
+                            save_sale(con, o, _dr_date(o['updated_at']))
+                except Exception as exc:
+                    print(f'[VIANE] Migracion de categorias/ventas: {exc!r}')
         _schema_ready = True
-
 
 
 @contextmanager
@@ -345,6 +346,8 @@ def to_float(value):
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
 # --- Categorias automaticas y ventas -----------------------------------------
 DR_TZ = timezone(timedelta(hours=-4))  # Republica Dominicana (UTC-4, sin horario de verano)
 DEFAULT_CATEGORIES = ['desayunos', 'bandejas', 'picaderas', 'bizcochos', 'mariscos', 'regalos', 'eventos']
@@ -444,6 +447,7 @@ def save_sale(c, o, sold_date=None):
         (o['id'], o['code'], o['name'], o['phone'], items_text(o['items']), o['province'],
          o['total'], sold_date or _dr_date(), now()))
 
+
 @app.after_request
 def no_cache_api(resp):
     if request.path.startswith('/api/'):
@@ -542,6 +546,7 @@ def public_data():
         settings = setting_map(c)
     return jsonify({'products': products, 'categories': categories, 'reviews': reviews, 'ads': ads,
                     'payments': payments, 'settings': settings, 'statuses': STATUSES})
+
 
 @app.post('/api/reviews')
 def submit_review():
@@ -652,7 +657,7 @@ def admin_data():
             'products': rows(c, 'SELECT * FROM products ORDER BY id DESC'),
             'reviews': rows(c, 'SELECT * FROM reviews ORDER BY id DESC'),
             'orders': rows(c, "SELECT * FROM orders WHERE status<>'Entregado' ORDER BY id DESC"),
-                'categories': rows(c, 'SELECT k.id,k.name,k.active,(SELECT COUNT(*) FROM products p '
+            'categories': rows(c, 'SELECT k.id,k.name,k.active,(SELECT COUNT(*) FROM products p '
                                   'WHERE p.category=k.name) AS total FROM categories k ORDER BY k.id'),
             'ads': rows(c, 'SELECT * FROM ads ORDER BY id DESC'),
             'payments': rows(c, 'SELECT * FROM payments ORDER BY id DESC'),
@@ -697,25 +702,25 @@ def upload_signature():
     del navegador a Cloudinary, sin pasar por Vercel (limite 4.5 MB)."""
     if not cloudinary_ready():
         return jsonify({'error': 'Cloudinary no está configurado (revisa CLOUDINARY_URL en Vercel).'}), 503
-    
+
     resource_type = body().get('resource_type', 'image')
     if resource_type not in ('image', 'video'):
         return jsonify({'error': 'resource_type inválido'}), 400
-        
+
     cfg = cloudinary.config()
-    
+
     # Ordenamos los parámetros alfabéticamente para evitar conflictos en la firma (folder antes que timestamp)
     params = {
         'folder': 'viane',
         'timestamp': int(datetime.now(timezone.utc).timestamp())
     }
-    
+
     signature = cloudinary.utils.api_sign_request(params, cfg.api_secret)
-    
+
     return jsonify({
         'upload_url': f'https://api.cloudinary.com/v1_1/{cfg.cloud_name}/{resource_type}/upload',
-        'api_key': cfg.api_key, 
-        'timestamp': params['timestamp'], 
+        'api_key': cfg.api_key,
+        'timestamp': params['timestamp'],
         'folder': params['folder'],
         'signature': signature,
     })
@@ -735,29 +740,12 @@ def create_product():
     if not name or not desc or not image or price < 0:
         return jsonify({'error': 'Nombre, imagen, precio y descripción son obligatorios'}), 400
     with db() as c:
-        row = c.execute(
-            'INSERT INTO products(name,category,price,description,image,active,created_at) '
-            'VALUES(%s,%s,%s,%s,%s,%s,%s) RETURNING id',
-            (name, str(d.get('category', 'bandejas')), price, desc, image,
-             1 if d.get('active', True) else 0, now())).fetchone()
-por:
-    with db() as c:
         category = resolve_category(c, name, d.get('category'))
         row = c.execute(
             'INSERT INTO products(name,category,price,description,image,active,created_at) '
             'VALUES(%s,%s,%s,%s,%s,%s,%s) RETURNING id',
             (name, category, price, desc, image,
              1 if d.get('active', True) else 0, now())).fetchone()
-
-b) En update_product(), reemplaza:
-        c.execute('UPDATE products SET name=%s,category=%s,price=%s,description=%s,image=%s,active=%s WHERE id=%s',
-                  (vals['name'], vals['category'], price, vals['description'], vals['image'],
-                   int(bool(vals['active'])), pid))
-por:
-        category = resolve_category(c, vals['name'], vals['category'])
-        c.execute('UPDATE products SET name=%s,category=%s,price=%s,description=%s,image=%s,active=%s WHERE id=%s',
-                  (vals['name'], category, price, vals['description'], vals['image'],
-                   int(bool(vals['active'])), pid))
     return jsonify({'id': row['id'], 'ok': True})
 
 
@@ -775,8 +763,9 @@ def update_product(pid):
             return jsonify({'error': 'Precio inválido'}), 400
         if not vals['name'] or not vals['description'] or not vals['image']:
             return jsonify({'error': 'Faltan campos requeridos'}), 400
+        category = resolve_category(c, vals['name'], vals['category'])
         c.execute('UPDATE products SET name=%s,category=%s,price=%s,description=%s,image=%s,active=%s WHERE id=%s',
-                  (vals['name'], vals['category'], price, vals['description'], vals['image'],
+                  (vals['name'], category, price, vals['description'], vals['image'],
                    int(bool(vals['active'])), pid))
     return jsonify({'ok': True})
 
@@ -825,11 +814,13 @@ def update_order(oid):
             (status, payment, notes, str(d.get('incident', ''))[:1000], now(), oid))
         if cur.rowcount == 0:
             return jsonify({'error': 'Pedido no encontrado'}), 404
-    return jsonify({'ok': True})
-   if status == 'Entregado':
+        # Entregado -> pasa a Ventas; cualquier otro estado -> se quita de Ventas.
+        if status == 'Entregado':
             save_sale(c, c.execute('SELECT * FROM orders WHERE id=%s', (oid,)).fetchone())
         else:
             c.execute('DELETE FROM sales WHERE order_id=%s', (oid,))
+    return jsonify({'ok': True})
+
 
 # --- Ajustes ----------------------------------------------------------------------
 @app.put('/api/settings')
@@ -912,6 +903,7 @@ def delete_payment(pid):
         c.execute('DELETE FROM payments WHERE id=%s', (pid,))
     return jsonify({'ok': True})
 
+
 # --- Categorias ---------------------------------------------------------------
 @app.post('/api/categories')
 @admin_required
@@ -988,7 +980,8 @@ def reopen_sale(sid):
             c.execute("UPDATE orders SET status='En camino', updated_at=%s WHERE id=%s",
                       (now(), row['order_id']))
     return jsonify({'ok': True})
-    
+
+
 if __name__ == '__main__':
     # Desarrollo local: python app.py  ->  http://localhost:5000
     app.run(debug=os.environ.get('FLASK_DEBUG') == '1', host='0.0.0.0', port=5000)
