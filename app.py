@@ -874,8 +874,9 @@ def refund_hook(c, oid, status, payment):
                   'VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT (order_id) DO NOTHING',
                   (o['id'], o['name'], o['phone'], order_date, float(o['total']), now()))
         c.execute('DELETE FROM sales WHERE order_id=%s', (oid,))
-    else:
-        c.execute('DELETE FROM refunds WHERE order_id=%s', (oid,))
+        else:
+        # solo borra el reembolso automático; los manuales (con motivo) se conservan
+        c.execute("DELETE FROM refunds WHERE order_id=%s AND reason=''", (oid,))
 
 
 def supply_key(name):
@@ -1427,6 +1428,9 @@ def update_order(oid):
             save_sale(c, c.execute('SELECT * FROM orders WHERE id=%s', (oid,)).fetchone())
         else:
             c.execute('DELETE FROM sales WHERE order_id=%s', (oid,))
+        refund_hook(c, oid, status, payment)  # si el pago es "Reembolsado": crea el reembolso y quita la venta
+    return jsonify({'ok': True, 'moved_to_sales': status in SALE_STATUSES and payment != 'Reembolsado'})
+
     return jsonify({'ok': True, 'moved_to_sales': status in SALE_STATUSES})
 
 
@@ -1879,17 +1883,16 @@ def submit_affiliate():
     if not full_name or not phone:
         return jsonify({'success': False, 'error': 'Nombre y teléfono son obligatorios'}), 400
 
+    affiliate = None
     with db() as c:
         existing = None
         if email:
             existing = c.execute('SELECT id FROM affiliates WHERE email=%s', (email,)).fetchone()
-        if not existing and phone:
+        if not existing:
             existing = c.execute('SELECT id FROM affiliates WHERE phone=%s', (phone,)).fetchone()
         if existing:
+            # Ya hay una solicitud: no se modifica ni se cambia su estado.
             aff_id = existing['id']
-            c.execute('UPDATE affiliates SET full_name=%s,phone=%s,email=%s,profile=%s,socials=%s,'
-                      "status='pendiente' WHERE id=%s",
-                      (full_name, phone, email, profile_text, socials, aff_id))
         else:
             contract_hash = hashlib.sha256(f'{full_name}-{phone}-{time.time()}'.encode('utf-8')).hexdigest()
             row = c.execute(
@@ -1899,16 +1902,15 @@ def submit_affiliate():
                 (full_name, email, phone, '', '', profile_text, socials, 0, now(), contract_hash, now())
             ).fetchone()
             aff_id = row['id']
-        affiliate = c.execute('SELECT * FROM affiliates WHERE id=%s', (aff_id,)).fetchone()
+            affiliate = c.execute('SELECT * FROM affiliates WHERE id=%s', (aff_id,)).fetchone()
 
     try:
         if affiliate:
             notify_new_affiliate(affiliate)
     except Exception as exc:
-        print(f'[VIANE] correo de afiliado fallo: {exc!r}')
+        print(f'[VIANE] correo de afiliado falló: {exc!r}')
 
     return jsonify({'success': True, 'id': aff_id})
-
 
 @app.get('/api/affiliates')
 @admin_required
@@ -1935,6 +1937,7 @@ def update_affiliate_status(aff_id):
 
 # --- Reembolsos (solicitud manual) --------------------------------------------------
 @app.post('/api/refunds')
+@admin_required
 def request_refund():
     """El cliente/admin pide un reembolso para una venta ya registrada (sales.id)."""
     d = body()
