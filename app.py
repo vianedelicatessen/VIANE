@@ -20,6 +20,8 @@ Novedades de esta version (esquema v3, se migra solo, sin perder datos):
 - Pedidos "Entregado" o "Terminado" pasan solos a Ventas; /api/sales devuelve
   desglose de montos y porcentaje de ventas por sector.
 - Reproductor flotante: ajustes music_url, music_title y music_kind.
+- Categorias gestionables desde el panel (crear, renombrar, ocultar, eliminar).
+- Vendedores (esquema v4): codigo multiuso, descuento al cliente y comision del vendedor.
 """
 import io
 import os
@@ -106,6 +108,10 @@ DELIVERY = {
     'delivery_santiago': {'label': 'Envío a Santiago', 'sector': 'Santiago', 'cost': 600},
     'delivery_capital': {'label': 'Envío a Santo Domingo', 'sector': 'Santo Domingo', 'cost': 700},
 }
+
+# Vendedores (revendedores) con codigo de descuento multiuso.
+RESELLER_DISCOUNT_PCT = 3      # % que se le descuenta al cliente (sobre los productos, no sobre el envio)
+RESELLER_COMMISSION_PCT = 15   # % de ganancia del vendedor sobre el valor de la venta (productos ya con descuento)
 
 # Vercel limita el cuerpo de una peticion a 4.5 MB. Archivos mas grandes deben
 # subirse directo a Cloudinary con /api/upload-signature (ver README).
@@ -264,7 +270,7 @@ SCHEMA = [
 
 # Migracion v3: columnas nuevas. Se aplican UNA sola vez (marca "_schema_version" en settings)
 # y son seguras de repetir (IF NOT EXISTS), asi que no se pierde ningun dato existente.
-SCHEMA_VERSION = '3'
+SCHEMA_VERSION = '4'
 MIGRATIONS = [
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT ''",
@@ -273,6 +279,16 @@ MIGRATIONS = [
     "ALTER TABLE sales ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE sales ADD COLUMN IF NOT EXISTS shipping DOUBLE PRECISION NOT NULL DEFAULT 0",
     "ALTER TABLE sales ADD COLUMN IF NOT EXISTS subtotal DOUBLE PRECISION NOT NULL DEFAULT 0",
+    # v4: vendedores y codigos de descuento
+    '''CREATE TABLE IF NOT EXISTS resellers(
+        id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, code TEXT UNIQUE NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL)''',
+    "ALTER TABLE resellers ENABLE ROW LEVEL SECURITY",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS reseller_id BIGINT",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS reseller_name TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS reseller_code TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount DOUBLE PRECISION NOT NULL DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission DOUBLE PRECISION NOT NULL DEFAULT 0",
 ]
 
 _schema_ready = False
@@ -559,6 +575,21 @@ def normalize_code(raw):
     return s.translate(str.maketrans('OIL', '011'))
 
 
+def clean_reseller_code(v):
+    """Codigo de vendedor: mayusculas, solo letras, numeros, guion y guion bajo (max. 20)."""
+    s = unicodedata.normalize('NFKC', str(v or '')).upper()
+    return re.sub(r'[^A-Z0-9_-]', '', s)[:20]
+
+
+def find_reseller(c, raw):
+    """Vendedor ACTIVO con ese codigo, o None."""
+    code = clean_reseller_code(raw)
+    if not code:
+        return None
+    row = c.execute('SELECT id,name,code,active FROM resellers WHERE code=%s', (code,)).fetchone()
+    return row if row and row['active'] else None
+
+
 def items_text(raw):
     try:
         items = json.loads(raw or '[]')
@@ -704,7 +735,7 @@ def public_data():
     return jsonify({'products': products, 'categories': categories, 'category_list': category_list,
                     'reviews': reviews, 'ads': ads,
                     'payments': payments, 'settings': settings, 'statuses': STATUSES,
-                    'delivery': DELIVERY})
+                    'delivery': DELIVERY, 'reseller_discount': RESELLER_DISCOUNT_PCT})
 
 
 @app.post('/api/reviews')
@@ -750,8 +781,15 @@ def create_order():
     method = method_from(str(d.get('delivery_method', '')).strip(), d.get('province', ''))
     delivery = DELIVERY[method]
     address = str(d.get('address', '')).strip()[:300]
+    raw_code = str(d.get('reseller_code', '')).strip()
 
     with db() as c:
+        reseller = None
+        if raw_code:  # el servidor valida el codigo otra vez: el descuento nunca depende del navegador
+            reseller = find_reseller(c, raw_code)
+            if not reseller:
+                return jsonify({'error': 'El código de vendedor no es válido o está inactivo. '
+                                         'Corrígelo o bórralo para continuar.'}), 400
         found = rows(c, 'SELECT * FROM products WHERE active=1 AND id = ANY(%s)', (list(set(ids)),))
         byid = {r['id']: r for r in found}
         clean, subtotal = [], 0.0
@@ -763,19 +801,43 @@ def create_order():
         if not clean:
             return jsonify({'error': 'No hay productos válidos'}), 400
         shipping = float(delivery['cost'])
-        total = subtotal + shipping
+        # Descuento al cliente y ganancia del vendedor (ver RESELLER_* arriba).
+        discount = round(subtotal * RESELLER_DISCOUNT_PCT / 100, 2) if reseller else 0.0
+        net = subtotal - discount
+        commission = round(net * RESELLER_COMMISSION_PCT / 100, 2) if reseller else 0.0
+        total = net + shipping
         code = 'VIA-' + secrets.token_hex(4).upper()
         c.execute(
             'INSERT INTO orders(code,name,phone,province,delivery_date,items,total,payment_status,status,'
-            'notes,created_at,updated_at,delivery_method,sector,address,shipping) '
-            'VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+            'notes,created_at,updated_at,delivery_method,sector,address,shipping,'
+            'reseller_id,reseller_name,reseller_code,discount,commission) '
+            'VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
             (code, name, phone, delivery['label'], str(d.get('delivery_date', ''))[:100],
              json.dumps(clean, ensure_ascii=False), total, 'Pago pendiente', 'Pago pendiente',
-             str(d.get('notes', ''))[:2000], now(), now(), method, delivery['sector'], address, shipping))
+             str(d.get('notes', ''))[:2000], now(), now(), method, delivery['sector'], address, shipping,
+             reseller['id'] if reseller else None, reseller['name'] if reseller else '',
+             reseller['code'] if reseller else '', discount, commission))
         s = setting_map(c)
-    return jsonify({'ok': True, 'code': code, 'subtotal': subtotal, 'shipping': shipping, 'total': total,
+    return jsonify({'ok': True, 'code': code, 'subtotal': subtotal, 'discount': discount,
+                    'reseller_name': reseller['name'] if reseller else '',
+                    'reseller_code': reseller['code'] if reseller else '',
+                    'shipping': shipping, 'total': total,
                     'delivery_label': delivery['label'], 'sector': delivery['sector'],
                     'review_url': s.get('review_url', ''), 'whatsapp': s.get('whatsapp', '18296759640')})
+
+
+@app.post('/api/resellers/validate')
+def validate_reseller():
+    """Publico: comprueba un codigo de vendedor y devuelve su nombre (nada mas)."""
+    code = clean_reseller_code(body().get('code'))
+    if not code:
+        return jsonify({'valid': False, 'error': 'Escribe el código de vendedor'}), 404
+    with db() as c:
+        r = find_reseller(c, code)
+    if not r:
+        return jsonify({'valid': False, 'error': 'Código de vendedor no válido o inactivo'}), 404
+    return jsonify({'valid': True, 'name': r['name'], 'code': r['code'],
+                    'discount_pct': RESELLER_DISCOUNT_PCT})
 
 
 @app.get('/api/track/<code>')
@@ -851,6 +913,16 @@ def admin_data():
             'categories': cats,
             'ads': rows(c, 'SELECT * FROM ads ORDER BY id DESC'),
             'payments': rows(c, 'SELECT * FROM payments ORDER BY id DESC'),
+            'resellers': rows(c, 'SELECT r.id,r.name,r.code,r.active,r.created_at,'
+                                 '(SELECT COUNT(*) FROM orders o WHERE o.reseller_id=r.id) AS orders_count,'
+                                 '(SELECT COALESCE(SUM(o.commission),0) FROM orders o '
+                                 ' WHERE o.reseller_id=r.id AND o.status = ANY(%s)) AS earned,'
+                                 '(SELECT COALESCE(SUM(o.commission),0) FROM orders o '
+                                 ' WHERE o.reseller_id=r.id AND NOT (o.status = ANY(%s))) AS pending '
+                                 'FROM resellers r ORDER BY r.id DESC',
+                              (list(SALE_STATUSES), list(SALE_STATUSES))),
+            'reseller_discount': RESELLER_DISCOUNT_PCT,
+            'reseller_commission': RESELLER_COMMISSION_PCT,
             'settings': public_settings(c),
             'statuses': STATUSES,
         })
@@ -1165,6 +1237,63 @@ def reclassify():
     return jsonify({'ok': True, 'changed': changed})
 
 
+# --- Vendedores (revendedores) ----------------------------------------------------
+@app.post('/api/resellers')
+@admin_required
+def add_reseller():
+    d = body()
+    name = str(d.get('name', '')).strip()[:80]
+    if not name:
+        return jsonify({'error': 'Escribe el nombre del vendedor'}), 400
+    raw = str(d.get('code') or '').strip()
+    code = clean_reseller_code(raw) if raw else 'VND-' + secrets.token_hex(3).upper()
+    if len(code) < 3:
+        return jsonify({'error': 'El código debe tener al menos 3 caracteres (letras, números o guion)'}), 400
+    with db() as c:
+        if c.execute('SELECT 1 FROM resellers WHERE code=%s', (code,)).fetchone():
+            return jsonify({'error': 'Ese código ya existe. Elige otro.'}), 400
+        row = c.execute('INSERT INTO resellers(name,code,active,created_at) VALUES(%s,%s,1,%s) RETURNING id',
+                        (name, code, now())).fetchone()
+    return jsonify({'ok': True, 'id': row['id'], 'code': code})
+
+
+@app.put('/api/resellers/<int:rid>')
+@admin_required
+def update_reseller(rid):
+    """Cambia solo lo que viene en la peticion: name, code y/o active."""
+    d = body()
+    with db() as c:
+        if not c.execute('SELECT 1 FROM resellers WHERE id=%s', (rid,)).fetchone():
+            return jsonify({'error': 'Vendedor no encontrado'}), 404
+        sets, vals = [], []
+        if 'name' in d:
+            name = str(d['name']).strip()[:80]
+            if not name:
+                return jsonify({'error': 'Escribe el nombre del vendedor'}), 400
+            sets.append('name=%s'); vals.append(name)
+        if 'code' in d:
+            code = clean_reseller_code(d['code'])
+            if len(code) < 3:
+                return jsonify({'error': 'El código debe tener al menos 3 caracteres (letras, números o guion)'}), 400
+            if c.execute('SELECT 1 FROM resellers WHERE code=%s AND id<>%s', (code, rid)).fetchone():
+                return jsonify({'error': 'Ese código ya existe. Elige otro.'}), 400
+            sets.append('code=%s'); vals.append(code)
+        if 'active' in d:
+            sets.append('active=%s'); vals.append(int(bool(d['active'])))
+        if sets:
+            c.execute(f"UPDATE resellers SET {','.join(sets)} WHERE id=%s", (*vals, rid))
+    return jsonify({'ok': True})
+
+
+@app.delete('/api/resellers/<int:rid>')
+@admin_required
+def delete_reseller(rid):
+    # Los pedidos ya hechos conservan el nombre y el codigo del vendedor (copia en el pedido).
+    with db() as c:
+        c.execute('DELETE FROM resellers WHERE id=%s', (rid,))
+    return jsonify({'ok': True})
+
+
 # --- Ventas (pedidos entregados o terminados) -----------------------------------
 @app.get('/api/sales')
 @admin_required
@@ -1172,7 +1301,8 @@ def list_sales():
     """Ventas con filtro por rango de fechas (?from=AAAA-MM-DD&to=AAAA-MM-DD).
     Devuelve cada venta (sin imagenes), los totales y el porcentaje por sector."""
     sql = ('SELECT s.id,s.order_id,s.code,s.customer,s.contact,s.purchase,s.address,s.amount,'
-           's.sold_date,s.sector,s.shipping,s.subtotal,o.items,o.delivery_method,o.province '
+           's.sold_date,s.sector,s.shipping,s.subtotal,o.items,o.delivery_method,o.province,'
+           'o.discount,o.reseller_name '
            'FROM sales s LEFT JOIN orders o ON o.id=s.order_id WHERE 1=1')
     params = []
     for arg, op in (('from', '>='), ('to', '<=')):
@@ -1206,6 +1336,7 @@ def list_sales():
             'id': r['id'], 'order_id': r['order_id'], 'code': r['code'], 'customer': r['customer'],
             'contact': r['contact'], 'sector': sector, 'address': address, 'amount': amount,
             'subtotal': subtotal, 'shipping': shipping, 'sold_date': r['sold_date'], 'lines': lines,
+            'discount': float(r['discount'] or 0), 'reseller': r['reseller_name'] or '',
         })
 
     by_sector = sorted(sectors.values(), key=lambda s: s['amount'], reverse=True)
