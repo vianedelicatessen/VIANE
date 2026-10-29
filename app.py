@@ -387,15 +387,42 @@ MIGRATIONS = [
         id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL, skey TEXT NOT NULL,
         qty DOUBLE PRECISION NOT NULL)''',
     "ALTER TABLE recipe_items ENABLE ROW LEVEL SECURITY",
-   '''CREATE INDEX IF NOT EXISTS recipe_items_pid_idx ON recipe_items(product_id)",
-   "ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS socials TEXT NOT NULL DEFAULT ''',
-   "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS reason TEXT NOT NULL DEFAULT ''',
-   ...
+    "CREATE INDEX IF NOT EXISTS recipe_items_pid_idx ON recipe_items(product_id)",
+    # v6 (fix): estas tablas estaban solo en SCHEMA (bloque que no se repite si ya
+    # existen las tablas basicas), asi que nunca se crearon en esta base ya existente.
+    '''CREATE TABLE IF NOT EXISTS affiliates(
+        id BIGSERIAL PRIMARY KEY, full_name TEXT NOT NULL, email TEXT NOT NULL,
+        phone TEXT NOT NULL DEFAULT '', birth_date TEXT NOT NULL, platform TEXT NOT NULL DEFAULT '',
+        profile TEXT NOT NULL DEFAULT '', followers BIGINT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pendiente', created_at TEXT NOT NULL,
+        decided_at TEXT, decision_note TEXT NOT NULL DEFAULT '', reseller_id BIGINT,
+        rights_revoked INTEGER NOT NULL DEFAULT 0, cancelled_at TEXT,
+        cancel_reason TEXT NOT NULL DEFAULT '', terms_version TEXT NOT NULL DEFAULT '',
+        terms_text TEXT NOT NULL DEFAULT '', signature_name TEXT NOT NULL DEFAULT '',
+        signature_png TEXT NOT NULL DEFAULT '', contract_hash TEXT NOT NULL DEFAULT '',
+        signed_at TEXT, signed_ip TEXT NOT NULL DEFAULT '',
+        mail_admin TEXT NOT NULL DEFAULT '', mail_user TEXT NOT NULL DEFAULT '')''',
+    "ALTER TABLE affiliates ENABLE ROW LEVEL SECURITY",
+    "CREATE INDEX IF NOT EXISTS affiliates_status_idx ON affiliates(status)",
+    "CREATE INDEX IF NOT EXISTS affiliates_email_idx ON affiliates(email)",
+    '''CREATE TABLE IF NOT EXISTS refunds(
+        id BIGSERIAL PRIMARY KEY, order_id BIGINT UNIQUE NOT NULL, name TEXT NOT NULL,
+        phone TEXT NOT NULL, order_date TEXT NOT NULL, amount DOUBLE PRECISION NOT NULL,
+        created_at TEXT NOT NULL)''',
+    "ALTER TABLE refunds ENABLE ROW LEVEL SECURITY",
+    '''CREATE TABLE IF NOT EXISTS reseller_payouts(
+        id BIGSERIAL PRIMARY KEY, reseller_id BIGINT NOT NULL, reseller_name TEXT NOT NULL,
+        amount DOUBLE PRECISION NOT NULL, method TEXT NOT NULL, account TEXT NOT NULL DEFAULT '',
+        holder TEXT NOT NULL DEFAULT '', cedula TEXT NOT NULL DEFAULT '', paid_on TEXT NOT NULL,
+        created_at TEXT NOT NULL)''',
+    "ALTER TABLE reseller_payouts ENABLE ROW LEVEL SECURITY",
+    "CREATE INDEX IF NOT EXISTS payouts_reseller_idx ON reseller_payouts(reseller_id)",
+    "CREATE INDEX IF NOT EXISTS payouts_paid_on_idx ON reseller_payouts(paid_on)",
     # v6: columnas para solicitudes de afiliados (formulario simple) y reembolsos manuales
-    "ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS socials TEXT NOT NULL DEFAULT ''',
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS reason TEXT NOT NULL DEFAULT ''',
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pendiente''',
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT ''',
+    "ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS socials TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS reason TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pendiente'",
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT ''",
 ]
 
 _schema_ready = False
