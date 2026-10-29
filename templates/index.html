@@ -139,6 +139,13 @@
 .sale-contact a{color:var(--crimson);font-weight:700}
 .sale-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 @media(max-width:600px){.sales-chart{grid-template-columns:1fr;justify-items:center}.sales-chart>div:last-child{width:100%}}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+.tbl th,.tbl td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.tbl th{color:var(--crimson);font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.tbl-actions{display:flex;gap:6px;flex-wrap:wrap}
+.tbl code{background:#f5eee2;padding:2px 6px;border-radius:6px;font-weight:700;color:var(--crimson)}
+#resellerMsg{min-height:18px;font-weight:700}
 </style><!-- Favicon: la miniatura que muestran Google y Bing -->
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="48x48" href="/static/favicon-48x48.png">
@@ -180,7 +187,7 @@
 <main class="wrap"><section id="catalog"><h2 class="section-title">Nuestro catálogo</h2><div class="filters" id="filters"></div><div class="grid" id="products"></div><div id="ads" class="grid" style="margin-top:20px"></div></section>
 <section id="reviews" class="hidden"><h2 class="section-title">Tu experiencia nos inspira</h2><div class="formbox"><form id="reviewForm"><div class="field">Tu calificación *<div class="stars" id="starButtons"></div></div><div class="fields"><label class="field">Nombre completo *<input id="reviewName" required maxlength="120"></label><label class="field">WhatsApp (opcional)<input id="reviewPhone" placeholder="829-000-0000"></label></div><div class="field" style="margin-top:12px">Productos recibidos (elige de 1 a 3) *<div id="reviewProductChoices" class="fields"></div></div><label class="field" style="margin-top:12px">Tu comentario *<textarea id="reviewComment" required maxlength="2000" placeholder="Cuéntanos cómo fue tu experiencia..."></textarea></label><button class="btn" style="width:100%;margin-top:12px">Enviar reseña</button></form><p class="muted">Las reseñas se revisan antes de aparecer públicamente.</p></div><h3 class="section-title" style="margin-top:30px">Lo que dicen nuestros clientes</h3><div id="reviewsFeed"></div></section>
 <section id="track" class="hidden"><h2 class="section-title">Seguimiento de tu pedido</h2><div class="formbox"><p class="muted">Introduce el código que recibiste al realizar tu pedido.</p><form id="trackForm" class="row"><input id="trackCode" placeholder="Ej. VIA-A1B2C3D4" autocomplete="off" autocapitalize="characters" spellcheck="false" required><button class="btn">Consultar</button></form><div id="trackResult" style="margin-top:18px"></div></div></section>
-<section id="admin" class="hidden"><h2 class="section-title">Panel de administración</h2><div class="adminpanel"><div class="row"><div><b>VIANE Delicatessen</b><div class="muted">Sesión administrativa segura</div></div><button class="btn light" onclick="logout()">Cerrar sesión</button></div><div class="adminnav"><button onclick="adminTab('orders')">Pedidos</button><button onclick="adminTab('sales')">Ventas</button><button onclick="adminTab('products')">Productos</button><button onclick="adminTab('cats')">Gestión de categorías</button><button onclick="adminTab('reviews')">Reseñas</button><button onclick="adminTab('brand')">Logo y diseño</button><button onclick="adminTab('payments')">Pagos y propinas</button><button onclick="adminTab('ads')">Publicidad</button><button onclick="adminTab('media')">Multimedia</button></div><div id="adminContent"></div></div></section></main>
+<section id="admin" class="hidden"><h2 class="section-title">Panel de administración</h2><div class="adminpanel"><div class="row"><div><b>VIANE Delicatessen</b><div class="muted">Sesión administrativa segura</div></div><button class="btn light" onclick="logout()">Cerrar sesión</button></div><div class="adminnav"><button onclick="adminTab('orders')">Pedidos</button><button onclick="adminTab('sales')">Ventas</button><button onclick="adminTab('products')">Productos</button><button onclick="adminTab('cats')">Gestión de categorías</button><button onclick="adminTab('resellers')">Vendedores</button><button onclick="adminTab('reviews')">Reseñas</button><button onclick="adminTab('brand')">Logo y diseño</button><button onclick="adminTab('payments')">Pagos y propinas</button><button onclick="adminTab('ads')">Publicidad</button><button onclick="adminTab('media')">Multimedia</button></div><div id="adminContent"></div></div></section></main>
 <footer class="footer"><b style="font-family:'Playfair Display';color:var(--crimson);font-size:17px">VIANE DELICATESSEN</b><p>Detalles especiales, desayunos, picaderas y regalos.</p><p>WhatsApp: <a id="footerWa" href="https://wa.me/18296759640">829-675-9640</a> · Instagram: <span id="footerIg">vianedelicatessen</span></p><p>© 2026 VIANE Delicatessen</p></footer><a class="floating" id="waFloat" href="https://wa.me/18296759640" target="_blank" rel="noopener">WhatsApp</a>
 
 <!-- Reproductor flotante: se reproduce aquí mismo, sin llevar al cliente a otra página -->
@@ -209,7 +216,7 @@
     <option value="delivery_santiago">Envío a Santiago</option>
     <option value="delivery_capital">Envío a Santo Domingo</option>
   </select>
-</label><label class="field">Fecha deseada *<input id="orderDate" type="date" required></label></div><label class="field hidden" id="addressField" style="margin-top:12px">Dirección de entrega *<input id="orderAddress" maxlength="300" autocomplete="street-address" placeholder="Calle, número, sector y una referencia"></label><label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn">Crear pedido</button><button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button></div></form><div id="orderCreated" class="hidden"></div></div></div>
+</label><label class="field">Fecha deseada *<input id="orderDate" type="date" required></label></div><label class="field hidden" id="addressField" style="margin-top:12px">Dirección de entrega *<input id="orderAddress" maxlength="300" autocomplete="street-address" placeholder="Calle, número, sector y una referencia"></label><div class="field" style="margin-top:12px">Código de Vendedor (opcional)<div class="row"><input id="orderReseller" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ej. MARIA10"><button type="button" class="btn light" id="resellerBtn" onclick="applyReseller()" style="flex:0 0 auto">Aplicar</button></div><span id="resellerMsg" class="muted" role="status" aria-live="polite"></span></div><label class="field" style="margin-top:12px">Notas<textarea id="orderNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn">Crear pedido</button><button type="button" class="btn light" onclick="closeCart()">Seguir comprando</button></div></form><div id="orderCreated" class="hidden"></div></div></div>
 <div id="tipModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">¿Te gustaría dejar una propina?</h2><p class="muted">Tu apoyo nos ayuda a seguir creando detalles especiales.</p><div id="tipLinks"></div><div class="row" style="margin-top:14px"><button class="btn" onclick="document.getElementById('tipModal').classList.add('hidden')">Ahora no, gracias</button></div></div></div>
 <div id="visor" onclick="closeVisor()"><button type="button" class="visor-x" aria-label="Cerrar">✕</button><img id="visorImg" alt=""><p id="visorCap"></p></div>
 <script>
@@ -218,7 +225,7 @@ const $=id=>document.getElementById(id);
    solo en "Todos" y en "Personalizado" (cada producto tiene una sola categoría). */
 const BASE_CATS=['desayunos','bandejas','picaderas','bizcochos','mariscos','regalos','eventos','personalizado'];
 const DEFAULT_SHIPPING={pickup:0,delivery_pp:250,delivery_santiago:600,delivery_capital:700};
-let state={products:[],reviews:[],payments:[],ads:[],settings:{},cart:[],rating:5,admin:false,adminData:null,category:'Todos',categories:[],delivery:null,lastOrderHtml:''};
+let state={products:[],reviews:[],payments:[],ads:[],settings:{},cart:[],rating:5,admin:false,adminData:null,category:'Todos',categories:[],delivery:null,lastOrderHtml:'',reseller:null,reseller_discount:3};
 /* Botones del catálogo = categorías visibles creadas en "Gestión de categorías". Si el servidor
    aún no envía la lista, se usa la lista fija de siempre. "otros" solo sale si tiene productos. */
 function getCats(){
@@ -246,12 +253,35 @@ function getCostoEnvio(){
   const srv=state.delivery&&state.delivery[m];          // el costo oficial viene del servidor
   return srv?(Number(srv.cost)||0):(DEFAULT_SHIPPING[m]||0);
 }
+/* ---------- Código de vendedor: 3% de descuento sobre los productos ---------- */
+function cleanResellerCode(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,20)}
+function setResellerMsg(text,kind){const m=$('resellerMsg');m.textContent=text||'';m.style.color=kind==='ok'?'#168653':(kind==='err'?'var(--bright)':'')}
+function calcDiscount(subtotal){return state.reseller?Math.round(subtotal*state.reseller.pct)/100:0}
+async function applyReseller(){
+  const input=$('orderReseller'),code=cleanResellerCode(input.value);input.value=code;
+  if(!code){clearReseller();return}
+  const btn=$('resellerBtn');btn.disabled=true;setResellerMsg('Validando…');
+  try{
+    const d=await api('/api/resellers/validate',{method:'POST',body:JSON.stringify({code})});
+    state.reseller={code:d.code,name:d.name,pct:Number(d.discount_pct)||Number(state.reseller_discount)||3};
+    setResellerMsg('Descuento para: '+d.name,'ok');
+  }catch(err){state.reseller=null;setResellerMsg(err.message,'err')}
+  finally{btn.disabled=false;actualizarCostoEnvio()}
+}
+function clearReseller(){state.reseller=null;setResellerMsg('');actualizarCostoEnvio()}
+$('orderReseller').addEventListener('input',()=>{            // si cambia el código, se quita el descuento
+  if(state.reseller&&cleanResellerCode($('orderReseller').value)!==state.reseller.code)clearReseller();
+});
+$('orderReseller').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyReseller()}});
+
 function actualizarCostoEnvio(){
   const subtotal=state.cart.reduce((s,p)=>s+Number(p.price),0);
+  const descuento=state.cart.length?calcDiscount(subtotal):0;
   const envio=state.cart.length?getCostoEnvio():0;
   if($('invSubtotal'))$('invSubtotal').textContent=money(subtotal);
+  if($('invDescRow')){$('invDescRow').classList.toggle('hidden',!descuento);$('invDescLabel').textContent='Descuento vendedor ('+(state.reseller?state.reseller.pct:0)+'%)';$('invDesc').textContent='-'+money(descuento)}
   if($('invEnvio'))$('invEnvio').textContent=money(envio);
-  $('cartTotal').textContent='Total: '+money(subtotal+envio);
+  $('cartTotal').textContent='Total: '+money(subtotal-descuento+envio);
 }
 function toggleAddress(){
   const delivery=$('deliveryMethod').value!=='pickup';
@@ -284,6 +314,7 @@ function renderCart(){
     </div>`).join('')+`
     <div style="margin-top:15px;border-top:1px solid var(--line);padding-top:10px">
       <p>Subtotal: <span id="invSubtotal">${money(0)}</span></p>
+      <p id="invDescRow" class="hidden"><span id="invDescLabel">Descuento vendedor</span>: <span id="invDesc"></span></p>
       <p>Envío: <span id="invEnvio">${money(0)}</span></p>
     </div>`;
   actualizarCostoEnvio();
@@ -302,11 +333,13 @@ function buildWhatsAppUrl(d,s){
     'Teléfono/WhatsApp: '+s.phone,
     'Método de entrega: '+s.methodLabel
   ];
+  if(d.reseller_name)L.push('Código de vendedor: '+d.reseller_code+' ('+d.reseller_name+')');
   if(s.method!=='pickup'&&s.address)L.push('Dirección: '+s.address);
   L.push('Fecha deseada: '+fmtDate(s.date));
   L.push('Notas: '+(s.notes?s.notes.slice(0,500):'Sin notas'));
   L.push('','*Productos*',detalle,'');
   L.push('Subtotal: '+money(d.subtotal!=null?d.subtotal:d.total));
+  if(d.discount)L.push('Descuento vendedor: -'+money(d.discount));
   if(d.shipping)L.push('Envío: '+money(d.shipping));
   L.push('*Total: '+money(d.total)+'*','','¿Me ayudan con el pago?');
   if(d.review_url)L.push('','Cuando finalice mi experiencia, puedo dejar mi reseña aquí: '+d.review_url);
@@ -319,6 +352,11 @@ function copyCode(code,btn){
 $('orderForm').addEventListener('submit',async e=>{
   e.preventDefault();
   if(!state.cart.length){alert('Agrega al menos un producto a tu pedido.');return}
+  const typed=cleanResellerCode($('orderReseller').value);   // si escribió un código sin aplicarlo, se valida ahora
+  if(typed&&(!state.reseller||state.reseller.code!==typed)){
+    await applyReseller();
+    if(!state.reseller){alert('El código de vendedor no es válido o está inactivo. Corrígelo o bórralo para continuar.');return}
+  }
   const btn=e.submitter||e.target.querySelector('button:not([type=button])');
   if(btn)btn.disabled=true;
   /* Se guarda una copia de los datos ANTES de vaciar el carrito y limpiar el formulario */
@@ -329,11 +367,11 @@ $('orderForm').addEventListener('submit',async e=>{
     items:state.cart.slice()
   };
   try{
-    const d=await api('/api/orders',{method:'POST',body:JSON.stringify({name:snap.name,phone:snap.phone,province:snap.methodLabel,delivery_method:snap.method,address:snap.address,delivery_date:snap.date,notes:snap.notes,items:snap.items.map(p=>({id:p.id}))})});
+    const d=await api('/api/orders',{method:'POST',body:JSON.stringify({name:snap.name,phone:snap.phone,province:snap.methodLabel,delivery_method:snap.method,address:snap.address,delivery_date:snap.date,notes:snap.notes,reseller_code:state.reseller?state.reseller.code:'',items:snap.items.map(p=>({id:p.id}))})});
     const wa=buildWhatsAppUrl(d,snap);
-    state.lastOrderHtml=`<div class="adminpanel"><h3 style="margin-top:0;color:var(--crimson)">¡Pedido creado!</h3><p>Tu código de seguimiento es <b>${esc(d.code)}</b>. Guárdalo para consultar el estado.</p><p class="muted">Total a pagar: <b>${money(d.total)}</b>${d.shipping?' (incluye envío de '+money(d.shipping)+')':''}</p><div class="btn-stack"><button type="button" class="btn light" onclick="copyCode('${esc(d.code)}',this)">Copiar código</button><a class="btn" href="${esc(wa)}" target="_blank" rel="noopener">Continuar por WhatsApp</a></div><p class="muted">Al finalizar tu experiencia, podrás dejar tu reseña aquí: <a href="#reviews" onclick="closeCart();go('reviews')">Publicar reseña</a></p></div>`;
+    state.lastOrderHtml=`<div class="adminpanel"><h3 style="margin-top:0;color:var(--crimson)">¡Pedido creado!</h3><p>Tu código de seguimiento es <b>${esc(d.code)}</b>. Guárdalo para consultar el estado.</p><p class="muted">Total a pagar: <b>${money(d.total)}</b>${d.shipping?' (incluye envío de '+money(d.shipping)+')':''}${d.discount?' · descuento de '+money(d.discount)+' para '+esc(d.reseller_name):''}</p><div class="btn-stack"><button type="button" class="btn light" onclick="copyCode('${esc(d.code)}',this)">Copiar código</button><a class="btn" href="${esc(wa)}" target="_blank" rel="noopener">Continuar por WhatsApp</a></div><p class="muted">Al finalizar tu experiencia, podrás dejar tu reseña aquí: <a href="#reviews" onclick="closeCart();go('reviews')">Publicar reseña</a></p></div>`;
     state.cart=[];$('cartCount').textContent='0';
-    $('orderForm').reset();toggleAddress();
+    $('orderForm').reset();state.reseller=null;setResellerMsg('');toggleAddress();
     $('orderCreated').innerHTML=state.lastOrderHtml;showCartForm(false);
   }catch(err){alert(err.message)}
   finally{if(btn)btn.disabled=false}
@@ -407,12 +445,21 @@ $('mpClose').onclick=()=>{mp.closedUrl=mp.url;try{sessionStorage.setItem('vianeM
 /* ---------- Administrador ---------- */
 function openLogin(){$('loginModal').classList.remove('hidden')}function closeLogin(){$('loginModal').classList.add('hidden')}$('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/login',{method:'POST',body:JSON.stringify({email:$('loginEmail').value,password:$('loginPassword').value})});state.admin=true;closeLogin();go('admin');loadAdmin()}catch(err){$('loginError').textContent=err.message}});async function logout(){await api('/api/logout',{method:'POST'}).catch(()=>{});state.admin=false;go('catalog')}
 async function loadAdmin(){if(!state.admin)return;try{state.adminData=await api('/api/admin/data');adminTab(window.currentAdminTab||'orders')}catch(e){state.admin=false;openLogin()}}
-function adminTab(tab){window.currentAdminTab=tab;let d=state.adminData;if(!d)return;let out='';if(tab==='orders'){out='<h3>Seguimiento de pedidos</h3><p class="muted">Al marcar un pedido como <b>Entregado</b> o <b>Terminado</b> pasa automáticamente a la sección Ventas.</p>'+d.orders.map(o=>`<div class="adminpanel"><div class="row"><b>${esc(o.code)} · ${esc(o.name)}</b><span>${money(o.total)}</span></div><p class="muted">${esc(o.phone)} · ${esc(o.sector||o.province)} · ${esc(o.delivery_date)}</p>${o.address?`<p class="muted">Dirección: ${esc(o.address)}</p>`:''}<p><b>Productos:</b> ${(()=>{try{return JSON.parse(o.items||'[]').map(i=>esc(i.name)).join(' · ')}catch(e){return ''}})()}</p>${Number(o.shipping)?`<p class="muted">Incluye envío de ${money(o.shipping)}</p>`:''}<div class="fields"><label class="field">Estado<select id="os${o.id}">${d.statuses.map(s=>`<option ${s===o.status?'selected':''}>${esc(s)}</option>`).join('')}</select></label><label class="field">Pago<select id="op${o.id}">${['Pago pendiente','Pago recibido','Pago confirmado','Reembolsado'].map(s=>`<option ${s===o.payment_status?'selected':''}>${esc(s)}</option>`).join('')}</select></label></div><label class="field">Observación / incidencia<textarea id="on${o.id}">${esc(o.incident||o.notes||'')}</textarea></label><button class="btn" onclick="saveOrder(${o.id})">Guardar estado</button></div>`).join('')||'<p class="muted">No hay pedidos pendientes.</p>'}
+function adminTab(tab){window.currentAdminTab=tab;let d=state.adminData;if(!d)return;let out='';if(tab==='orders'){out='<h3>Seguimiento de pedidos</h3><p class="muted">Al marcar un pedido como <b>Entregado</b> o <b>Terminado</b> pasa automáticamente a la sección Ventas.</p>'+d.orders.map(o=>`<div class="adminpanel"><div class="row"><b>${esc(o.code)} · ${esc(o.name)}</b><span>${money(o.total)}</span></div><p class="muted">${esc(o.phone)} · ${esc(o.sector||o.province)} · ${esc(o.delivery_date)}</p>${o.address?`<p class="muted">Dirección: ${esc(o.address)}</p>`:''}${o.reseller_name?`<p class="muted">Vendedor: <b>${esc(o.reseller_name)}</b> (${esc(o.reseller_code)}) · Descuento ${money(o.discount)} · Comisión ${money(o.commission)}</p>`:''}<p><b>Productos:</b> ${(()=>{try{return JSON.parse(o.items||'[]').map(i=>esc(i.name)).join(' · ')}catch(e){return ''}})()}</p>${Number(o.shipping)?`<p class="muted">Incluye envío de ${money(o.shipping)}</p>`:''}<div class="fields"><label class="field">Estado<select id="os${o.id}">${d.statuses.map(s=>`<option ${s===o.status?'selected':''}>${esc(s)}</option>`).join('')}</select></label><label class="field">Pago<select id="op${o.id}">${['Pago pendiente','Pago recibido','Pago confirmado','Reembolsado'].map(s=>`<option ${s===o.payment_status?'selected':''}>${esc(s)}</option>`).join('')}</select></label></div><label class="field">Observación / incidencia<textarea id="on${o.id}">${esc(o.incident||o.notes||'')}</textarea></label><button class="btn" onclick="saveOrder(${o.id})">Guardar estado</button></div>`).join('')||'<p class="muted">No hay pedidos pendientes.</p>'}
 
 if(tab==='sales'){
   const f=window.salesFilter||(window.salesFilter={from:'',to:''});
   out=`<h3>Ventas</h3><p class="muted">Aquí llegan solos los pedidos marcados como <b>Entregado</b> o <b>Terminado</b>.</p><div class="adminpanel"><div class="fields"><label class="field">Desde<input type="date" id="sf_from" value="${esc(f.from)}"></label><label class="field">Hasta<input type="date" id="sf_to" value="${esc(f.to)}"></label></div><div class="btn-stack"><button type="button" class="btn" onclick="applySalesFilter()">Filtrar</button><button type="button" class="btn light" onclick="quickRange('today')">Hoy</button><button type="button" class="btn light" onclick="quickRange('month')">Este mes</button><button type="button" class="btn light" onclick="quickRange('all')">Todo</button></div></div><div id="salesBody"><p class="muted">Cargando ventas…</p></div>`;
   setTimeout(loadSales,0);
+}
+
+if(tab==='resellers'){
+  const rs=d.resellers||[];
+  const body=rs.map(r=>`<tr><td><b>${esc(r.name)}</b></td><td><code>${esc(r.code)}</code></td><td><span class="status">${r.active?'Activo':'Inactivo'}</span></td><td>${Number(r.orders_count)}</td><td>${money(r.earned)}</td><td>${money(r.pending)}</td><td><div class="tbl-actions"><button type="button" class="btn light" onclick="editReseller(${r.id})">Editar</button><button type="button" class="btn light" onclick="toggleReseller(${r.id},${r.active?0:1})">${r.active?'Desactivar':'Activar'}</button><button type="button" class="btn" onclick="deleteReseller(${r.id})">Eliminar</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">Aún no hay vendedores.</td></tr>';
+  out=`<h3>Vendedores y códigos de descuento</h3><p class="muted">Cada vendedor tiene un código reutilizable. Con un código activo el cliente recibe un <b>${d.reseller_discount||3}%</b> de descuento en los productos y el vendedor gana un <b>${d.reseller_commission||15}%</b> del valor de la venta (ya con descuento y sin envío). La ganancia pasa a «cobrable» cuando el pedido llega a Entregado o Terminado.</p>
+  <form id="resellerForm" class="adminpanel"><div class="fields"><label class="field">Nombre del vendedor *<input id="rvName" maxlength="80" required></label><label class="field">Código (opcional, si lo dejas vacío se genera solo)<input id="rvCode" maxlength="20" autocapitalize="characters" placeholder="Ej. MARIA10"></label></div><button class="btn" style="margin-top:12px">Agregar vendedor</button></form>
+  <div class="adminpanel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Vendedor</th><th>Código</th><th>Estado</th><th>Pedidos</th><th>Ganancia cobrable</th><th>Pendiente</th><th>Acciones</th></tr></thead><tbody>${body}</tbody></table></div></div>`;
+  setTimeout(()=>{const f=$('resellerForm');if(f)f.onsubmit=createReseller},0);
 }
 
 if(tab==='cats'){
@@ -465,11 +512,17 @@ function renderSales(d){
   const sectorRows=d.by_sector.map((s,i)=>`<div class="sector-row"><div class="sector-head"><span class="dot" style="background:${colors[i%colors.length]}"></span><span><b>${esc(s.sector)}</b> <span class="muted tiny">${s.count} venta${s.count===1?'':'s'}</span></span><span>${money(s.amount)}</span><b>${s.percent}%</b></div><div class="bar"><i style="width:${s.percent}%;background:${colors[i%colors.length]}"></i></div></div>`).join('');
   const list=d.sales.map(s=>{
     const lines=s.lines.map(l=>`<div class="sale-line"><span>${l.qty>1?l.qty+' × ':''}${esc(l.name)}</span>${l.price!=null?`<span class="muted">${money(l.price)}</span>`:''}</div>`).join('');
-    return `<article class="sale"><div class="sale-head"><div class="sale-lines">${lines}</div><div class="sale-total"><span class="muted tiny">Total</span><b class="price">${money(s.amount)}</b></div></div><div class="sale-meta"><span class="status">${esc(s.sector)}</span>${s.shipping?`<span class="muted tiny">Incluye envío de ${money(s.shipping)}</span>`:''}</div><div class="sale-contact"><div>Dirección: ${esc(s.address||'No registrada')}</div><div>Teléfono / WhatsApp: <a href="https://wa.me/${waDigits(s.contact)}" target="_blank" rel="noopener">${esc(s.contact)}</a></div></div><div class="sale-foot tiny muted"><span>${esc(s.code)} · ${esc(s.sold_date)}</span><button type="button" class="btn light" onclick="reopenSale(${s.id})">Reabrir pedido</button></div></article>`;
+    return `<article class="sale"><div class="sale-head"><div class="sale-lines">${lines}</div><div class="sale-total"><span class="muted tiny">Total</span><b class="price">${money(s.amount)}</b></div></div><div class="sale-meta"><span class="status">${esc(s.sector)}</span>${s.shipping?`<span class="muted tiny">Incluye envío de ${money(s.shipping)}</span>`:''}${s.reseller?`<span class="muted tiny">Vendedor: ${esc(s.reseller)} · Descuento ${money(s.discount)}</span>`:''}</div><div class="sale-contact"><div>Dirección: ${esc(s.address||'No registrada')}</div><div>Teléfono / WhatsApp: <a href="https://wa.me/${waDigits(s.contact)}" target="_blank" rel="noopener">${esc(s.contact)}</a></div></div><div class="sale-foot tiny muted"><span>${esc(s.code)} · ${esc(s.sold_date)}</span><button type="button" class="btn light" onclick="reopenSale(${s.id})">Reabrir pedido</button></div></article>`;
   }).join('');
   return `<div class="kpis">${kpis}</div><div class="adminpanel"><h4 style="margin-top:0">Ventas por sector</h4><div class="sales-chart"><div class="donut" style="background:conic-gradient(${stops})" role="img" aria-label="Porcentaje de ventas por sector"><span>${d.count}<small>ventas</small></span></div><div>${sectorRows}</div></div></div><h4>Detalle de ventas</h4>${list}`;
 }
 async function reopenSale(id){if(!confirm('¿Reabrir este pedido? Volverá a la lista de Pedidos como "En camino".'))return;try{await api('/api/sales/'+id,{method:'DELETE'});await refreshAdmin()}catch(e){alert(e.message)}}
+
+/* ---------- Vendedores ---------- */
+async function createReseller(e){e.preventDefault();try{const r=await api('/api/resellers',{method:'POST',body:JSON.stringify({name:$('rvName').value.trim(),code:$('rvCode').value.trim()})});await refreshAdmin();alert('Vendedor creado. Su código es: '+r.code)}catch(err){alert(err.message)}}
+async function editReseller(id){const r=(state.adminData.resellers||[]).find(x=>x.id===id);if(!r)return;const name=prompt('Nombre del vendedor',r.name);if(name===null)return;const code=prompt('Código de descuento',r.code);if(code===null)return;try{await api('/api/resellers/'+id,{method:'PUT',body:JSON.stringify({name:name.trim(),code:code.trim()})});await refreshAdmin()}catch(err){alert(err.message)}}
+async function toggleReseller(id,active){try{await api('/api/resellers/'+id,{method:'PUT',body:JSON.stringify({active:!!active})});await refreshAdmin()}catch(err){alert(err.message)}}
+async function deleteReseller(id){if(!confirm('¿Eliminar este vendedor? Los pedidos ya hechos conservan su nombre y código.'))return;try{await api('/api/resellers/'+id,{method:'DELETE'});await refreshAdmin()}catch(err){alert(err.message)}}
 
 /* ---------- Gestión de categorías ---------- */
 async function afterCategoryChange(){await load();await refreshAdmin()}
