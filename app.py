@@ -874,7 +874,7 @@ def refund_hook(c, oid, status, payment):
                   'VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT (order_id) DO NOTHING',
                   (o['id'], o['name'], o['phone'], order_date, float(o['total']), now()))
         c.execute('DELETE FROM sales WHERE order_id=%s', (oid,))
-        else:
+    else:
         # solo borra el reembolso automático; los manuales (con motivo) se conservan
         c.execute("DELETE FROM refunds WHERE order_id=%s AND reason=''", (oid,))
 
