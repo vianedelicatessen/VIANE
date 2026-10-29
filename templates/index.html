@@ -381,7 +381,8 @@ $('orderForm').addEventListener('submit',async e=>{
 });
 
 /* ---------- Seguimiento ---------- */
-$('trackForm').addEventListener('submit',async e=>{e.preventDefault();$('trackResult').innerHTML='<p class="muted">Consultando…</p>';try{let d=await api('/api/track/'+encodeURIComponent($('trackCode').value.trim()));$('trackResult').innerHTML=`<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p>${d.delivery_date?`<p class="muted">Fecha deseada de entrega: ${esc(fmtDate(d.delivery_date))}</p>`:''}<p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident?`<p>Observación: ${esc(d.incident)}</p>`:''}</div>`}catch(err){$('trackResult').innerHTML='<p class="muted">'+esc(err.message)+'</p>'}});
+if($('trackForm'))$('trackForm').addEventListener('submit',async e=>{
+e.preventDefault();$('trackResult').innerHTML='<p class="muted">Consultando…</p>';try{let d=await api('/api/track/'+encodeURIComponent($('trackCode').value.trim()));$('trackResult').innerHTML=`<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p>${d.delivery_date?`<p class="muted">Fecha deseada de entrega: ${esc(fmtDate(d.delivery_date))}</p>`:''}<p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident?`<p>Observación: ${esc(d.incident)}</p>`:''}</div>`}catch(err){$('trackResult').innerHTML='<p class="muted">'+esc(err.message)+'</p>'}});
 $('affiliateForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const btn=e.submitter||e.target.querySelector('button');
