@@ -387,12 +387,15 @@ MIGRATIONS = [
         id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL, skey TEXT NOT NULL,
         qty DOUBLE PRECISION NOT NULL)''',
     "ALTER TABLE recipe_items ENABLE ROW LEVEL SECURITY",
-    "CREATE INDEX IF NOT EXISTS recipe_items_pid_idx ON recipe_items(product_id)",
+   '''CREATE INDEX IF NOT EXISTS recipe_items_pid_idx ON recipe_items(product_id)",
+   "ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS socials TEXT NOT NULL DEFAULT ''',
+   "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS reason TEXT NOT NULL DEFAULT ''',
+   ...
     # v6: columnas para solicitudes de afiliados (formulario simple) y reembolsos manuales
-    "ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS socials TEXT NOT NULL DEFAULT ''",
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS reason TEXT NOT NULL DEFAULT ''",
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pendiente'",
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS socials TEXT NOT NULL DEFAULT ''',
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS reason TEXT NOT NULL DEFAULT ''',
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pendiente''',
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT ''',
 ]
 
 _schema_ready = False
