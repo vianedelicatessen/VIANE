@@ -22,6 +22,8 @@ Novedades de esta version (esquema v3, se migra solo, sin perder datos):
 - Reproductor flotante: ajustes music_url, music_title y music_kind.
 - Categorias gestionables desde el panel (crear, renombrar, ocultar, eliminar).
 - Vendedores (esquema v4): codigo multiuso, descuento al cliente y comision del vendedor.
+- Esquema v5: % de descuento y de comision EDITABLES por vendedor, ventas con borrado
+  logico (papelera de 12 meses, reactivables) y control de costos (insumos, recetas, ganancia neta).
 """
 import io
 import os
@@ -110,8 +112,11 @@ DELIVERY = {
 }
 
 # Vendedores (revendedores) con codigo de descuento multiuso.
-RESELLER_DISCOUNT_PCT = 3      # % que se le descuenta al cliente (sobre los productos, no sobre el envio)
-RESELLER_COMMISSION_PCT = 15   # % de ganancia del vendedor sobre el valor de la venta (productos ya con descuento)
+RESELLER_DISCOUNT_PCT = 3      # (por defecto; cada codigo puede tener el suyo) % que se le descuenta al cliente (sobre los productos, no sobre el envio)
+RESELLER_COMMISSION_PCT = 15   # (por defecto; cada vendedor puede tener el suyo) % de ganancia del vendedor sobre el valor de la venta (productos ya con descuento)
+
+# Ventas eliminadas (borrado logico): se conservan este numero de dias y se pueden reactivar.
+TRASH_DAYS = 365
 
 # Vercel limita el cuerpo de una peticion a 4.5 MB. Archivos mas grandes deben
 # subirse directo a Cloudinary con /api/upload-signature (ver README).
@@ -270,7 +275,7 @@ SCHEMA = [
 
 # Migracion v3: columnas nuevas. Se aplican UNA sola vez (marca "_schema_version" en settings)
 # y son seguras de repetir (IF NOT EXISTS), asi que no se pierde ningun dato existente.
-SCHEMA_VERSION = '4'
+SCHEMA_VERSION = '5'
 MIGRATIONS = [
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT ''",
@@ -289,6 +294,22 @@ MIGRATIONS = [
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS reseller_code TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount DOUBLE PRECISION NOT NULL DEFAULT 0",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission DOUBLE PRECISION NOT NULL DEFAULT 0",
+    # v5: porcentajes por vendedor, papelera de ventas y control de costos
+    f"ALTER TABLE resellers ADD COLUMN IF NOT EXISTS discount_pct DOUBLE PRECISION NOT NULL DEFAULT {RESELLER_DISCOUNT_PCT}",
+    f"ALTER TABLE resellers ADD COLUMN IF NOT EXISTS commission_pct DOUBLE PRECISION NOT NULL DEFAULT {RESELLER_COMMISSION_PCT}",
+    "ALTER TABLE sales ADD COLUMN IF NOT EXISTS deleted_at TEXT",
+    '''CREATE TABLE IF NOT EXISTS supplies(
+        id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, skey TEXT NOT NULL,
+        qty DOUBLE PRECISION NOT NULL DEFAULT 1, cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+        sale_price DOUBLE PRECISION NOT NULL DEFAULT 0, supplier TEXT NOT NULL DEFAULT '',
+        bought_on TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)''',
+    "ALTER TABLE supplies ENABLE ROW LEVEL SECURITY",
+    "CREATE INDEX IF NOT EXISTS supplies_skey_idx ON supplies(skey)",
+    '''CREATE TABLE IF NOT EXISTS recipe_items(
+        id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL, skey TEXT NOT NULL,
+        qty DOUBLE PRECISION NOT NULL)''',
+    "ALTER TABLE recipe_items ENABLE ROW LEVEL SECURITY",
+    "CREATE INDEX IF NOT EXISTS recipe_items_pid_idx ON recipe_items(product_id)",
 ]
 
 _schema_ready = False
@@ -586,8 +607,89 @@ def find_reseller(c, raw):
     code = clean_reseller_code(raw)
     if not code:
         return None
-    row = c.execute('SELECT id,name,code,active FROM resellers WHERE code=%s', (code,)).fetchone()
+    row = c.execute('SELECT id,name,code,active,discount_pct,commission_pct FROM resellers WHERE code=%s',
+                    (code,)).fetchone()
     return row if row and row['active'] else None
+
+
+def reseller_pcts(r):
+    """(% de descuento al cliente, % de comision del vendedor) de ese vendedor."""
+    d = r.get('discount_pct') if r else None
+    m = r.get('commission_pct') if r else None
+    return (RESELLER_DISCOUNT_PCT if d is None else float(d),
+            RESELLER_COMMISSION_PCT if m is None else float(m))
+
+
+def parse_pct(v, default):
+    """Porcentaje entre 0 y 100. Vacio -> valor por defecto. Invalido -> ValueError."""
+    if v is None or str(v).strip() == '':
+        return default
+    x = to_float(str(v).replace(',', '.'))
+    if x is None or not 0 <= x <= 100:
+        raise ValueError('porcentaje')
+    return round(x, 2)
+
+
+def num(v, default=None):
+    if v is None or str(v).strip() == '':
+        return default
+    return to_float(str(v).replace(',', '.'))
+
+
+def supply_key(name):
+    """Clave para agrupar insumos iguales ('Uvas ' y 'uvas' son el mismo insumo)."""
+    return re.sub(r'\s+', ' ', _norm(name))[:80]
+
+
+def clean_supply(r):
+    """Valida una fila de insumo. Devuelve (name, skey, qty, cost, sale_price, supplier, bought_on)."""
+    if not isinstance(r, dict):
+        raise ValueError('fila inválida')
+    name = str(r.get('name') or '').strip()[:80]
+    if not name:
+        raise ValueError('escribe el nombre del insumo')
+    qty, cost, price = num(r.get('qty'), 1.0), num(r.get('cost'), 0.0), num(r.get('sale_price'), 0.0)
+    if qty is None or qty <= 0:
+        raise ValueError('la cantidad debe ser mayor que 0')
+    if cost is None or cost < 0 or price is None or price < 0:
+        raise ValueError('costo y precio de venta deben ser números válidos')
+    supplier = str(r.get('supplier') or '').strip()[:80]
+    bought = str(r.get('bought_on') or '').strip()
+    if bought and not re.fullmatch(r'\d{4}-\d{2}-\d{2}', bought):
+        raise ValueError('fecha de compra inválida')
+    return name, supply_key(name), qty, cost, price, supplier, bought
+
+
+def product_costs(c):
+    """Costo de produccion por producto = suma(cantidad usada x costo promedio unitario del insumo).
+    El promedio sale de TODAS las compras de ese insumo (costo total / cantidad total)."""
+    data = c.execute(
+        'SELECT ri.product_id, SUM(ri.qty * u.unit) AS cost FROM recipe_items ri '
+        'JOIN (SELECT skey, SUM(cost)/NULLIF(SUM(qty),0) AS unit FROM supplies GROUP BY skey) u '
+        'ON u.skey=ri.skey GROUP BY ri.product_id').fetchall()
+    return {r['product_id']: float(r['cost']) for r in data if r['cost']}
+
+
+def order_cost(raw, pcosts):
+    """(precio de lista, costo de produccion, costo_incompleto) de los productos de un pedido."""
+    try:
+        items = json.loads(raw or '[]')
+    except Exception:
+        items = []
+    if not isinstance(items, list):
+        items = []
+    gross = cost = 0.0
+    missing = not items
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        gross += to_float(it.get('price')) or 0.0
+        pc = pcosts.get(it.get('id'))
+        if pc is None:
+            missing = True
+        else:
+            cost += pc
+    return gross, cost, missing
 
 
 def items_text(raw):
@@ -802,9 +904,10 @@ def create_order():
             return jsonify({'error': 'No hay productos válidos'}), 400
         shipping = float(delivery['cost'])
         # Descuento al cliente y ganancia del vendedor (ver RESELLER_* arriba).
-        discount = round(subtotal * RESELLER_DISCOUNT_PCT / 100, 2) if reseller else 0.0
+        disc_pct, comm_pct = reseller_pcts(reseller)  # porcentajes propios de ese vendedor
+        discount = round(subtotal * disc_pct / 100, 2) if reseller else 0.0
         net = subtotal - discount
-        commission = round(net * RESELLER_COMMISSION_PCT / 100, 2) if reseller else 0.0
+        commission = round(net * comm_pct / 100, 2) if reseller else 0.0
         total = net + shipping
         code = 'VIA-' + secrets.token_hex(4).upper()
         c.execute(
@@ -819,7 +922,6 @@ def create_order():
              reseller['code'] if reseller else '', discount, commission))
         s = setting_map(c)
     return jsonify({'ok': True, 'code': code, 'subtotal': subtotal, 'discount': discount,
-                    'reseller_name': reseller['name'] if reseller else '',
                     'reseller_code': reseller['code'] if reseller else '',
                     'shipping': shipping, 'total': total,
                     'delivery_label': delivery['label'], 'sector': delivery['sector'],
@@ -828,16 +930,15 @@ def create_order():
 
 @app.post('/api/resellers/validate')
 def validate_reseller():
-    """Publico: comprueba un codigo de vendedor y devuelve su nombre (nada mas)."""
+    """Publico: comprueba un codigo y devuelve SOLO su % de descuento (no el nombre del vendedor)."""
     code = clean_reseller_code(body().get('code'))
     if not code:
-        return jsonify({'valid': False, 'error': 'Escribe el código de vendedor'}), 404
+        return jsonify({'valid': False, 'error': 'Escribe el código'}), 404
     with db() as c:
         r = find_reseller(c, code)
     if not r:
-        return jsonify({'valid': False, 'error': 'Código de vendedor no válido o inactivo'}), 404
-    return jsonify({'valid': True, 'name': r['name'], 'code': r['code'],
-                    'discount_pct': RESELLER_DISCOUNT_PCT})
+        return jsonify({'valid': False, 'error': 'Código no válido o inactivo'}), 404
+    return jsonify({'valid': True, 'code': r['code'], 'discount_pct': reseller_pcts(r)[0]})
 
 
 @app.get('/api/track/<code>')
@@ -913,14 +1014,16 @@ def admin_data():
             'categories': cats,
             'ads': rows(c, 'SELECT * FROM ads ORDER BY id DESC'),
             'payments': rows(c, 'SELECT * FROM payments ORDER BY id DESC'),
-            'resellers': rows(c, 'SELECT r.id,r.name,r.code,r.active,r.created_at,'
+            'resellers': rows(c, 'SELECT r.id,r.name,r.code,r.active,r.created_at,r.discount_pct,r.commission_pct,'
                                  '(SELECT COUNT(*) FROM orders o WHERE o.reseller_id=r.id) AS orders_count,'
+                                 # cobrable: pedidos cuya venta existe y NO esta eliminada
                                  '(SELECT COALESCE(SUM(o.commission),0) FROM orders o '
-                                 ' WHERE o.reseller_id=r.id AND o.status = ANY(%s)) AS earned,'
+                                 ' WHERE o.reseller_id=r.id AND EXISTS (SELECT 1 FROM sales s '
+                                 '  WHERE s.order_id=o.id AND s.deleted_at IS NULL)) AS earned,'
                                  '(SELECT COALESCE(SUM(o.commission),0) FROM orders o '
                                  ' WHERE o.reseller_id=r.id AND NOT (o.status = ANY(%s))) AS pending '
                                  'FROM resellers r ORDER BY r.id DESC',
-                              (list(SALE_STATUSES), list(SALE_STATUSES))),
+                              (list(SALE_STATUSES),)),
             'reseller_discount': RESELLER_DISCOUNT_PCT,
             'reseller_commission': RESELLER_COMMISSION_PCT,
             'settings': public_settings(c),
@@ -1036,6 +1139,7 @@ def update_product(pid):
 @admin_required
 def delete_product(pid):
     with db() as c:
+        c.execute('DELETE FROM recipe_items WHERE product_id=%s', (pid,))
         c.execute('DELETE FROM products WHERE id=%s', (pid,))
     return jsonify({'ok': True})
 
@@ -1249,18 +1353,23 @@ def add_reseller():
     code = clean_reseller_code(raw) if raw else 'VND-' + secrets.token_hex(3).upper()
     if len(code) < 3:
         return jsonify({'error': 'El código debe tener al menos 3 caracteres (letras, números o guion)'}), 400
+    try:
+        disc = parse_pct(d.get('discount_pct'), RESELLER_DISCOUNT_PCT)
+        comm = parse_pct(d.get('commission_pct'), RESELLER_COMMISSION_PCT)
+    except ValueError:
+        return jsonify({'error': 'Los porcentajes deben estar entre 0 y 100'}), 400
     with db() as c:
         if c.execute('SELECT 1 FROM resellers WHERE code=%s', (code,)).fetchone():
             return jsonify({'error': 'Ese código ya existe. Elige otro.'}), 400
-        row = c.execute('INSERT INTO resellers(name,code,active,created_at) VALUES(%s,%s,1,%s) RETURNING id',
-                        (name, code, now())).fetchone()
+        row = c.execute('INSERT INTO resellers(name,code,active,created_at,discount_pct,commission_pct) '
+                        'VALUES(%s,%s,1,%s,%s,%s) RETURNING id', (name, code, now(), disc, comm)).fetchone()
     return jsonify({'ok': True, 'id': row['id'], 'code': code})
 
 
 @app.put('/api/resellers/<int:rid>')
 @admin_required
 def update_reseller(rid):
-    """Cambia solo lo que viene en la peticion: name, code y/o active."""
+    """Cambia solo lo que viene en la peticion: name, code, active, discount_pct y/o commission_pct."""
     d = body()
     with db() as c:
         if not c.execute('SELECT 1 FROM resellers WHERE id=%s', (rid,)).fetchone():
@@ -1278,6 +1387,15 @@ def update_reseller(rid):
             if c.execute('SELECT 1 FROM resellers WHERE code=%s AND id<>%s', (code, rid)).fetchone():
                 return jsonify({'error': 'Ese código ya existe. Elige otro.'}), 400
             sets.append('code=%s'); vals.append(code)
+        for field in ('discount_pct', 'commission_pct'):
+            if field in d:
+                try:
+                    pct = parse_pct(d[field], None)
+                except ValueError:
+                    pct = None
+                if pct is None:
+                    return jsonify({'error': 'Los porcentajes deben estar entre 0 y 100'}), 400
+                sets.append(f'{field}=%s'); vals.append(pct)
         if 'active' in d:
             sets.append('active=%s'); vals.append(int(bool(d['active'])))
         if sets:
@@ -1294,61 +1412,199 @@ def delete_reseller(rid):
     return jsonify({'ok': True})
 
 
+# --- Control de costos: insumos (compras) y recetas por bandeja -------------------
+@app.get('/api/costs')
+@admin_required
+def costs_data():
+    """Todo lo de la pagina de Costos en UNA sola peticion (ligera: sin imagenes)."""
+    with db() as c:
+        supplies = rows(c, 'SELECT id,name,qty,cost,sale_price,supplier,bought_on FROM supplies '
+                           'ORDER BY id DESC LIMIT 500')
+        ingredients = rows(c, 'SELECT MIN(name) AS name, skey, SUM(qty) AS qty, SUM(cost) AS cost '
+                              'FROM supplies GROUP BY skey ORDER BY MIN(name)')
+        products = rows(c, 'SELECT id,name,price FROM products ORDER BY name')
+        recipes = rows(c, 'SELECT product_id,skey,qty FROM recipe_items ORDER BY id')
+    return jsonify({'supplies': supplies, 'ingredients': ingredients, 'products': products,
+                    'recipes': recipes})
+
+
+@app.post('/api/supplies/bulk')
+@admin_required
+def add_supplies():
+    """Agrega hasta 20 insumos de una vez (todo o nada)."""
+    items = body().get('rows')
+    if not isinstance(items, list) or not items:
+        return jsonify({'error': 'No hay filas para guardar'}), 400
+    if len(items) > 20:
+        return jsonify({'error': 'Máximo 20 insumos por vez'}), 400
+    clean = []
+    for n, r in enumerate(items, 1):
+        try:
+            clean.append(clean_supply(r))
+        except ValueError as e:
+            label = r.get('row') if isinstance(r, dict) and r.get('row') else n
+            return jsonify({'error': f'Fila {label}: {e}'}), 400
+    with db() as c:
+        for t in clean:
+            c.execute('INSERT INTO supplies(name,skey,qty,cost,sale_price,supplier,bought_on,created_at) '
+                      'VALUES(%s,%s,%s,%s,%s,%s,%s,%s)', (*t, now()))
+    return jsonify({'ok': True, 'count': len(clean)})
+
+
+@app.put('/api/supplies/<int:sid>')
+@admin_required
+def update_supply(sid):
+    try:
+        t = clean_supply(body())
+    except ValueError as e:
+        return jsonify({'error': str(e).capitalize()}), 400
+    with db() as c:
+        old = c.execute('SELECT skey FROM supplies WHERE id=%s', (sid,)).fetchone()
+        if not old:
+            return jsonify({'error': 'Insumo no encontrado'}), 404
+        c.execute('UPDATE supplies SET name=%s,skey=%s,qty=%s,cost=%s,sale_price=%s,supplier=%s,bought_on=%s '
+                  'WHERE id=%s', (*t, sid))
+        # Si se renombro el unico registro de ese insumo, las recetas lo siguen.
+        if old['skey'] != t[1] and not c.execute('SELECT 1 FROM supplies WHERE skey=%s', (old['skey'],)).fetchone():
+            c.execute('UPDATE recipe_items SET skey=%s WHERE skey=%s', (t[1], old['skey']))
+    return jsonify({'ok': True})
+
+
+@app.delete('/api/supplies/<int:sid>')
+@admin_required
+def delete_supply(sid):
+    with db() as c:
+        c.execute('DELETE FROM supplies WHERE id=%s', (sid,))
+    return jsonify({'ok': True})
+
+
+@app.put('/api/recipes/<int:pid>')
+@admin_required
+def save_recipe(pid):
+    """Reemplaza la receta (insumos y cantidades usadas) de una bandeja."""
+    items = body().get('items')
+    if not isinstance(items, list) or len(items) > 40:
+        return jsonify({'error': 'Receta inválida (máximo 40 insumos)'}), 400
+    clean = {}
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        key, q = str(it.get('skey') or '').strip()[:80], num(it.get('qty'))
+        if key and q is not None and q > 0:
+            clean[key] = clean.get(key, 0.0) + q
+    with db() as c:
+        if not c.execute('SELECT 1 FROM products WHERE id=%s', (pid,)).fetchone():
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        valid = {r['skey'] for r in rows(c, 'SELECT DISTINCT skey FROM supplies WHERE skey = ANY(%s)',
+                                         (list(clean),))}
+        c.execute('DELETE FROM recipe_items WHERE product_id=%s', (pid,))
+        for key, q in clean.items():
+            if key in valid:
+                c.execute('INSERT INTO recipe_items(product_id,skey,qty) VALUES(%s,%s,%s)', (pid, key, q))
+    return jsonify({'ok': True})
+
+
 # --- Ventas (pedidos entregados o terminados) -----------------------------------
 @app.get('/api/sales')
 @admin_required
 def list_sales():
-    """Ventas con filtro por rango de fechas (?from=AAAA-MM-DD&to=AAAA-MM-DD).
-    Devuelve cada venta (sin imagenes), los totales y el porcentaje por sector."""
-    sql = ('SELECT s.id,s.order_id,s.code,s.customer,s.contact,s.purchase,s.address,s.amount,'
-           's.sold_date,s.sector,s.shipping,s.subtotal,o.items,o.delivery_method,o.province,'
-           'o.discount,o.reseller_name '
-           'FROM sales s LEFT JOIN orders o ON o.id=s.order_id WHERE 1=1')
-    params = []
+    """Ventas con filtro por fechas (?from=AAAA-MM-DD&to=AAAA-MM-DD).
+    Por defecto devuelve las ventas ACTIVAS; con ?deleted=1 devuelve las eliminadas (papelera).
+    Las eliminadas no cuentan en ningun total y se borran de verdad despues de TRASH_DAYS."""
+    want_trash = request.args.get('deleted') == '1'
+    date_sql, params = '', []
     for arg, op in (('from', '>='), ('to', '<=')):
         v = (request.args.get(arg) or '').strip()
         if re.fullmatch(r'\d{4}-\d{2}-\d{2}', v):
-            sql += f' AND s.sold_date {op} %s'
+            date_sql += f' AND s.sold_date {op} %s'
             params.append(v)
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=TRASH_DAYS)).isoformat()
+    sql = ('SELECT s.id,s.order_id,s.code,s.customer,s.contact,s.purchase,s.address,s.amount,'
+           's.sold_date,s.sector,s.shipping,s.subtotal,s.deleted_at,o.items,o.delivery_method,o.province,'
+           'o.discount,o.reseller_name,o.commission '
+           'FROM sales s LEFT JOIN orders o ON o.id=s.order_id '
+           f"WHERE s.deleted_at IS {'NOT NULL' if want_trash else 'NULL'}")
     with db() as c:
-        data = rows(c, sql + ' ORDER BY s.sold_date DESC, s.id DESC', tuple(params))
+        c.execute('DELETE FROM sales WHERE deleted_at IS NOT NULL AND deleted_at < %s', (cutoff,))
+        data = rows(c, sql + date_sql + ' ORDER BY s.sold_date DESC, s.id DESC', tuple(params))
+        trash_count = len(data) if want_trash else c.execute(
+            'SELECT COUNT(*) AS n FROM sales s WHERE s.deleted_at IS NOT NULL' + date_sql,
+            tuple(params)).fetchone()['n']
+        pcosts = product_costs(c)
 
     sales, sectors = [], {}
-    total = subtotal_sum = shipping_sum = 0.0
+    tot = {'total': 0.0, 'subtotal': 0.0, 'shipping': 0.0, 'discount': 0.0, 'commission': 0.0,
+           'cost': 0.0, 'profit': 0.0}
+    cost_missing_count = 0
     for r in data:
         amount = float(r['amount'] or 0)
         shipping = float(r['shipping'] or 0)
         subtotal = float(r['subtotal'] or 0)
         if not subtotal and not shipping:  # ventas anteriores a la v3: el monto era solo productos
             subtotal = amount
+        discount = float(r['discount'] or 0)
+        commission = float(r['commission'] or 0)
         sector = r['sector'] or sector_from(r['delivery_method'], r['province'] or r['address'])
         # En ventas viejas "address" guardaba el texto del metodo de entrega, no una direccion.
         address = r['address'] if r['sector'] else ''
         lines = product_lines(r['items']) or [{'name': r['purchase'] or 'Pedido', 'qty': 1, 'price': None}]
+        # Ganancia neta = precio de lista - costo de produccion - descuento (cupon) - comision del vendedor
+        gross, cost, missing = order_cost(r['items'], pcosts)
+        if not r['items']:
+            gross = subtotal + discount
+        profit = gross - discount - cost - commission
+        cost_missing_count += 1 if missing else 0
 
         info = sectors.setdefault(sector, {'sector': sector, 'count': 0, 'amount': 0.0})
         info['count'] += 1
         info['amount'] += amount
-        total += amount
-        subtotal_sum += subtotal
-        shipping_sum += shipping
+        for k, v in (('total', amount), ('subtotal', subtotal), ('shipping', shipping),
+                     ('discount', discount), ('commission', commission), ('cost', cost), ('profit', profit)):
+            tot[k] += v
         sales.append({
             'id': r['id'], 'order_id': r['order_id'], 'code': r['code'], 'customer': r['customer'],
             'contact': r['contact'], 'sector': sector, 'address': address, 'amount': amount,
             'subtotal': subtotal, 'shipping': shipping, 'sold_date': r['sold_date'], 'lines': lines,
-            'discount': float(r['discount'] or 0), 'reseller': r['reseller_name'] or '',
+            'discount': discount, 'reseller': r['reseller_name'] or '', 'commission': commission,
+            'cost': round(cost, 2), 'profit': round(profit, 2), 'cost_missing': missing,
+            'deleted_at': (r['deleted_at'] or '')[:10],
         })
 
     by_sector = sorted(sectors.values(), key=lambda s: s['amount'], reverse=True)
     for s in by_sector:
         s['amount'] = round(s['amount'], 2)
-        s['percent'] = round(s['amount'] / total * 100, 1) if total else 0.0
+        s['percent'] = round(s['amount'] / tot['total'] * 100, 1) if tot['total'] else 0.0
     count = len(sales)
     return jsonify({
-        'sales': sales, 'count': count, 'total': round(total, 2),
-        'subtotal': round(subtotal_sum, 2), 'shipping': round(shipping_sum, 2),
-        'average': round(total / count, 2) if count else 0.0, 'by_sector': by_sector,
+        'sales': sales, 'count': count, 'total': round(tot['total'], 2),
+        'subtotal': round(tot['subtotal'], 2), 'shipping': round(tot['shipping'], 2),
+        'average': round(tot['total'] / count, 2) if count else 0.0, 'by_sector': by_sector,
+        'discount': round(tot['discount'], 2), 'commission': round(tot['commission'], 2),
+        'cost': round(tot['cost'], 2), 'profit': round(tot['profit'], 2),
+        'cost_missing_count': cost_missing_count, 'trash_count': trash_count,
     })
+
+
+@app.post('/api/sales/<int:sid>/void')
+@admin_required
+def void_sale(sid):
+    """Borrado logico: la venta deja de sumarse en las ventas generales pero se conserva
+    (TRASH_DAYS dias) y se puede reactivar."""
+    with db() as c:
+        cur = c.execute('UPDATE sales SET deleted_at=%s WHERE id=%s AND deleted_at IS NULL', (now(), sid))
+        if cur.rowcount == 0:
+            return jsonify({'error': 'Venta no encontrada o ya eliminada'}), 404
+    return jsonify({'ok': True})
+
+
+@app.post('/api/sales/<int:sid>/restore')
+@admin_required
+def restore_sale(sid):
+    with db() as c:
+        cur = c.execute('UPDATE sales SET deleted_at=NULL WHERE id=%s AND deleted_at IS NOT NULL', (sid,))
+        if cur.rowcount == 0:
+            return jsonify({'error': 'Venta no encontrada en las eliminadas'}), 404
+    return jsonify({'ok': True})
 
 
 @app.delete('/api/sales/<int:sid>')
