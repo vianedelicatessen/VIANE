@@ -32,6 +32,13 @@ import hmac
 import secrets
 import re
 import unicodedata
+import hashlib
+import base64
+import html
+import time
+import smtplib
+import ssl
+from email.message import EmailMessage
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from functools import wraps
@@ -346,7 +353,7 @@ SCHEMA = [
 
 # Migracion v3: columnas nuevas. Se aplican UNA sola vez (marca "_schema_version" en settings)
 # y son seguras de repetir (IF NOT EXISTS), asi que no se pierde ningun dato existente.
-SCHEMA_VERSION = '5'
+SCHEMA_VERSION = '6'
 MIGRATIONS = [
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT ''",
@@ -381,6 +388,11 @@ MIGRATIONS = [
         qty DOUBLE PRECISION NOT NULL)''',
     "ALTER TABLE recipe_items ENABLE ROW LEVEL SECURITY",
     "CREATE INDEX IF NOT EXISTS recipe_items_pid_idx ON recipe_items(product_id)",
+    # v6: columnas para solicitudes de afiliados (formulario simple) y reembolsos manuales
+    "ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS socials TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS reason TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pendiente'",
+    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT ''",
 ]
 
 _schema_ready = False
@@ -813,7 +825,15 @@ def send_application_mails(a):
     )
     ok_u, st_u = send_mail(a['email'], 'Gracias por tu solicitud de afiliación — VIANE Delicatessen', user_text, atts)
     return st_a, st_u
-
+def notify_new_affiliate(a):
+    """Aviso simple por correo para el formulario corto de afiliados (sin contrato firmado)."""
+    text = (
+        f"Nueva solicitud de afiliado (formulario simple)\n\n"
+        f"Nombre: {a['full_name']}\nTeléfono: {a['phone']}\nCorreo: {a.get('email', '')}\n"
+        f"Redes: {a.get('socials', '')}\nPerfil: {a.get('profile', '')}\n\nEstado: pendiente."
+    )
+    send_mail(NOTIFY_EMAIL, f"Nueva solicitud de afiliado: {a['full_name']}", text)
+  
 def refund_hook(c, oid, status, payment):
     if status == 'Reembolsado' or payment == 'Reembolsado':
         o = c.execute('SELECT id,name,phone,total,created_at FROM orders WHERE id=%s', (oid,)).fetchone()
@@ -1812,125 +1832,154 @@ def reopen_sale(sid):
             c.execute("UPDATE orders SET status='En camino', updated_at=%s WHERE id=%s",
                       (now(), row['order_id']))
     return jsonify({'ok': True})
-@app.route('/api/affiliates', methods=['GET', 'POST'])
-def api_affiliates():
-    if request.method == 'POST':
-        data = request.json or {}
-        full_name = data.get('full_name', '').strip()
-        phone = data.get('phone', '').strip()
-        email = data.get('email', '').strip()
-        profile_text = data.get('profile_text', '').strip()
-        socials = data.get('socials', '')
-        if isinstance(socials, list):
-            socials = ','.join([str(s).strip() for s in socials if str(s).strip()])
-        else:
-            socials = str(socials).strip()
-        
-        if not full_name or not phone:
-            return jsonify({'success': False, 'error': 'Nombre y teléfono son obligatorios'}), 400
-        
-        c = get_db()
-        # Verificar si ya existe por email o teléfono
+# --- Afiliados (formulario simple) -------------------------------------------------
+@app.post('/api/affiliates')
+def submit_affiliate():
+    d = body()
+    full_name = str(d.get('full_name', '')).strip()[:120]
+    phone = str(d.get('phone', '')).strip()[:40]
+    email = str(d.get('email', '')).strip().lower()[:160]
+    profile_text = str(d.get('profile_text', '')).strip()[:2000]
+    socials = d.get('socials', '')
+    if isinstance(socials, list):
+        socials = ','.join(str(s).strip() for s in socials if str(s).strip())
+    else:
+        socials = str(socials).strip()
+    socials = socials[:500]
+    if not full_name or not phone:
+        return jsonify({'success': False, 'error': 'Nombre y teléfono son obligatorios'}), 400
+
+    with db() as c:
         existing = None
         if email:
-            existing = c.execute('SELECT id FROM affiliates WHERE email = ?', (email,)).fetchone()
+            existing = c.execute('SELECT id FROM affiliates WHERE email=%s', (email,)).fetchone()
         if not existing and phone:
-            existing = c.execute('SELECT id FROM affiliates WHERE phone = ?', (phone,)).fetchone()
-            
+            existing = c.execute('SELECT id FROM affiliates WHERE phone=%s', (phone,)).fetchone()
         if existing:
-            # Actualizar o devolver existente
             aff_id = existing['id']
-            c.execute('''UPDATE affiliates SET full_name = ?, phone = ?, email = ?, profile_text = ?, socials = ?, status = 'pendiente'
-                         WHERE id = ?''', (full_name, phone, email, profile_text, socials, aff_id))
+            c.execute('UPDATE affiliates SET full_name=%s,phone=%s,email=%s,profile=%s,socials=%s,'
+                      "status='pendiente' WHERE id=%s",
+                      (full_name, phone, email, profile_text, socials, aff_id))
         else:
-            contract_hash = hashlib.sha256(f"{full_name}-{phone}-{time.time()}".encode('utf-8')).hexdigest()
-            c.execute('''INSERT INTO affiliates (full_name, phone, email, profile_text, socials, status, contract_hash, signed_at)
-                         VALUES (?, ?, ?, ?, ?, 'pendiente', ?, datetime('now'))''', 
-                      (full_name, phone, email, profile_text, socials, contract_hash))
-            aff_id = c.execute('SELECT last_insert_rowid()').fetchone()[0]
-        
-        # Enviar correo de notificación de afiliación si está configurado
-        try:
-            row = c.execute('SELECT * FROM affiliates WHERE id = ?', (aff_id,)).fetchone()
-            if row:
-                send_application_mail_affiliate(dict(row))
-        except Exception as e:
-            print('Error enviando correo de afiliado:', e)
-            
-        return jsonify({'success': True, 'id': aff_id})
-    
-    else:
-        # GET: listar afiliados (requiere admin o filtro)
-        c = get_db()
-        rows = c.execute('SELECT * FROM affiliates ORDER BY created_at DESC').fetchall()
-        return jsonify({'success': True, 'affiliates': [dict(r) for r in rows]})
+            contract_hash = hashlib.sha256(f'{full_name}-{phone}-{time.time()}'.encode('utf-8')).hexdigest()
+            row = c.execute(
+                'INSERT INTO affiliates(full_name,email,phone,birth_date,platform,profile,socials,followers,'
+                'status,created_at,contract_hash,signed_at) '
+                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'pendiente',%s,%s,%s) RETURNING id",
+                (full_name, email, phone, '', '', profile_text, socials, 0, now(), contract_hash, now())
+            ).fetchone()
+            aff_id = row['id']
+        affiliate = c.execute('SELECT * FROM affiliates WHERE id=%s', (aff_id,)).fetchone()
 
-@app.route('/api/affiliates/<int:aff_id>/status', methods=['POST'])
+    try:
+        if affiliate:
+            notify_new_affiliate(affiliate)
+    except Exception as exc:
+        print(f'[VIANE] correo de afiliado fallo: {exc!r}')
+
+    return jsonify({'success': True, 'id': aff_id})
+
+
+@app.get('/api/affiliates')
+@admin_required
+def list_affiliates():
+    with db() as c:
+        data = rows(c, 'SELECT * FROM affiliates ORDER BY created_at DESC')
+    return jsonify({'success': True, 'affiliates': data})
+
+
+@app.post('/api/affiliates/<int:aff_id>/status')
+@admin_required
 def update_affiliate_status(aff_id):
-    data = request.json or {}
-    new_status = data.get('status', '').strip()
-    if new_status not in ['aprobado', 'rechazado', 'pendiente']:
+    d = body()
+    new_status = str(d.get('status', '')).strip()
+    if new_status not in ('aprobado', 'rechazado', 'pendiente'):
         return jsonify({'success': False, 'error': 'Estado inválido'}), 400
-    
-    c = get_db()
-    c.execute('UPDATE affiliates SET status = ? WHERE id = ?', (new_status, aff_id))
+    with db() as c:
+        cur = c.execute('UPDATE affiliates SET status=%s,decided_at=%s WHERE id=%s',
+                        (new_status, now(), aff_id))
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Afiliado no encontrado'}), 404
     return jsonify({'success': True})
 
-@app.route('/api/refunds', methods=['GET', 'POST'])
-def api_refunds():
-    c = get_db()
-    if request.method == 'POST':
-        data = request.json or {}
-        order_id = num(data.get('order_id'))
-        reason = data.get('reason', '').strip()
-        if not order_id or not reason:
+
+# --- Reembolsos (solicitud manual) --------------------------------------------------
+@app.post('/api/refunds')
+def request_refund():
+    """El cliente/admin pide un reembolso para una venta ya registrada (sales.id)."""
+    d = body()
+    sale_id = num(d.get('order_id'))
+    reason = str(d.get('reason', '')).strip()[:1000]
+    if not sale_id or not reason:
         return jsonify({'success': False, 'error': 'Faltan datos'}), 400
-        
-        order = c.execute('SELECT * FROM sales WHERE id = ?', (order_id,)).fetchone()
+    with db() as c:
+        sale = c.execute('SELECT order_id FROM sales WHERE id=%s', (int(sale_id),)).fetchone()
+        if not sale or not sale['order_id']:
+            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
+        order = c.execute('SELECT id,name,phone,total,created_at FROM orders WHERE id=%s',
+                          (sale['order_id'],)).fetchone()
         if not order:
             return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
-            
-        c.execute('INSERT INTO refunds (order_id, reason, status) VALUES (?, ?, ?)', (order_id, reason, 'pendiente'))
-        return jsonify({'success': True})
-    else:
-        rows = c.execute('SELECT r.*, s.customer_text, s.total FROM refunds r JOIN sales s ON r.order_id = s.id ORDER BY r.created_at DESC').fetchall()
-        return jsonify({'success': True, 'refunds': [dict(r) for r in rows]})
-
-@app.route('/api/refunds/<int:ref_id>/status', methods=['POST'])
-def update_refund_status(ref_id):
-    data = request.json or {}
-    status = data.get('status', '').strip()
-    if status not in ['reembolsado', 'rechazado', 'pendiente']:
-        return jsonify({'success': False, 'error': 'Estado inválido'}), 400
-        
-    c = get_db()
-    ref = c.execute('SELECT * FROM refunds WHERE id = ?', (ref_id,)).fetchone()
-    if not ref:
-        return jsonify({'success': False, 'error': 'Reembolso no encontrado'}), 404
-        
-    c.execute('UPDATE refunds SET status = ? WHERE id = ?', (status, ref_id))
-    
-    # Ejecutar gancho de reembolso si se aprueba
-    refund_hook(ref['order_id'], ref_id, status, ref.get('payment_method'))
+        c.execute(
+            'INSERT INTO refunds(order_id,name,phone,order_date,amount,reason,status,created_at) '
+            "VALUES(%s,%s,%s,%s,%s,%s,'pendiente',%s) "
+            'ON CONFLICT (order_id) DO UPDATE SET reason=EXCLUDED.reason,status=EXCLUDED.status',
+            (order['id'], order['name'], order['phone'], _dr_date(order['created_at']),
+             float(order['total']), reason, now()))
     return jsonify({'success': True})
 
-@app.route('/api/payouts', methods=['GET', 'POST'])
-def api_payouts():
-    c = get_db()
-    if request.method == 'POST':
-        data = request.json or {}
-        reseller_id = num(data.get('reseller_id'))
-        amount = num(data.get('amount'))
-        holder = data.get('holder', '').strip()
-        if not reseller_id or not amount or amount <= 0:
-            return jsonify({'success': False, 'error': 'Datos de pago inválidos'}), 400
-            
-        c.execute('INSERT INTO reseller_payouts (reseller_id, amount, holder, paid_on) VALUES (?, ?, ?, datetime("now"))',
-                  (reseller_id, amount, holder))
-        return jsonify({'success': True})
-    else:
-        rows = c.execute('SELECT p.*, a.full_name as reseller_name FROM reseller_payouts p JOIN affiliates a ON p.reseller_id = a.id ORDER BY p.created_at DESC').fetchall()
-        return jsonify({'success': True, 'payouts': [dict(r) for r in rows]})
+
+@app.get('/api/refunds')
+@admin_required
+def list_refunds():
+    with db() as c:
+        data = rows(c, 'SELECT r.*, o.name AS customer, o.total FROM refunds r '
+                       'LEFT JOIN orders o ON o.id=r.order_id ORDER BY r.created_at DESC')
+    return jsonify({'success': True, 'refunds': data})
+
+
+@app.post('/api/refunds/<int:ref_id>/status')
+@admin_required
+def update_refund_status(ref_id):
+    d = body()
+    status = str(d.get('status', '')).strip()
+    if status not in ('reembolsado', 'rechazado', 'pendiente'):
+        return jsonify({'success': False, 'error': 'Estado inválido'}), 400
+    with db() as c:
+        cur = c.execute('UPDATE refunds SET status=%s WHERE id=%s', (status, ref_id))
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Reembolso no encontrado'}), 404
+    return jsonify({'success': True})
+
+
+# --- Pagos a vendedores (payouts) ----------------------------------------------------
+@app.get('/api/payouts')
+@admin_required
+def list_payouts():
+    with db() as c:
+        data = rows(c, 'SELECT * FROM reseller_payouts ORDER BY created_at DESC')
+    return jsonify({'success': True, 'payouts': data})
+
+
+@app.post('/api/payouts')
+@admin_required
+def add_payout():
+    d = body()
+    reseller_id = num(d.get('reseller_id'))
+    amount = num(d.get('amount'))
+    if not reseller_id or not amount or amount <= 0:
+        return jsonify({'success': False, 'error': 'Datos de pago inválidos'}), 400
+    with db() as c:
+        r = c.execute('SELECT id,name FROM resellers WHERE id=%s', (int(reseller_id),)).fetchone()
+        if not r:
+            return jsonify({'success': False, 'error': 'Vendedor no encontrado'}), 404
+        c.execute(
+            'INSERT INTO reseller_payouts(reseller_id,reseller_name,amount,method,account,holder,cedula,'
+            'paid_on,created_at) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+            (r['id'], r['name'], amount, str(d.get('method', '')).strip()[:40],
+             str(d.get('account', '')).strip()[:80], str(d.get('holder', '')).strip()[:120],
+             str(d.get('cedula', '')).strip()[:40], _dr_date(), now()))
+    return jsonify({'success': True})
 
 
 if __name__ == '__main__':
