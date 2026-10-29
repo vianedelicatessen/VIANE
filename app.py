@@ -1984,4 +1984,4 @@ def add_payout():
 
 if __name__ == '__main__':
     # Desarrollo local: python app.py  ->  http://localhost:5000
-    app.run(debug=os.environ.get('FLASK_DEBUG') == '1', host='0.0.0.0', port=5000
+    app.run(debug=os.environ.get('FLASK_DEBUG') == '1', host='0.0.0.0', port=5000)
