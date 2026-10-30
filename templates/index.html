@@ -405,23 +405,29 @@ if($('trackForm'))$('trackForm').addEventListener('submit',async e=>{
 e.preventDefault();$('trackResult').innerHTML='<p class="muted">Consultando…</p>';try{let d=await api('/api/track/'+encodeURIComponent($('trackCode').value.trim()));$('trackResult').innerHTML=`<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p>${d.delivery_date?`<p class="muted">Fecha deseada de entrega: ${esc(fmtDate(d.delivery_date))}</p>`:''}<p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident?`<p>Observación: ${esc(d.incident)}</p>`:''}</div>`}catch(err){$('trackResult').innerHTML='<p class="muted">'+esc(err.message)+'</p>'}});
 $('affiliateForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  const btn=e.submitter||e.target.querySelector('button');
+  const btn=e.submitter||e.target.querySelector('button:not([type=button])');
   if(btn)btn.disabled=true;
   try{
-  await api('/api/affiliates',{method:'POST',body:JSON.stringify({
-    full_name: $('afName').value.trim(),
-    phone: $('afPhone').value.trim(),
-    email: $('afEmail').value.trim(),
-    socials: $('afSocials').value.trim(),
-    profile_text: $('afProfile').value.trim(),
-    birth_date: $('afBirthDate').value.trim()
-})});
+    const d=await api('/api/affiliates',{method:'POST',body:JSON.stringify({
+      full_name:$('afName').value.trim(),
+      phone:$('afPhone').value.trim(),
+      email:$('afEmail').value.trim(),
+      socials:$('afSocials').value.trim(),
+      profile_text:$('afProfile').value.trim(),
+      birth_date:$('afBirthDate').value.trim()
+    })});
+    const box=$('affiliateResult');
     $('affiliateForm').classList.add('hidden');
-    $('affiliateResult').classList.remove('hidden');
-    $('affiliateResult').innerHTML='<div class="adminpanel"><h3 style="margin-top:0;color:var(--crimson)">¡Solicitud enviada!</h3><p>Gracias por tu interés en ser afiliado de VIANE Delicatessen. Revisaremos tu perfil y te daremos una respuesta en un plazo de 1 a 30 días.</p></div>';
+    box.classList.remove('hidden');
+    box.innerHTML=d.duplicate
+      ?'<div class="adminpanel"><h3 style="margin-top:0;color:var(--crimson)">Ya tenemos tu solicitud</h3><p>Encontramos una solicitud con estos datos. La estamos revisando y te responderemos por correo o WhatsApp.</p></div>'
+      :'<div class="adminpanel"><h3 style="margin-top:0;color:var(--crimson)">¡Solicitud enviada!</h3><p>Gracias por tu interés en ser afiliado de VIANE Delicatessen. Revisaremos tu perfil y te daremos una respuesta en un plazo de 1 a 30 días.</p></div>';
+    box.scrollIntoView({behavior:'smooth',block:'center'});
   }catch(err){alert(err.message)}
   finally{if(btn)btn.disabled=false}
 });
+/* Solo mayores de 18: el calendario no deja elegir fechas más recientes */
+(function(){const t=new Date();t.setFullYear(t.getFullYear()-18);$('afBirthDate').max=ymd(t)})();
 function renderStars(){$('starButtons').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" aria-label="${n} estrellas" onclick="setRating(${n})" style="color:${n<=state.rating?'var(--gold)':'#d6d0c9'}">★</button>`).join('')}function setRating(n){state.rating=n;renderStars()}
 function renderReviewChoices(){let products=state.products;$('reviewProductChoices').innerHTML=products.slice(0,200).map(p=>`<label style="font-weight:600;color:#51464b"><input type="checkbox" name="revProduct" value="${p.id}" style="width:auto"> ${esc(p.name)}</label>`).join('')||'<p class="muted">No hay productos disponibles.</p>'}
 $('reviewForm').addEventListener('submit',async e=>{e.preventDefault();let selected=[...document.querySelectorAll('[name=revProduct]:checked')];if(selected.length<1||selected.length>3){alert('Elige entre 1 y 3 productos.');return}try{let products=selected.map(x=>{let p=state.products.find(p=>p.id===Number(x.value));return p?p.name:''}).filter(Boolean);let d=await api('/api/reviews',{method:'POST',body:JSON.stringify({name:$('reviewName').value,rating:state.rating,products,comment:$('reviewComment').value,phone:$('reviewPhone').value})});alert(d.message);$('reviewForm').reset();state.rating=5;renderStars();let wants=confirm('¿Te gustaría dejar una propina para apoyar a VIANE Delicatessen?');if(wants){let tips=state.payments.filter(p=>p.tip_enabled);$('tipLinks').innerHTML=tips.length?tips.map(p=>`<div class="itemrow"><div><b>${esc(p.title)}</b><p class="muted">${esc(p.details||'')}</p></div><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Dar propina</a></div>`).join(''):'<p class="muted">Aún no hay métodos de propina configurados. Gracias por tu intención.</p>';$('tipModal').classList.remove('hidden')}}catch(err){alert(err.message)}});
