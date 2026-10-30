@@ -851,37 +851,24 @@ def create_affiliate():
     return jsonify({'success': True, 'message': 'Solicitud de afiliación recibida exitosamente'})
 
 def notify_new_affiliate(a):
-    """Aviso simple por correo para el formulario corto de afiliados (sin contrato firmado)."""
-    text = (
-        f"Nueva solicitud de afiliado (formulario simple)\n\n"
-        f"Nombre: {a['full_name']}\nTeléfono: {a['phone']}\nCorreo: {a.get('email', '')}\n"
+    """Avisa por correo: uno para el admin y una confirmación para quien se postuló."""
+    admin_text = (
+        "Nueva solicitud de afiliado\n\n"
+        f"Nombre: {a['full_name']}\n"
+        f"Teléfono: {a['phone']}\n"
+        f"Correo: {a.get('email', '')}\n"
         f"Fecha de nacimiento: {a.get('birth_date', '')}\n"
-        f"Redes: {a.get('socials', '')}\nPerfil: {a.get('profile', '')}\n\nEstado: pendiente."
+        f"Redes: {a.get('socials', '')}\n"
+        f"Perfil: {a.get('profile', '')}\n\n"
+        "Estado: pendiente."
     )
-    # 1. Enviar correo de notificación al administrador
-    send_mail(NOTIFY_EMAIL, f"Nueva solicitud de afiliado: {a['full_name']}", text)
-    
-    # 2. Enviar correo de confirmación al afiliado (si proporcionó correo)
+    send_mail(NOTIFY_EMAIL, f"Nueva solicitud de afiliado: {a['full_name']}", admin_text)
+
     user_email = (a.get('email') or '').strip()
     if user_email:
-        subject_user = (
-            "gracia por su solicitud de afiliación - a VIANA DELICATESSEN "
-            "LE ESTAREMOS RESPONDIENDO EN UN PLAZO DE 1 A 14 DÍAS PENDIENTE DE SU BANDEJA DE CORREOS"
-        )
-        send_mail(user_email, subject_user, text)
-def refund_hook(c, oid, status, payment):
-    if status == 'Reembolsado' or payment == 'Reembolsado':
-        o = c.execute('SELECT id,name,phone,total,created_at FROM orders WHERE id=%s', (oid,)).fetchone()
-        if not o:
-            return
-        order_date = _dr_date(o['created_at'])
-        c.execute('INSERT INTO refunds(order_id,name,phone,order_date,amount,created_at) '
-                  'VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT (order_id) DO NOTHING',
-                  (o['id'], o['name'], o['phone'], order_date, float(o['total']), now()))
-        c.execute('DELETE FROM sales WHERE order_id=%s', (oid,))
-    else:
-        # solo borra el reembolso automático; los manuales (con motivo) se conservan
-        c.execute("DELETE FROM refunds WHERE order_id=%s AND reason=''", (oid,))
+        user_text = (f"Hola {a['full_name']},\n\n" + RESPONSE_MESSAGE +
+                     "\n\nVIANE Delicatessen\nWhatsApp: 829-675-9640")
+        send_mail(user_email, "Gracias por tu solicitud de afiliación - VIANE Delicatessen", user_text)
 
 
 def supply_key(name):
