@@ -1859,50 +1859,110 @@ def reopen_sale(sid):
                       (now(), row['order_id']))
     return jsonify({'ok': True})
 # --- Afiliados (formulario simple) -------------------------------------------------
+EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+_affiliates_ready = False
+
+
+def ensure_affiliates_table():
+    """Garantiza (una vez por instancia) que exista la tabla affiliates con todas las columnas
+    que usa el formulario. Es idempotente y NO toca _schema_version, así que no re-ejecuta
+    la migración de ventas. Usa su propia conexión para que un error posterior no la deshaga."""
+    global _affiliates_ready
+    if _affiliates_ready:
+        return
+    try:
+        ensure_schema()
+        with connect() as con:
+            con.execute('SELECT pg_advisory_xact_lock(%s)', (918273647,))
+            con.execute('''CREATE TABLE IF NOT EXISTS affiliates(
+                id BIGSERIAL PRIMARY KEY, full_name TEXT NOT NULL, email TEXT NOT NULL,
+                phone TEXT NOT NULL DEFAULT '', birth_date TEXT NOT NULL, platform TEXT NOT NULL DEFAULT '',
+                profile TEXT NOT NULL DEFAULT '', followers BIGINT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pendiente', created_at TEXT NOT NULL,
+                decided_at TEXT, decision_note TEXT NOT NULL DEFAULT '', reseller_id BIGINT,
+                rights_revoked INTEGER NOT NULL DEFAULT 0, cancelled_at TEXT,
+                cancel_reason TEXT NOT NULL DEFAULT '', terms_version TEXT NOT NULL DEFAULT '',
+                terms_text TEXT NOT NULL DEFAULT '', signature_name TEXT NOT NULL DEFAULT '',
+                signature_png TEXT NOT NULL DEFAULT '', contract_hash TEXT NOT NULL DEFAULT '',
+                signed_at TEXT, signed_ip TEXT NOT NULL DEFAULT '',
+                mail_admin TEXT NOT NULL DEFAULT '', mail_user TEXT NOT NULL DEFAULT '')''')
+            for col in ("socials TEXT NOT NULL DEFAULT ''",
+                        "birth_date TEXT NOT NULL DEFAULT ''",
+                        "platform TEXT NOT NULL DEFAULT ''",
+                        "profile TEXT NOT NULL DEFAULT ''",
+                        "contract_hash TEXT NOT NULL DEFAULT ''",
+                        "signed_at TEXT"):
+                con.execute(f'ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS {col}')
+            con.execute('ALTER TABLE affiliates ENABLE ROW LEVEL SECURITY')
+        _affiliates_ready = True
+    except Exception as exc:
+        print(f'[VIANE] No se pudo verificar la tabla affiliates: {exc!r}')
+
+
+def _age_on(born, today):
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+
 @app.post('/api/affiliates')
 def submit_affiliate():
     d = body()
-    full_name = str(d.get('full_name', '')).strip()[:120]
-    phone = str(d.get('phone', '')).strip()[:40]
-    email = str(d.get('email', '')).strip().lower()[:160]
-    profile_text = str(d.get('profile_text', '')).strip()[:2000]
+    # Acepta los nombres de campo nuevos (full_name, profile_text) y los viejos (name, profile).
+    full_name = re.sub(r'\s+', ' ', str(d.get('full_name') or d.get('name') or '')).strip()[:120]
+    phone = str(d.get('phone') or '').strip()[:40]
+    email = str(d.get('email') or '').strip().lower()[:160]
+    birth_raw = str(d.get('birth_date') or '').strip()[:10]
+    profile_text = str(d.get('profile_text') or d.get('profile') or '').strip()[:2000]
     socials = d.get('socials', '')
     if isinstance(socials, list):
         socials = ','.join(str(s).strip() for s in socials if str(s).strip())
     else:
         socials = str(socials).strip()
     socials = socials[:500]
+
     if not full_name or not phone:
         return jsonify({'success': False, 'error': 'Nombre y teléfono son obligatorios'}), 400
+    if not EMAIL_RE.match(email):
+        return jsonify({'success': False, 'error': 'Escribe un correo electrónico válido'}), 400
+    try:
+        born = datetime.strptime(birth_raw, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Escribe tu fecha de nacimiento'}), 400
+    age = _age_on(born, datetime.now(DR_TZ).date())
+    if age < 0 or age > 110:
+        return jsonify({'success': False, 'error': 'La fecha de nacimiento no es válida'}), 400
+    if age < MIN_AGE:
+        return jsonify({'success': False,
+                        'error': f'Debes tener {MIN_AGE} años o más para ser afiliado'}), 400
 
-    affiliate = None
+    ensure_affiliates_table()
+    affiliate, duplicate = None, False
     with db() as c:
-        existing = None
-        if email:
-            existing = c.execute('SELECT id FROM affiliates WHERE email=%s', (email,)).fetchone()
+        existing = c.execute('SELECT id FROM affiliates WHERE email=%s', (email,)).fetchone()
         if not existing:
             existing = c.execute('SELECT id FROM affiliates WHERE phone=%s', (phone,)).fetchone()
         if existing:
             # Ya hay una solicitud: no se modifica ni se cambia su estado.
-            aff_id = existing['id']
+            aff_id, duplicate = existing['id'], True
         else:
             contract_hash = hashlib.sha256(f'{full_name}-{phone}-{time.time()}'.encode('utf-8')).hexdigest()
             row = c.execute(
                 'INSERT INTO affiliates(full_name,email,phone,birth_date,platform,profile,socials,followers,'
                 'status,created_at,contract_hash,signed_at) '
                 "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'pendiente',%s,%s,%s) RETURNING id",
-                (full_name, email, phone, '', '', profile_text, socials, 0, now(), contract_hash, now())
+                (full_name, email, phone, born.isoformat(), '', profile_text, socials, 0,
+                 now(), contract_hash, now())
             ).fetchone()
             aff_id = row['id']
             affiliate = c.execute('SELECT * FROM affiliates WHERE id=%s', (aff_id,)).fetchone()
 
+    # La solicitud ya quedó guardada; si el correo falla, el formulario igual responde bien.
     try:
         if affiliate:
             notify_new_affiliate(affiliate)
     except Exception as exc:
         print(f'[VIANE] correo de afiliado falló: {exc!r}')
 
-    return jsonify({'success': True, 'id': aff_id})
+    return jsonify({'success': True, 'id': aff_id, 'duplicate': duplicate})
 
 @app.get('/api/affiliates')
 @admin_required
