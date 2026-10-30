@@ -339,13 +339,15 @@ document.addEventListener('DOMContentLoaded', () => {
         profile_text: $('afProfile').value.trim()
       };
       
+      const resultDiv = $('affiliateResult');
+      resultDiv.classList.remove('hidden');
+      
       try {
         const res = await api('/api/affiliates', {
           method: 'POST',
           body: JSON.stringify(payload)
         });
         
-        const resultDiv = $('affiliateResult');
         if (res.success) {
           resultDiv.className = '';
           resultDiv.innerHTML = `<div class="status" style="background:#e6f4ea;color:#137333;width:100%;text-align:center;padding:12px;border-radius:10px;">¡Hemos recibido tu solicitud de afiliación! Te responderemos pronto.</div>`;
