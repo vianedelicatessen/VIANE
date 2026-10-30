@@ -824,46 +824,51 @@ def png_bytes(data_url):
         return base64.b64decode(m.group(1))
     except Exception:
         return b''
+@app.route('/api/affiliates', methods=['POST'])
+def create_affiliate():
+    d = body()
+    
+    # Capturar los datos del request
+    full_name = str(d.get('name') or '').strip()
+    phone = str(d.get('phone') or '').strip()
+    email = str(d.get('email') or '').strip()
+    birth_date = str(d.get('birth_date') or '').strip()  # <--- Capturar fecha de nacimiento
+    socials = str(d.get('socials') or '').strip()
+    profile = str(d.get('profile') or '').strip()
+    
+    # Validaciones básicas opcionales
+    if not full_name or not phone or not birth_date:
+        return jsonify({'error': 'Faltan campos obligatorios (nombre, teléfono o fecha de nacimiento)'}), 400
 
-def send_application_mails(a):
-    doc = contract_html(a).encode('utf-8')
-    png = png_bytes(a.get('signature_png'))
-    atts = [(f'contrato-afiliado-{a["id"]}.html', doc, 'text/html')]
-    if png:
-        atts.append((f'firma-{a["id"]}.png', png, 'image/png'))
-    seal = (a['contract_hash'] or '')[:12].upper()
-    admin_text = (
-        f"Nueva solicitud de afiliado FIRMADA (contrato sellado)\n\n"
-        f"Nombre: {a['full_name']}\nCorreo: {a['email']}\nTeléfono: {a['phone']}\n"
-        f"Fecha de nacimiento: {a['birth_date']}\nRed principal: {a['platform']} — {a['profile']}\n"
-        f"Seguidores declarados: {int(a['followers']):,}\nFirma (nombre): {a['signature_name']}\n"
-        f"Fecha de firma (UTC): {(a['signed_at'] or '')[:19]}\nSello del contrato: {seal}\n"
-        f"Versión de términos: {a['terms_version']}\n\n"
-        f"Estado: pendiente. Plazo de respuesta: 1 a 30 días; si no hay respuesta, la evaluación se "
-        f"extiende de 30 días a 12 meses.\nSe adjunta la copia del contrato firmado."
-    )
-    ok_a, st_a = send_mail(NOTIFY_EMAIL, f"Nueva solicitud de afiliado: {a['full_name']}", admin_text, atts)
-    user_text = (
-        f"Hola {a['full_name']},\n\n"
-        f"¡Gracias por solicitar entrar al esquema de afiliados de VIANE Delicatessen!\n\n"
-        f"Hemos recibido tu solicitud y tu contrato firmado. Estaremos revisando tu perfil y te daremos una "
-        f"respuesta en un plazo de 1 a 30 días. En caso de no recibir ninguna notificación dentro de este "
-        f"plazo inicial, el proceso de evaluación se extenderá por un período de 30 días a 12 meses mientras "
-        f"validamos la disponibilidad y el cumplimiento de nuestros criterios.\n\n"
-        f"Sello de tu contrato: {seal}\nAdjuntamos una copia para tus registros.\n\n"
-        f"VIANE Delicatessen · WhatsApp 829-675-9640"
-    )
-    ok_u, st_u = send_mail(a['email'], 'Gracias por tu solicitud de afiliación — VIANE Delicatessen', user_text, atts)
-    return st_a, st_u
+    with db() as con:
+        # Insertar en la tabla affiliates usando la columna birth_date
+        con.execute(
+            '''INSERT INTO affiliates(full_name, email, phone, birth_date, socials, profile, followers, status, created_at)
+               VALUES(%s, %s, %s, %s, %s, %s, %s, 'pendiente', %s)''',
+            (full_name, email, phone, birth_date, socials, profile, 0, now())
+        )
+        
+    return jsonify({'success': True, 'message': 'Solicitud de afiliación recibida exitosamente'})
+
 def notify_new_affiliate(a):
     """Aviso simple por correo para el formulario corto de afiliados (sin contrato firmado)."""
     text = (
         f"Nueva solicitud de afiliado (formulario simple)\n\n"
         f"Nombre: {a['full_name']}\nTeléfono: {a['phone']}\nCorreo: {a.get('email', '')}\n"
+        f"Fecha de nacimiento: {a.get('birth_date', '')}\n"
         f"Redes: {a.get('socials', '')}\nPerfil: {a.get('profile', '')}\n\nEstado: pendiente."
     )
+    # 1. Enviar correo de notificación al administrador
     send_mail(NOTIFY_EMAIL, f"Nueva solicitud de afiliado: {a['full_name']}", text)
-  
+    
+    # 2. Enviar correo de confirmación al afiliado (si proporcionó correo)
+    user_email = (a.get('email') or '').strip()
+    if user_email:
+        subject_user = (
+            "gracia por su solicitud de afiliación - a VIANA DELICATESSEN "
+            "LE ESTAREMOS RESPONDIENDO EN UN PLAZO DE 1 A 14 DÍAS PENDIENTE DE SU BANDEJA DE CORREOS"
+        )
+        send_mail(user_email, subject_user, text)
 def refund_hook(c, oid, status, payment):
     if status == 'Reembolsado' or payment == 'Reembolsado':
         o = c.execute('SELECT id,name,phone,total,created_at FROM orders WHERE id=%s', (oid,)).fetchone()
