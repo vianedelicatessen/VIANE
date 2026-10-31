@@ -250,8 +250,32 @@ function renderFilters(){$('filters').innerHTML=getCats().map(c=>`<button class=
 function filterCategory(c){state.category=c;renderFilters();renderProducts()}
 /* Regla de visibilidad: "Todos" muestra todo; cualquier otra categoría muestra SOLO los
    productos de esa categoría (por eso un "personalizado" no aparece en desayunos ni bandejas). */
-function renderProducts(){let list=state.products.filter(p=>state.category==='Todos'||p.category===state.category);$('products').innerHTML=list.length?list.map(p=>`<article class="card">${p.image?`<img class="product-img" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`:`<div class="product-img placeholder">✦</div>`}<div class="eyebrow" style="color:var(--goldDark)">${esc(p.category)}</div><h3 style="margin:0;color:var(--crimson)">${esc(p.name)}</h3><p class="muted">${esc(p.description)}</p><div class="row" style="margin-top:auto"><span class="price">${money(p.price)}</span><button class="btn" onclick="addCart(${p.id})">Agregar</button></div></article>`).join(''):'<p class="muted">Estamos actualizando nuestro catálogo. Escríbenos por WhatsApp para consultar disponibilidad.</p>';}
-function addCart(id){let p=state.products.find(p=>p.id===id);if(p){state.cart.push(p);$('cartCount').textContent=state.cart.length;}}
+function renderProducts(){
+    let list = state.products.filter(p => state.category === 'Todos' || p.category === state.category);
+    
+    // Código del anuncio de AdSense en formato HTML listo para inyectarse
+    const adHtml = `<article class="card" style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:10px;">
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9219772512761077" crossorigin="anonymous"></script>
+        <ins class="adsbygoogle" style="display:block; width:100%;" data-ad-format="fluid" data-ad-layout-key="-fb+5w+4e-db+86" data-ad-client="ca-pub-9219772512761077" data-ad-slot="5310818725"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </article>`;
+
+    $('products').innerHTML = list.length ? list.map((p, index) => {
+        let productCard = `<article class="card">` +
+            (p.image ? `<img class="product-img" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">` : `<div class="product-img placeholder">✦</div>`) +
+            `<div class="eyebrow" style="color:var(--goldDark)">${esc(p.category)}</div>` +
+            `<h3 style="margin:0;color:var(--crimson)">${esc(p.name)}</h3>` +
+            `<p class="muted">${esc(p.description)}</p>` +
+            `<div class="row" style="margin-top:auto"><span class="price">${money(p.price)}</span><button class="btn" onclick="addCart(${p.id})">Agregar</button></div>` +
+            `</article>`;
+        
+        // Inserta el anuncio después del segundo producto (index 1) si hay suficientes productos
+        if (index === 1) {
+            return productCard + adHtml;
+        }
+        return productCard;
+    }).join('') : '<p class="muted">Estamos actualizando nuestro catálogo. Escríbenos por WhatsApp para consultar disponibilidad.</p>';
+}function addCart(id){let p=state.products.find(p=>p.id===id);if(p){state.cart.push(p);$('cartCount').textContent=state.cart.length;}}
 
 /* ---------- Carrito y envío ---------- */
 function getCostoEnvio(){
