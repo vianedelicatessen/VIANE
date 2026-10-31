@@ -22,6 +22,8 @@ Novedades de esta version (esquema v3, se migra solo, sin perder datos):
 - Reproductor flotante: ajustes music_url, music_title y music_kind.
 - Categorias gestionables desde el panel (crear, renombrar, ocultar, eliminar).
 - Vendedores (esquema v4): codigo multiuso, descuento al cliente y comision del vendedor.
+- Modulos AISLADOS en viane_extras.py (afiliados, reembolsos, pagos a vendedores); aqui solo hay
+  los ganchos minimos (ORDER_HOOKS, estado 'Reembolsado' y el registro al final del archivo).
 - Esquema v5: % de descuento y de comision EDITABLES por vendedor, ventas con borrado
   logico (papelera de 12 meses, reactivables) y control de costos (insumos, recetas, ganancia neta).
 """
@@ -32,13 +34,6 @@ import hmac
 import secrets
 import re
 import unicodedata
-import hashlib
-import base64
-import html
-import time
-import smtplib
-import ssl
-from email.message import EmailMessage
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from functools import wraps
@@ -46,7 +41,7 @@ from threading import Lock
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode, quote, unquote
 
 from pathlib import Path
-from flask import Flask, request, jsonify, session, send_from_directory, send_file, Response
+from flask import Flask, request, jsonify, session, send_from_directory, send_file
 from werkzeug.exceptions import HTTPException, NotFound, RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
@@ -105,9 +100,12 @@ MEDIA_TYPES = {
     'ogg': 'audio/ogg', 'm4a': 'audio/mp4',
 }
 STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación',
-            'En creación', 'Enviado', 'En camino', 'Entregado', 'Terminado', 'Incidencia']
+            'En creación', 'Enviado', 'En camino', 'Entregado', 'Terminado', 'Reembolsado', 'Incidencia']
 # Los pedidos con alguno de estos estados salen de "Pedidos" y pasan a "Ventas".
 SALE_STATUSES = ('Entregado', 'Terminado')
+# Funciones extra que se ejecutan al guardar un pedido: hook(conexion, id_pedido, estado, pago).
+# Las registra viane_extras.py (reembolsos); si no hay ninguna, no pasa nada.
+ORDER_HOOKS = []
 
 # Metodos de entrega. Los textos (label) deben coincidir con las opciones del <select>
 # de index.html. El costo se calcula AQUI (no se confia en el navegador).
@@ -121,48 +119,6 @@ DELIVERY = {
 # Vendedores (revendedores) con codigo de descuento multiuso.
 RESELLER_DISCOUNT_PCT = 3      # (por defecto; cada codigo puede tener el suyo) % que se le descuenta al cliente (sobre los productos, no sobre el envio)
 RESELLER_COMMISSION_PCT = 15   # (por defecto; cada vendedor puede tener el suyo) % de ganancia del vendedor sobre el valor de la venta (productos ya con descuento)
-# ---------------------------------------------------------------------------
-# Reglas del programa de afiliados
-# ---------------------------------------------------------------------------
-MIN_AGE = 18
-MIN_FOLLOWERS = 500
-INACTIVITY_DAYS = 90          # 3 meses sin ventas -> cancelacion automatica
-REVIEW_DAYS = 30              # plazo inicial de respuesta (1 a 30 dias)
-EXTENDED_DAYS = 365           # si no hay respuesta: evaluacion extendida hasta 12 meses
-TERMS_VERSION = '2026-10'
-NOTIFY_EMAIL = os.environ.get('AFFILIATE_NOTIFY_EMAIL') or 'Vianedelicatenssen@gmail.com'
-PLATFORMS = ['Instagram', 'TikTok', 'Facebook', 'YouTube', 'X (Twitter)', 'Otra']
-
-TERMS_TEXT = f"""CONTRATO Y TÉRMINOS DEL PROGRAMA DE AFILIADOS — VIANE DELICATESSEN
-Versión {TERMS_VERSION}
-
-REQUISITOS PARA EL PROGRAMA DE AFILIADOS
-1. Ser mayor de edad (según las leyes locales aplicables).
-2. Contar con un mínimo de {MIN_FOLLOWERS} seguidores en tus plataformas o redes sociales vinculadas.
-
-INACTIVIDAD
-3. Si en un período de 3 meses consecutivos ({INACTIVITY_DAYS} días) el afiliado no registra ninguna venta, su suscripción de afiliado se cancelará automáticamente, junto con todos los derechos reservados vinculados a la misma.
-
-COMISIONES
-4. Las comisiones generadas son estrictamente y únicamente proporcionadas por nuestra empresa.
-
-DERECHO DE TERMINACIÓN
-5. Nos reservamos el derecho de cancelar cualquier suscripción de afiliado en el momento que consideremos apropiado, ya sea por infracción de las normas o por motivos operativos o legales que nos obliguen a ello.
-
-RESPUESTA Y PLAZOS
-6. Al enviar tu solicitud, te daremos una respuesta en un plazo de 1 a 30 días. En caso de no recibir ninguna notificación dentro de este plazo inicial, el proceso de evaluación se extenderá por un período de 30 días a 12 meses mientras validamos la disponibilidad y el cumplimiento de nuestros criterios.
-
-FIRMA
-7. Al firmar declaras que los datos entregados son verdaderos, que cumples los requisitos y que aceptas estos términos. Tu firma electrónica y el sello de este contrato dejan constancia de tu aceptación.
-"""
-
-RESPONSE_MESSAGE = (
-    "¡Hemos recibido tu solicitud de afiliación! 🚀\n"
-    "Estaremos revisando tu perfil y te daremos una respuesta en un plazo de 1 a 30 días. "
-    "En caso de no recibir ninguna notificación dentro de este plazo inicial, el proceso de evaluación "
-    "se extenderá por un período de 30 días a 12 meses mientras validamos la disponibilidad y el "
-    "cumplimiento de nuestros criterios."
-)
 
 # Ventas eliminadas (borrado logico): se conservan este numero de dias y se pueden reactivar.
 TRASH_DAYS = 365
@@ -176,6 +132,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=IS_VERCEL,  # HTTPS en Vercel
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),  # la sesion de administrador caduca sola
 )
 
 # La clave de sesion DEBE ser fija: en Vercel hay varias instancias y una clave
@@ -320,35 +277,6 @@ SCHEMA = [
         sold_date TEXT NOT NULL, created_at TEXT NOT NULL)''',
     'ALTER TABLE categories ENABLE ROW LEVEL SECURITY',
     'ALTER TABLE sales ENABLE ROW LEVEL SECURITY',
-    '''CREATE TABLE IF NOT EXISTS affiliates(
-        id BIGSERIAL PRIMARY KEY, full_name TEXT NOT NULL, email TEXT NOT NULL,
-        phone TEXT NOT NULL DEFAULT '', birth_date TEXT NOT NULL, platform TEXT NOT NULL DEFAULT '',
-        profile TEXT NOT NULL DEFAULT '', followers BIGINT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pendiente', created_at TEXT NOT NULL,
-        decided_at TEXT, decision_note TEXT NOT NULL DEFAULT '', reseller_id BIGINT,
-        rights_revoked INTEGER NOT NULL DEFAULT 0, cancelled_at TEXT,
-        cancel_reason TEXT NOT NULL DEFAULT '', terms_version TEXT NOT NULL DEFAULT '',
-        terms_text TEXT NOT NULL DEFAULT '', signature_name TEXT NOT NULL DEFAULT '',
-        signature_png TEXT NOT NULL DEFAULT '', contract_hash TEXT NOT NULL DEFAULT '',
-        signed_at TEXT, signed_ip TEXT NOT NULL DEFAULT '',
-        mail_admin TEXT NOT NULL DEFAULT '', mail_user TEXT NOT NULL DEFAULT '')''',
-    'ALTER TABLE affiliates ENABLE ROW LEVEL SECURITY',
-    'CREATE INDEX IF NOT EXISTS affiliates_status_idx ON affiliates(status)',
-    'CREATE INDEX IF NOT EXISTS affiliates_email_idx ON affiliates(email)',
-    '''CREATE TABLE IF NOT EXISTS refunds(
-        id BIGSERIAL PRIMARY KEY, order_id BIGINT UNIQUE NOT NULL, name TEXT NOT NULL,
-        phone TEXT NOT NULL, order_date TEXT NOT NULL, amount DOUBLE PRECISION NOT NULL,
-        created_at TEXT NOT NULL)''',
-    'ALTER TABLE refunds ENABLE ROW LEVEL SECURITY',
-    '''CREATE TABLE IF NOT EXISTS reseller_payouts(
-        id BIGSERIAL PRIMARY KEY, reseller_id BIGINT NOT NULL, reseller_name TEXT NOT NULL,
-        amount DOUBLE PRECISION NOT NULL, method TEXT NOT NULL, account TEXT NOT NULL DEFAULT '',
-        holder TEXT NOT NULL DEFAULT '', cedula TEXT NOT NULL DEFAULT '', paid_on TEXT NOT NULL,
-        created_at TEXT NOT NULL)''',
-    'ALTER TABLE reseller_payouts ENABLE ROW LEVEL SECURITY',
-    'CREATE INDEX IF NOT EXISTS payouts_reseller_idx ON reseller_payouts(reseller_id)',
-    'CREATE INDEX IF NOT EXISTS payouts_paid_on_idx ON reseller_payouts(paid_on)',
-
 ]
 
 # Migracion v3: columnas nuevas. Se aplican UNA sola vez (marca "_schema_version" en settings)
@@ -388,41 +316,6 @@ MIGRATIONS = [
         qty DOUBLE PRECISION NOT NULL)''',
     "ALTER TABLE recipe_items ENABLE ROW LEVEL SECURITY",
     "CREATE INDEX IF NOT EXISTS recipe_items_pid_idx ON recipe_items(product_id)",
-    # v6 (fix): estas tablas estaban solo en SCHEMA (bloque que no se repite si ya
-    # existen las tablas basicas), asi que nunca se crearon en esta base ya existente.
-    '''CREATE TABLE IF NOT EXISTS affiliates(
-        id BIGSERIAL PRIMARY KEY, full_name TEXT NOT NULL, email TEXT NOT NULL,
-        phone TEXT NOT NULL DEFAULT '', birth_date TEXT NOT NULL, platform TEXT NOT NULL DEFAULT '',
-        profile TEXT NOT NULL DEFAULT '', followers BIGINT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pendiente', created_at TEXT NOT NULL,
-        decided_at TEXT, decision_note TEXT NOT NULL DEFAULT '', reseller_id BIGINT,
-        rights_revoked INTEGER NOT NULL DEFAULT 0, cancelled_at TEXT,
-        cancel_reason TEXT NOT NULL DEFAULT '', terms_version TEXT NOT NULL DEFAULT '',
-        terms_text TEXT NOT NULL DEFAULT '', signature_name TEXT NOT NULL DEFAULT '',
-        signature_png TEXT NOT NULL DEFAULT '', contract_hash TEXT NOT NULL DEFAULT '',
-        signed_at TEXT, signed_ip TEXT NOT NULL DEFAULT '',
-        mail_admin TEXT NOT NULL DEFAULT '', mail_user TEXT NOT NULL DEFAULT '')''',
-    "ALTER TABLE affiliates ENABLE ROW LEVEL SECURITY",
-    "CREATE INDEX IF NOT EXISTS affiliates_status_idx ON affiliates(status)",
-    "CREATE INDEX IF NOT EXISTS affiliates_email_idx ON affiliates(email)",
-    '''CREATE TABLE IF NOT EXISTS refunds(
-        id BIGSERIAL PRIMARY KEY, order_id BIGINT UNIQUE NOT NULL, name TEXT NOT NULL,
-        phone TEXT NOT NULL, order_date TEXT NOT NULL, amount DOUBLE PRECISION NOT NULL,
-        created_at TEXT NOT NULL)''',
-    "ALTER TABLE refunds ENABLE ROW LEVEL SECURITY",
-    '''CREATE TABLE IF NOT EXISTS reseller_payouts(
-        id BIGSERIAL PRIMARY KEY, reseller_id BIGINT NOT NULL, reseller_name TEXT NOT NULL,
-        amount DOUBLE PRECISION NOT NULL, method TEXT NOT NULL, account TEXT NOT NULL DEFAULT '',
-        holder TEXT NOT NULL DEFAULT '', cedula TEXT NOT NULL DEFAULT '', paid_on TEXT NOT NULL,
-        created_at TEXT NOT NULL)''',
-    "ALTER TABLE reseller_payouts ENABLE ROW LEVEL SECURITY",
-    "CREATE INDEX IF NOT EXISTS payouts_reseller_idx ON reseller_payouts(reseller_id)",
-    "CREATE INDEX IF NOT EXISTS payouts_paid_on_idx ON reseller_payouts(paid_on)",
-    # v6: columnas para solicitudes de afiliados (formulario simple) y reembolsos manuales
-    "ALTER TABLE affiliates ADD COLUMN IF NOT EXISTS socials TEXT NOT NULL DEFAULT ''",
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS reason TEXT NOT NULL DEFAULT ''",
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pendiente'",
-    "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT ''",
 ]
 
 _schema_ready = False
@@ -452,8 +345,9 @@ REQUIRED_TABLES = {'products', 'reviews', 'orders', 'settings', 'ads', 'payments
 
 
 def migrate(con):
-    """Aplica la migracion v3 una sola vez. Usa un candado para que dos instancias
-    de Vercel arrancando a la vez no choquen."""
+    """Aplica las migraciones una sola vez. Cada sentencia va en su propio savepoint: si una falla,
+    las demas siguen y el sitio no se cae (se reintenta en el proximo arranque).
+    Candado para que dos instancias de Vercel arrancando a la vez no choquen."""
     def current():
         row = con.execute("SELECT value FROM settings WHERE key='_schema_version'").fetchone()
         return row['value'] if row else None
@@ -463,18 +357,25 @@ def migrate(con):
     con.execute('SELECT pg_advisory_xact_lock(%s)', (918273646,))
     if current() == SCHEMA_VERSION:  # otra instancia la termino mientras esperabamos
         return
+    failed = 0
     for stmt in MIGRATIONS:
-        con.execute(stmt)
+        try:
+            with con.transaction():
+                con.execute(stmt)
+        except Exception as exc:
+            failed += 1
+            print(f'[VIANE] Migracion fallo ({stmt[:70]!r}): {exc!r}')
     try:  # categoria "personalizado" y pedidos ya entregados -> ventas (no duplica nada)
         with con.transaction():
             ensure_category(con, PROTECTED_CATEGORY)
-            for o in con.execute('SELECT * FROM orders WHERE status = ANY(%s)',
+            for o in con.execute("SELECT * FROM orders WHERE status = ANY(%s) AND payment_status <> 'Reembolsado'",
                                  (list(SALE_STATUSES),)).fetchall():
                 save_sale(con, o, _dr_date(o['updated_at']))
     except Exception as exc:
-        print(f'[VIANE] Migracion v3 (categoria/ventas): {exc!r}')
-    con.execute("INSERT INTO settings(key,value) VALUES('_schema_version',%s) "
-                "ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (SCHEMA_VERSION,))
+        print(f'[VIANE] Migracion (categoria/ventas): {exc!r}')
+    if not failed:
+        con.execute("INSERT INTO settings(key,value) VALUES('_schema_version',%s) "
+                    "ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", (SCHEMA_VERSION,))
 
 
 def ensure_schema():
@@ -748,136 +649,6 @@ def num(v, default=None):
         return default
     return to_float(str(v).replace(',', '.'))
 
-# ---------------------------------------------------------------------------
-# Correo (SMTP) y Contratos de Afiliados
-# ---------------------------------------------------------------------------
-def smtp_configured():
-    return bool(os.environ.get('SMTP_USER') and os.environ.get('SMTP_PASSWORD'))
-
-def send_mail(to, subject, text, attachments=()):
-    if not smtp_configured():
-        return False, 'sin configurar'
-    try:
-        user, password = os.environ['SMTP_USER'], os.environ['SMTP_PASSWORD']
-        host = os.environ.get('SMTP_HOST') or 'smtp.gmail.com'
-        port = int(os.environ.get('SMTP_PORT') or 465)
-        msg = EmailMessage()
-        msg['From'] = os.environ.get('MAIL_FROM') or user
-        msg['To'] = str(to or '')[:200]
-        msg['Subject'] = str(subject or '')[:180]
-        msg.set_content(text)
-        for filename, data, mime in attachments:
-            maintype, subtype = mime.split('/', 1)
-            msg.add_attachment(data, maintype=maintype, subtype=subtype, filename=filename)
-        ctx = ssl.create_default_context()
-        if port == 465:
-            with smtplib.SMTP_SSL(host, port, timeout=12, context=ctx) as s:
-                s.login(user, password)
-                s.send_message(msg)
-        else:
-            with smtplib.SMTP(host, port, timeout=12) as s:
-                s.starttls(context=ctx)
-                s.login(user, password)
-                s.send_message(msg)
-        return True, 'enviado'
-    except Exception as exc:
-        print(f'[VIANE] correo fallo: {type(exc).__name__}')
-        return False, 'error: ' + type(exc).__name__
-
-def contract_html(a):
-    e = html.escape
-    sig_img = ''
-    if a.get('signature_png'):
-        sig_img = f'<img alt="Firma" src="{e(a["signature_png"], quote=True)}" style="max-width:360px;height:auto">'
-    signed = (a.get('signed_at') or '')[:19].replace('T', ' ')
-    rows_ = [
-        ('Nombre completo', a.get('full_name', '')), ('Correo', a.get('email', '')),
-        ('Teléfono / WhatsApp', a.get('phone', '')), ('Fecha de nacimiento', a.get('birth_date', '')),
-        ('Red principal', a.get('platform', '')), ('Perfil', a.get('profile', '')),
-        ('Seguidores declarados', f"{int(a.get('followers') or 0):,}"),
-    ]
-    data = ''.join(f'<tr><th>{e(k)}</th><td>{e(str(v))}</td></tr>' for k, v in rows_)
-    return f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Contrato de afiliado #{a['id']}</title>
-<style>body{{font-family:Georgia,serif;max-width:760px;margin:30px auto;padding:0 16px;color:#222;line-height:1.6}}
-h1{{font-size:20px;color:#7A0C16}}table{{border-collapse:collapse;width:100%;margin:14px 0}}th,td{{border:1px solid #ddd;padding:6px 10px;text-align:left;font-size:14px}}
-th{{background:#f7f1e3;width:36%}}pre{{white-space:pre-wrap;font-family:inherit;font-size:14px;background:#fffdf5;border:1px solid #eee;padding:14px;border-radius:8px}}
-.seal{{border:2px solid #9A7B1C;border-radius:10px;padding:12px;margin-top:18px;font-size:13px;word-break:break-all}}</style></head><body>
-<h1>VIANE DELICATESSEN — Contrato de afiliado #{a['id']}</h1>
-<table>{data}</table>
-<pre>{e(a.get('terms_text') or TERMS_TEXT)}</pre>
-<p><b>Firmado por:</b> {e(a.get('signature_name') or '')}<br>{sig_img}</p>
-<div class="seal"><b>Contrato sellado</b><br>Fecha y hora (UTC): {e(signed)}<br>IP: {e(a.get('signed_ip') or '')}<br>
-Versión de términos: {e(a.get('terms_version') or '')}<br>Sello (SHA-256): {e(a.get('contract_hash') or '')}</div>
-</body></html>'''
-
-def seal_hash(a, sig_sha):
-    parts = [a['terms_version'], hashlib.sha256(a['terms_text'].encode('utf-8')).hexdigest(), a['full_name'],
-             a['email'], a['birth_date'], str(a['followers']), a['platform'], a['profile'],
-             a['signature_name'], sig_sha, a['signed_at'], a['signed_ip']]
-    return hashlib.sha256('|'.join(parts).encode('utf-8')).hexdigest()
-
-def png_bytes(data_url):
-    m = re.fullmatch(r'data:image/png;base64,([A-Za-z0-9+/=]+)', data_url or '')
-    if not m:
-        return b''
-    try:
-        return base64.b64decode(m.group(1))
-    except Exception:
-        return b''
-
-def send_application_mails(a):
-    doc = contract_html(a).encode('utf-8')
-    png = png_bytes(a.get('signature_png'))
-    atts = [(f'contrato-afiliado-{a["id"]}.html', doc, 'text/html')]
-    if png:
-        atts.append((f'firma-{a["id"]}.png', png, 'image/png'))
-    seal = (a['contract_hash'] or '')[:12].upper()
-    admin_text = (
-        f"Nueva solicitud de afiliado FIRMADA (contrato sellado)\n\n"
-        f"Nombre: {a['full_name']}\nCorreo: {a['email']}\nTeléfono: {a['phone']}\n"
-        f"Fecha de nacimiento: {a['birth_date']}\nRed principal: {a['platform']} — {a['profile']}\n"
-        f"Seguidores declarados: {int(a['followers']):,}\nFirma (nombre): {a['signature_name']}\n"
-        f"Fecha de firma (UTC): {(a['signed_at'] or '')[:19]}\nSello del contrato: {seal}\n"
-        f"Versión de términos: {a['terms_version']}\n\n"
-        f"Estado: pendiente. Plazo de respuesta: 1 a 30 días; si no hay respuesta, la evaluación se "
-        f"extiende de 30 días a 12 meses.\nSe adjunta la copia del contrato firmado."
-    )
-    ok_a, st_a = send_mail(NOTIFY_EMAIL, f"Nueva solicitud de afiliado: {a['full_name']}", admin_text, atts)
-    user_text = (
-        f"Hola {a['full_name']},\n\n"
-        f"¡Gracias por solicitar entrar al esquema de afiliados de VIANE Delicatessen!\n\n"
-        f"Hemos recibido tu solicitud y tu contrato firmado. Estaremos revisando tu perfil y te daremos una "
-        f"respuesta en un plazo de 1 a 30 días. En caso de no recibir ninguna notificación dentro de este "
-        f"plazo inicial, el proceso de evaluación se extenderá por un período de 30 días a 12 meses mientras "
-        f"validamos la disponibilidad y el cumplimiento de nuestros criterios.\n\n"
-        f"Sello de tu contrato: {seal}\nAdjuntamos una copia para tus registros.\n\n"
-        f"VIANE Delicatessen · WhatsApp 829-675-9640"
-    )
-    ok_u, st_u = send_mail(a['email'], 'Gracias por tu solicitud de afiliación — VIANE Delicatessen', user_text, atts)
-    return st_a, st_u
-def notify_new_affiliate(a):
-    """Aviso simple por correo para el formulario corto de afiliados (sin contrato firmado)."""
-    text = (
-        f"Nueva solicitud de afiliado (formulario simple)\n\n"
-        f"Nombre: {a['full_name']}\nTeléfono: {a['phone']}\nCorreo: {a.get('email', '')}\n"
-        f"Redes: {a.get('socials', '')}\nPerfil: {a.get('profile', '')}\n\nEstado: pendiente."
-    )
-    send_mail(NOTIFY_EMAIL, f"Nueva solicitud de afiliado: {a['full_name']}", text)
-  
-def refund_hook(c, oid, status, payment):
-    if status == 'Reembolsado' or payment == 'Reembolsado':
-        o = c.execute('SELECT id,name,phone,total,created_at FROM orders WHERE id=%s', (oid,)).fetchone()
-        if not o:
-            return
-        order_date = _dr_date(o['created_at'])
-        c.execute('INSERT INTO refunds(order_id,name,phone,order_date,amount,created_at) '
-                  'VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT (order_id) DO NOTHING',
-                  (o['id'], o['name'], o['phone'], order_date, float(o['total']), now()))
-        c.execute('DELETE FROM sales WHERE order_id=%s', (oid,))
-    else:
-        # solo borra el reembolso automático; los manuales (con motivo) se conservan
-        c.execute("DELETE FROM refunds WHERE order_id=%s AND reason=''", (oid,))
-
 
 def supply_key(name):
     """Clave para agrupar insumos iguales ('Uvas ' y 'uvas' son el mismo insumo)."""
@@ -983,6 +754,13 @@ def save_sale(c, o, sold_date=None):
 def no_cache_api(resp):
     if request.path.startswith('/api/'):
         resp.headers['Cache-Control'] = 'no-store'
+    # Cabeceras de seguridad basicas (no incluyen CSP para no romper los scripts de la pagina).
+    resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    resp.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    resp.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    resp.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    if IS_VERCEL:
+        resp.headers.setdefault('Strict-Transport-Security', 'max-age=31536000')
     return resp
 
 
@@ -1047,6 +825,7 @@ def health():
         'admin_configured': bool(ADMIN_EMAIL and ADMIN_PASSWORD),
         'secret_key': SECRET_KEY_OK,
         'cloudinary_opcional': cloudinary_ready(),
+        'correo_configurado': bool(os.environ.get('SMTP_USER') and os.environ.get('SMTP_PASSWORD')),
     }
     try:
         with db() as c:
@@ -1213,6 +992,24 @@ def track_order(code):
 # ---------------------------------------------------------------------------
 # Administrador
 # ---------------------------------------------------------------------------
+_LOGIN_FAILS = {}  # ip -> [momentos de intentos fallidos] (por instancia; frena fuerza bruta)
+
+
+def _login_ip():
+    xff = request.headers.get('X-Forwarded-For', '')
+    return (xff.split(',')[0].strip() or request.remote_addr or '?')[:60]
+
+
+def _login_blocked(ip):
+    limit = datetime.now(timezone.utc).timestamp() - 15 * 60
+    fails = [t for t in _LOGIN_FAILS.get(ip, []) if t > limit]
+    _LOGIN_FAILS[ip] = fails
+    if len(_LOGIN_FAILS) > 500:  # evita que el diccionario crezca sin limite
+        for k in [k for k, v in _LOGIN_FAILS.items() if not v][:200]:
+            _LOGIN_FAILS.pop(k, None)
+    return len(fails) >= 8
+
+
 @app.post('/api/login')
 def login():
     data = request.get_json(silent=True)
@@ -1223,12 +1020,18 @@ def login():
 
     if not ADMIN_EMAIL or not ADMIN_PASSWORD:
         return jsonify({'error': 'El administrador debe configurar ADMIN_EMAIL y ADMIN_PASSWORD en el servidor.'}), 503
+    ip = _login_ip()
+    if _login_blocked(ip):
+        return jsonify({'error': 'Demasiados intentos fallidos. Espera 15 minutos e inténtalo de nuevo.'}), 429
     ok_email = hmac.compare_digest(email.encode('utf-8'), ADMIN_EMAIL.encode('utf-8'))
     ok_pass = hmac.compare_digest(password.encode('utf-8'), ADMIN_PASSWORD.encode('utf-8'))
     if not (ok_email and ok_pass):
+        _LOGIN_FAILS.setdefault(ip, []).append(datetime.now(timezone.utc).timestamp())
         return jsonify({'error': 'Correo o contraseña incorrectos'}), 401
 
+    _LOGIN_FAILS.pop(ip, None)
     session.clear()
+    session.permanent = True
     session['admin'] = True
     session['email'] = ADMIN_EMAIL
     return jsonify({'ok': True, 'email': ADMIN_EMAIL})
@@ -1240,38 +1043,68 @@ def logout():
     return jsonify({'ok': True})
 
 
+def safe_query(c, fn, default, label='', warnings=None):
+    """Ejecuta una consulta dentro de un savepoint: si falla, devuelve 'default' y la transaccion sigue viva."""
+    try:
+        with c.transaction():
+            return fn()
+    except Exception as exc:
+        print(f'[VIANE] consulta fallo ({label or "opcional"}): {exc!r}')
+        if warnings is not None and label:
+            warnings.append(label)
+        return default
+
+
 @app.get('/api/admin/data')
 @admin_required
 def admin_data():
+    """Todo lo del panel. Cada seccion se consulta por separado: si una falla, el panel igual abre
+    y avisa cual seccion no cargo (campo 'warnings')."""
+    warnings = []
     with db() as c:
-        cats = rows(c, 'SELECT k.id,k.name,k.active,(SELECT COUNT(*) FROM products p '
-                       'WHERE p.category=k.name) AS total FROM categories k ORDER BY k.id')
+        def sq(label, fn, default):
+            return safe_query(c, fn, default, label, warnings)
+
+        cats = sq('categorías', lambda: rows(c, 'SELECT k.id,k.name,k.active,(SELECT COUNT(*) FROM products p '
+                                                  'WHERE p.category=k.name) AS total FROM categories k ORDER BY k.id'), [])
         for k in cats:
             k['locked'] = k['name'] in LOCKED_CATEGORIES
-        return jsonify({
-            'products': rows(c, 'SELECT * FROM products ORDER BY id DESC'),
-            'reviews': rows(c, 'SELECT * FROM reviews ORDER BY id DESC'),
-            # Entregado / Terminado ya no se listan aqui: viven en Ventas.
-            'orders': rows(c, 'SELECT * FROM orders WHERE NOT (status = ANY(%s)) ORDER BY id DESC',
-                           (list(SALE_STATUSES),)),
+        # lo ya pagado a cada vendedor (tabla del modulo de pagos; si aun no existe, queda en cero)
+        paid = safe_query(c, lambda: {r['reseller_id']: float(r['v']) for r in rows(
+            c, 'SELECT reseller_id, COALESCE(SUM(amount),0) AS v FROM reseller_payouts GROUP BY reseller_id')}, {})
+        resellers = sq('vendedores', lambda: rows(
+            c, 'SELECT r.id,r.name,r.code,r.active,r.created_at,r.discount_pct,r.commission_pct,'
+               '(SELECT COUNT(*) FROM orders o WHERE o.reseller_id=r.id) AS orders_count,'
+               # generado: comision de pedidos cuya venta existe y NO esta eliminada
+               '(SELECT COALESCE(SUM(o.commission),0) FROM orders o '
+               ' WHERE o.reseller_id=r.id AND EXISTS (SELECT 1 FROM sales s '
+               '  WHERE s.order_id=o.id AND s.deleted_at IS NULL)) AS earned,'
+               # en proceso: comision de pedidos que aun no se entregan
+               '(SELECT COALESCE(SUM(o.commission),0) FROM orders o '
+               " WHERE o.reseller_id=r.id AND NOT (o.status = ANY(%s)) AND o.status <> 'Reembolsado' "
+               "AND o.payment_status <> 'Reembolsado') AS pending "
+               'FROM resellers r ORDER BY r.id DESC', (list(SALE_STATUSES),)), [])
+        for r in resellers:
+            r['paid'] = round(paid.get(r['id'], 0.0), 2)
+            r['balance'] = round(float(r['earned'] or 0) - r['paid'], 2)  # por pagar = generado - pagado
+        data = {
+            'products': sq('productos', lambda: rows(c, 'SELECT * FROM products ORDER BY id DESC'), []),
+            'reviews': sq('reseñas', lambda: rows(c, 'SELECT * FROM reviews ORDER BY id DESC'), []),
+            # Entregado / Terminado ya no se listan aqui: viven en Ventas. Reembolsados tampoco.
+            'orders': sq('pedidos', lambda: rows(
+                c, "SELECT * FROM orders WHERE NOT (status = ANY(%s)) AND status <> 'Reembolsado' "
+                   "AND payment_status <> 'Reembolsado' ORDER BY id DESC", (list(SALE_STATUSES),)), []),
             'categories': cats,
-            'ads': rows(c, 'SELECT * FROM ads ORDER BY id DESC'),
-            'payments': rows(c, 'SELECT * FROM payments ORDER BY id DESC'),
-            'resellers': rows(c, 'SELECT r.id,r.name,r.code,r.active,r.created_at,r.discount_pct,r.commission_pct,'
-                                 '(SELECT COUNT(*) FROM orders o WHERE o.reseller_id=r.id) AS orders_count,'
-                                 # cobrable: pedidos cuya venta existe y NO esta eliminada
-                                 '(SELECT COALESCE(SUM(o.commission),0) FROM orders o '
-                                 ' WHERE o.reseller_id=r.id AND EXISTS (SELECT 1 FROM sales s '
-                                 '  WHERE s.order_id=o.id AND s.deleted_at IS NULL)) AS earned,'
-                                 '(SELECT COALESCE(SUM(o.commission),0) FROM orders o '
-                                 ' WHERE o.reseller_id=r.id AND NOT (o.status = ANY(%s))) AS pending '
-                                 'FROM resellers r ORDER BY r.id DESC',
-                              (list(SALE_STATUSES),)),
+            'ads': sq('publicidad', lambda: rows(c, 'SELECT * FROM ads ORDER BY id DESC'), []),
+            'payments': sq('pagos y propinas', lambda: rows(c, 'SELECT * FROM payments ORDER BY id DESC'), []),
+            'resellers': resellers,
             'reseller_discount': RESELLER_DISCOUNT_PCT,
             'reseller_commission': RESELLER_COMMISSION_PCT,
-            'settings': public_settings(c),
+            'settings': sq('ajustes', lambda: public_settings(c), {}),
             'statuses': STATUSES,
-        })
+            'warnings': warnings,
+        }
+        return jsonify(data)
 
 
 # --- Subida de archivos (se guardan en Supabase) ------------------------------
@@ -1428,9 +1261,12 @@ def update_order(oid):
             save_sale(c, c.execute('SELECT * FROM orders WHERE id=%s', (oid,)).fetchone())
         else:
             c.execute('DELETE FROM sales WHERE order_id=%s', (oid,))
-        refund_hook(c, oid, status, payment)  # si el pago es "Reembolsado": crea el reembolso y quita la venta
-    return jsonify({'ok': True, 'moved_to_sales': status in SALE_STATUSES and payment != 'Reembolsado'})
-
+        for hook in ORDER_HOOKS:  # modulos extra (reembolsos); un fallo ahi nunca rompe el guardado
+            try:
+                with c.transaction():
+                    hook(c, oid, status, payment)
+            except Exception as exc:
+                print(f'[VIANE] gancho de pedido fallo: {exc!r}')
     return jsonify({'ok': True, 'moved_to_sales': status in SALE_STATUSES})
 
 
@@ -1776,7 +1612,7 @@ def list_sales():
         trash_count = len(data) if want_trash else c.execute(
             'SELECT COUNT(*) AS n FROM sales s WHERE s.deleted_at IS NOT NULL' + date_sql,
             tuple(params)).fetchone()['n']
-        pcosts = product_costs(c)
+        pcosts = safe_query(c, lambda: product_costs(c), {})
 
     sales, sectors = [], {}
     tot = {'total': 0.0, 'subtotal': 0.0, 'shipping': 0.0, 'discount': 0.0, 'commission': 0.0,
@@ -1866,153 +1702,20 @@ def reopen_sale(sid):
             c.execute("UPDATE orders SET status='En camino', updated_at=%s WHERE id=%s",
                       (now(), row['order_id']))
     return jsonify({'ok': True})
-# --- Afiliados (formulario simple) -------------------------------------------------
-@app.post('/api/affiliates')
-def submit_affiliate():
-    d = body()
-    full_name = str(d.get('full_name', '')).strip()[:120]
-    phone = str(d.get('phone', '')).strip()[:40]
-    email = str(d.get('email', '')).strip().lower()[:160]
-    profile_text = str(d.get('profile_text', '')).strip()[:2000]
-    socials = d.get('socials', '')
-    if isinstance(socials, list):
-        socials = ','.join(str(s).strip() for s in socials if str(s).strip())
-    else:
-        socials = str(socials).strip()
-    socials = socials[:500]
-    if not full_name or not phone:
-        return jsonify({'success': False, 'error': 'Nombre y teléfono son obligatorios'}), 400
-
-    affiliate = None
-    with db() as c:
-        existing = None
-        if email:
-            existing = c.execute('SELECT id FROM affiliates WHERE email=%s', (email,)).fetchone()
-        if not existing:
-            existing = c.execute('SELECT id FROM affiliates WHERE phone=%s', (phone,)).fetchone()
-        if existing:
-            # Ya hay una solicitud: no se modifica ni se cambia su estado.
-            aff_id = existing['id']
-        else:
-            contract_hash = hashlib.sha256(f'{full_name}-{phone}-{time.time()}'.encode('utf-8')).hexdigest()
-            row = c.execute(
-                'INSERT INTO affiliates(full_name,email,phone,birth_date,platform,profile,socials,followers,'
-                'status,created_at,contract_hash,signed_at) '
-                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'pendiente',%s,%s,%s) RETURNING id",
-                (full_name, email, phone, '', '', profile_text, socials, 0, now(), contract_hash, now())
-            ).fetchone()
-            aff_id = row['id']
-            affiliate = c.execute('SELECT * FROM affiliates WHERE id=%s', (aff_id,)).fetchone()
-
-    try:
-        if affiliate:
-            notify_new_affiliate(affiliate)
-    except Exception as exc:
-        print(f'[VIANE] correo de afiliado falló: {exc!r}')
-
-    return jsonify({'success': True, 'id': aff_id})
-
-@app.get('/api/affiliates')
-@admin_required
-def list_affiliates():
-    with db() as c:
-        data = rows(c, 'SELECT * FROM affiliates ORDER BY created_at DESC')
-    return jsonify({'success': True, 'affiliates': data})
 
 
-@app.post('/api/affiliates/<int:aff_id>/status')
-@admin_required
-def update_affiliate_status(aff_id):
-    d = body()
-    new_status = str(d.get('status', '')).strip()
-    if new_status not in ('aprobado', 'rechazado', 'pendiente'):
-        return jsonify({'success': False, 'error': 'Estado inválido'}), 400
-    with db() as c:
-        cur = c.execute('UPDATE affiliates SET status=%s,decided_at=%s WHERE id=%s',
-                        (new_status, now(), aff_id))
-        if cur.rowcount == 0:
-            return jsonify({'success': False, 'error': 'Afiliado no encontrado'}), 404
-    return jsonify({'success': True})
+# --- Modulos extra y aislados (afiliados, reembolsos, pagos a vendedores): viane_extras.py ---
+# Si ese archivo falta o falla, el sitio sigue funcionando igual que antes.
+try:
+    import viane_extras
+    viane_extras.register(
+        app, db=db, connect=connect, ensure_schema=ensure_schema, admin_required=admin_required,
+        body=body, rows=rows, now=now, dr_date=_dr_date, norm=_norm, parse_pct=parse_pct,
+        order_hooks=ORDER_HOOKS, migrations=MIGRATIONS,
+        reseller_defaults=(RESELLER_DISCOUNT_PCT, RESELLER_COMMISSION_PCT))
+except Exception as exc:
+    print(f'[VIANE] Modulos extra no disponibles: {exc!r}')
 
-
-# --- Reembolsos (solicitud manual) --------------------------------------------------
-@app.post('/api/refunds')
-@admin_required
-def request_refund():
-    """El cliente/admin pide un reembolso para una venta ya registrada (sales.id)."""
-    d = body()
-    sale_id = num(d.get('order_id'))
-    reason = str(d.get('reason', '')).strip()[:1000]
-    if not sale_id or not reason:
-        return jsonify({'success': False, 'error': 'Faltan datos'}), 400
-    with db() as c:
-        sale = c.execute('SELECT order_id FROM sales WHERE id=%s', (int(sale_id),)).fetchone()
-        if not sale or not sale['order_id']:
-            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
-        order = c.execute('SELECT id,name,phone,total,created_at FROM orders WHERE id=%s',
-                          (sale['order_id'],)).fetchone()
-        if not order:
-            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
-        c.execute(
-            'INSERT INTO refunds(order_id,name,phone,order_date,amount,reason,status,created_at) '
-            "VALUES(%s,%s,%s,%s,%s,%s,'pendiente',%s) "
-            'ON CONFLICT (order_id) DO UPDATE SET reason=EXCLUDED.reason,status=EXCLUDED.status',
-            (order['id'], order['name'], order['phone'], _dr_date(order['created_at']),
-             float(order['total']), reason, now()))
-    return jsonify({'success': True})
-
-
-@app.get('/api/refunds')
-@admin_required
-def list_refunds():
-    with db() as c:
-        data = rows(c, 'SELECT r.*, o.name AS customer, o.total FROM refunds r '
-                       'LEFT JOIN orders o ON o.id=r.order_id ORDER BY r.created_at DESC')
-    return jsonify({'success': True, 'refunds': data})
-
-
-@app.post('/api/refunds/<int:ref_id>/status')
-@admin_required
-def update_refund_status(ref_id):
-    d = body()
-    status = str(d.get('status', '')).strip()
-    if status not in ('reembolsado', 'rechazado', 'pendiente'):
-        return jsonify({'success': False, 'error': 'Estado inválido'}), 400
-    with db() as c:
-        cur = c.execute('UPDATE refunds SET status=%s WHERE id=%s', (status, ref_id))
-        if cur.rowcount == 0:
-            return jsonify({'success': False, 'error': 'Reembolso no encontrado'}), 404
-    return jsonify({'success': True})
-
-
-# --- Pagos a vendedores (payouts) ----------------------------------------------------
-@app.get('/api/payouts')
-@admin_required
-def list_payouts():
-    with db() as c:
-        data = rows(c, 'SELECT * FROM reseller_payouts ORDER BY created_at DESC')
-    return jsonify({'success': True, 'payouts': data})
-
-
-@app.post('/api/payouts')
-@admin_required
-def add_payout():
-    d = body()
-    reseller_id = num(d.get('reseller_id'))
-    amount = num(d.get('amount'))
-    if not reseller_id or not amount or amount <= 0:
-        return jsonify({'success': False, 'error': 'Datos de pago inválidos'}), 400
-    with db() as c:
-        r = c.execute('SELECT id,name FROM resellers WHERE id=%s', (int(reseller_id),)).fetchone()
-        if not r:
-            return jsonify({'success': False, 'error': 'Vendedor no encontrado'}), 404
-        c.execute(
-            'INSERT INTO reseller_payouts(reseller_id,reseller_name,amount,method,account,holder,cedula,'
-            'paid_on,created_at) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-            (r['id'], r['name'], amount, str(d.get('method', '')).strip()[:40],
-             str(d.get('account', '')).strip()[:80], str(d.get('holder', '')).strip()[:120],
-             str(d.get('cedula', '')).strip()[:40], _dr_date(), now()))
-    return jsonify({'success': True})
 
 if __name__ == '__main__':
     # Desarrollo local: python app.py  ->  http://localhost:5000
