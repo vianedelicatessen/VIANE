@@ -186,34 +186,14 @@
   "url": "https://www.vianedelicatessen.com/"
 }
 </script></head><body>
-<header class="top"><div class="brand"><img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'"><div><div style="font-family:'Playfair Display';font-size:22px">VIANE</div><small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small></div></div><nav><button onclick="go('catalog')">Menú</button><button onclick="go('reviews')">Reseñas</button><button onclick="go('track')">Seguir pedido</button><button onclick="go('affiliates')">Afiliados</button><button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button></nav>
+<header class="top"><div class="brand"><img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'"><div><div style="font-family:'Playfair Display';font-size:22px">VIANE</div><small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small></div></div><nav><button onclick="go('catalog')">Menú</button><button onclick="go('reviews')">Reseñas</button><button onclick="go('track')">Seguir pedido</button><button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button></nav>
 </header>
 <section class="hero" id="hero"><img id="heroLogo" class="logo" src="" alt="Logo" onerror="this.style.display='none'"><div class="eyebrow">DETALLES QUE SE CONVIERTEN EN RECUERDOS</div><h1>Un detalle especial, hecho para ti</h1><p>Desayunos, bandejas personalizadas, picaderas y regalos con el sello de VIANE Delicatessen.</p><div class="actions" style="margin-top:22px"><button class="btn goldbtn" onclick="go('catalog')">Explorar productos</button><button class="btn" onclick="go('reviews')">Compartir mi experiencia</button></div></section>
 <main class="wrap"><section id="catalog"><h2 class="section-title">Nuestro catálogo</h2><div class="filters" id="filters"></div><div class="grid" id="products"></div><div id="ads" class="grid" style="margin-top:20px"></div></section>
 <section id="reviews" class="hidden"><h2 class="section-title">Tu experiencia nos inspira</h2><div class="formbox"><form id="reviewForm"><div class="field">Tu calificación *<div class="stars" id="starButtons"></div></div><div class="fields"><label class="field">Nombre completo *<input id="reviewName" required maxlength="120"></label><label class="field">WhatsApp (opcional)<input id="reviewPhone" placeholder="829-000-0000"></label></div><div class="field" style="margin-top:12px">Productos recibidos (elige de 1 a 3) *<div id="reviewProductChoices" class="fields"></div></div><label class="field" style="margin-top:12px">Tu comentario *<textarea id="reviewComment" required maxlength="2000" placeholder="Cuéntanos cómo fue tu experiencia..."></textarea></label><button class="btn" style="width:100%;margin-top:12px">Enviar reseña</button></form><p class="muted">Las reseñas se revisan antes de aparecer públicamente.</p></div><h3 class="section-title" style="margin-top:30px">Lo que dicen nuestros clientes</h3><div id="reviewsFeed"></div></section>
-<section id="track" class="hidden"><h2 class="section-title">Seguir mi pedido</h2><div class="formbox"><form id="trackForm"><label class="field">Código de seguimiento *<input id="trackCode" required maxlength="40"></label><button class="btn" style="width:100%;margin-top:12px">Consultar</button></form><div id="trackResult" style="margin-top:14px"></div></div></section>
-<section id="affiliates" class="hidden">
-    <h2 class="section-title">Programa de Afiliados</h2>
-    <div class="formbox">
-        <p class="muted">¿Tienes redes sociales con al menos 500 seguidores? Únete a nuestro programa de afiliados y gana comisiones compartiendo VIANE Delicatessen. Te daremos una respuesta en un plazo de 1 a 14 días.</p>
-        <form id="affiliateForm">
-            <div class="fields">
-                <label class="field">Nombre completo *<input id="afName" required maxlength="120"></label>
-                <label class="field">WhatsApp *<input id="afPhone" required placeholder="829-000-0000"></label>
-            </div>
-            <div class="fields" style="margin-top:12px">
-                <label class="field">Correo electrónico<input id="afEmail" type="email"></label>
-                <label class="field">Fecha de nacimiento *<input id="afBirthDate" type="date" required></label>
-            </div>
-            <div class="fields" style="margin-top:12px">
-                <label class="field" style="width:100%">Tu red social principal (enlace)<input id="afSocials" placeholder="https://instagram.com/tuusuario"></label>
-            </div>
-            <label class="field" style="margin-top:12px">Cuéntanos sobre tu perfil (seguidores aproximados, tipo de contenido, por qué te gustaría ser afiliado)<textarea id="afProfile" maxlength="2000"></textarea></label>
-            <button class="btn" style="width:100%;margin-top:12px">Enviar solicitud</button>
-        </form>
-        <div id="affiliateResult" class="hidden" style="margin-top:14px"></div>
-    </div>
-</section><footer class="footer"><b style="font-family:'Playfair Display';color:var(--crimson);font-size:17px">VIANE DELICATESSEN</b><p>Detalles especiales, desayunos, picaderas y regalos.</p><p>WhatsApp: <a id="footerWa" href="https://wa.me/18296759640">829-675-9640</a> · Instagram: <span id="footerIg">vianedelicatessen</span></p><p>© 2026 VIANE Delicatessen</p></footer><a class="floating" id="waFloat" href="https://wa.me/18296759640" target="_blank" rel="noopener">WhatsApp</a>
+<section id="track" class="hidden"><h2 class="section-title">Seguimiento de tu pedido</h2><div class="formbox"><p class="muted">Introduce el código que recibiste al realizar tu pedido.</p><form id="trackForm" class="row"><input id="trackCode" placeholder="Ej. VIA-A1B2C3D4" autocomplete="off" autocapitalize="characters" spellcheck="false" required><button class="btn">Consultar</button></form><div id="trackResult" style="margin-top:18px"></div></div></section>
+<section id="admin" class="hidden"><h2 class="section-title">Panel de administración</h2><div class="adminpanel"><div class="row"><div><b>VIANE Delicatessen</b><div class="muted">Sesión administrativa segura</div></div><button class="btn light" onclick="logout()">Cerrar sesión</button></div><div class="adminnav"><button onclick="adminTab('orders')">Pedidos</button><button onclick="adminTab('sales')">Ventas</button><button onclick="adminTab('products')">Productos</button><button onclick="adminTab('cats')">Gestión de categorías</button><button onclick="adminTab('resellers')">Vendedores</button><button onclick="adminTab('costs')">Costos</button><button onclick="adminTab('reviews')">Reseñas</button><button onclick="adminTab('brand')">Logo y diseño</button><button onclick="adminTab('payments')">Pagos y propinas</button><button onclick="adminTab('ads')">Publicidad</button><button onclick="adminTab('media')">Multimedia</button></div><div id="adminContent"></div></div></section></main>
+<footer class="footer"><b style="font-family:'Playfair Display';color:var(--crimson);font-size:17px">VIANE DELICATESSEN</b><p>Detalles especiales, desayunos, picaderas y regalos.</p><p>WhatsApp: <a id="footerWa" href="https://wa.me/18296759640">829-675-9640</a> · Instagram: <span id="footerIg">vianedelicatessen</span></p><p>© 2026 VIANE Delicatessen</p><p class="tiny"><a href="#admin" onclick="event.preventDefault();openLogin()" style="color:var(--muted)">Acceso administración</a></p></footer><a class="floating" id="waFloat" href="https://wa.me/18296759640" target="_blank" rel="noopener">WhatsApp</a>
 
 <!-- Reproductor flotante: se reproduce aquí mismo, sin llevar al cliente a otra página -->
 <div id="musicPlayer" class="hidden" role="region" aria-label="Reproductor de música">
@@ -234,7 +214,7 @@
 </div>
 
 <div id="loginModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Acceso administrativo</h2><p class="muted">Solo personal autorizado.</p><form id="loginForm"><label class="field">Correo electrónico<input id="loginEmail" type="email" required></label><label class="field" style="margin-top:12px">Contraseña<input id="loginPassword" type="password" required></label><div class="row" style="margin-top:16px"><button class="btn">Entrar</button><button type="button" class="btn light" onclick="closeLogin()">Cancelar</button></div><p id="loginError" class="muted"></p></form></div></div>
-<div id="cartModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Tu pedido</h2><div id="cartItems"></div><h3 id="cartTotal" class="price">RD$ 0</h3><form id="orderForm"><div class="fields"><label class="field">Nombre *<input id="orderName" required autocomplete="name"></label><label class="field">WhatsApp *<input id="orderPhone" type="tel" inputmode="tel" required autocomplete="tel" placeholder="829-000-0000"></label><label class="field">Método de entrega *
+<div id="cartModal" class="modal hidden"><div class="modalbox"><h2 style="color:var(--crimson)">Tu pedido</h2><div id="cartItems"></div><h3 id="cartTotal" class="price">RD$ 0</h3><form id="orderForm"><p class="ex-box" style="margin-top:0"><b>Importante:</b> todos los pedidos deben realizarse con un <b>mínimo de 24 horas</b> de anticipación.</p><div class="fields"><label class="field">Nombre *<input id="orderName" required autocomplete="name"></label><label class="field">WhatsApp *<input id="orderPhone" type="tel" inputmode="tel" required autocomplete="tel" placeholder="829-000-0000"></label><label class="field">Método de entrega *
   <select id="deliveryMethod" onchange="onDeliveryChange()">
     <option value="pickup">Pasar a recoger en el local</option>
     <option value="delivery_pp">Delivery en Pto. Plata (Ciudad)</option>
@@ -259,13 +239,13 @@ function getCats(){
   }
   const extra=(state.categories||[]).filter(c=>!BASE_CATS.includes(c));return ['Todos',...BASE_CATS,...extra]
 }
-async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Ocurrió un error');return d}
+async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});let d=await r.json().catch(()=>({}));if(!r.ok){const e=Error(d.error||'Ocurrió un error');e.status=r.status;throw e}return d}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function money(n){return 'RD$ '+Number(n||0).toLocaleString('es-DO',{maximumFractionDigits:2})}
 function waDigits(n){let x=String(n||'').replace(/\D/g,'');if(x.length===10)x='1'+x;return x}
 function fmtDate(iso){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');return m?m[3]+'/'+m[2]+'/'+m[1]:(iso||'No indicada')}
 async function load(){try{let d=await api('/api/public');state={...state,...d};if(!getCats().includes(state.category))state.category='Todos';applyBrand();renderProducts();renderReviews();renderFilters();renderReviewChoices();renderStars();renderAds();initMusic()}catch(e){console.error(e)}}function applyBrand(){let s=state.settings||{};['brandLogo','heroLogo'].forEach(id=>{if(s.logo){$(id).src=s.logo;$(id).style.display=''}else $(id).style.display='none'});let wa=waDigits(s.whatsapp||'18296759640');$('footerWa').href='https://wa.me/'+wa;$('footerWa').textContent=s.whatsapp||'829-675-9640';$('waFloat').href='https://wa.me/'+wa;$('footerIg').textContent=s.instagram||'vianedelicatessen';let bg=s.background_value||'#FFFDF5';if(s.background_type==='color')document.body.style.background=bg;else if(s.background_type==='image')document.body.style.background=`url('${bg}') center/cover fixed`;else if(s.background_type==='texture')document.body.style.background=`repeating-linear-gradient(45deg,${bg},${bg} 8px,#fff8e8 8px,#fff8e8 16px)`}
-function go(sec){['catalog','reviews','track','affiliates','admin'].forEach(s=>{const el=$(s);if(el)el.classList.toggle('hidden',s!==sec)});
-$(sec).scrollIntoView({behavior:'smooth',block:'start'});if(sec==='reviews'){renderReviewChoices();renderStars()}if(sec==='admin'&&state.admin)loadAdmin()}function renderFilters(){$('filters').innerHTML=getCats().map(c=>`<button class="pill ${state.category===c?'primary':''}" onclick="filterCategory('${esc(c)}')">${esc(c[0].toUpperCase()+c.slice(1))}</button>`).join('')}
+function go(sec){['catalog','reviews','track','admin'].forEach(s=>$(s).classList.toggle('hidden',s!==sec));$(sec).scrollIntoView({behavior:'smooth',block:'start'});if(sec==='reviews'){renderReviewChoices();renderStars()}if(sec==='admin'&&state.admin)loadAdmin()}
+function renderFilters(){$('filters').innerHTML=getCats().map(c=>`<button class="pill ${state.category===c?'primary':''}" onclick="filterCategory('${esc(c)}')">${esc(c[0].toUpperCase()+c.slice(1))}</button>`).join('')}
 function filterCategory(c){state.category=c;renderFilters();renderProducts()}
 /* Regla de visibilidad: "Todos" muestra todo; cualquier otra categoría muestra SOLO los
    productos de esa categoría (por eso un "personalizado" no aparece en desayunos ni bandejas). */
@@ -320,7 +300,7 @@ function showCartForm(on){
 }
 function openCart(){
   $('cartModal').classList.remove('hidden');
-  const t=new Date(),p=n=>String(n).padStart(2,'0');
+  const t=new Date(),p=n=>String(n).padStart(2,'0');t.setDate(t.getDate()+1);   // mínimo 24 horas
   $('orderDate').min=t.getFullYear()+'-'+p(t.getMonth()+1)+'-'+p(t.getDate());
   /* Con productos nuevos se muestra el formulario; si no, se conserva el aviso del último
      pedido para que el cliente todavía pueda pulsar "Continuar por WhatsApp". */
@@ -403,27 +383,7 @@ $('orderForm').addEventListener('submit',async e=>{
 });
 
 /* ---------- Seguimiento ---------- */
-if($('trackForm'))$('trackForm').addEventListener('submit',async e=>{
-e.preventDefault();$('trackResult').innerHTML='<p class="muted">Consultando…</p>';try{let d=await api('/api/track/'+encodeURIComponent($('trackCode').value.trim()));$('trackResult').innerHTML=`<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p>${d.delivery_date?`<p class="muted">Fecha deseada de entrega: ${esc(fmtDate(d.delivery_date))}</p>`:''}<p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident?`<p>Observación: ${esc(d.incident)}</p>`:''}</div>`}catch(err){$('trackResult').innerHTML='<p class="muted">'+esc(err.message)+'</p>'}});
-$('affiliateForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const btn=e.submitter||e.target.querySelector('button');
-  if(btn)btn.disabled=true;
-  try{
-  await api('/api/affiliates',{method:'POST',body:JSON.stringify({
-    full_name: $('afName').value.trim(),
-    phone: $('afPhone').value.trim(),
-    email: $('afEmail').value.trim(),
-    socials: $('afSocials').value.trim(),
-    profile_text: $('afProfile').value.trim(),
-    birth_date: $('afBirthDate').value.trim()
-})});
-    $('affiliateForm').classList.add('hidden');
-    $('affiliateResult').classList.remove('hidden');
-    $('affiliateResult').innerHTML='<div class="adminpanel"><h3 style="margin-top:0;color:var(--crimson)">¡Solicitud enviada!</h3><p>Gracias por tu interés en ser afiliado de VIANE Delicatessen. Revisaremos tu perfil y te daremos una respuesta en un plazo de 1 a 30 días.</p></div>';
-  }catch(err){alert(err.message)}
-  finally{if(btn)btn.disabled=false}
-});
+$('trackForm').addEventListener('submit',async e=>{e.preventDefault();$('trackResult').innerHTML='<p class="muted">Consultando…</p>';try{let d=await api('/api/track/'+encodeURIComponent($('trackCode').value.trim()));$('trackResult').innerHTML=`<div class="adminpanel"><p>Código: <b>${esc(d.code)}</b></p><p>Estado del pedido: <span class="status">${esc(d.status)}</span></p><p>Estado del pago: <span class="status">${esc(d.payment_status)}</span></p>${d.delivery_date?`<p class="muted">Fecha deseada de entrega: ${esc(fmtDate(d.delivery_date))}</p>`:''}<p class="muted">Última actualización: ${new Date(d.updated_at).toLocaleString('es-DO')}</p>${d.incident?`<p>Observación: ${esc(d.incident)}</p>`:''}</div>`}catch(err){$('trackResult').innerHTML='<p class="muted">'+esc(err.message)+'</p>'}});
 function renderStars(){$('starButtons').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" aria-label="${n} estrellas" onclick="setRating(${n})" style="color:${n<=state.rating?'var(--gold)':'#d6d0c9'}">★</button>`).join('')}function setRating(n){state.rating=n;renderStars()}
 function renderReviewChoices(){let products=state.products;$('reviewProductChoices').innerHTML=products.slice(0,200).map(p=>`<label style="font-weight:600;color:#51464b"><input type="checkbox" name="revProduct" value="${p.id}" style="width:auto"> ${esc(p.name)}</label>`).join('')||'<p class="muted">No hay productos disponibles.</p>'}
 $('reviewForm').addEventListener('submit',async e=>{e.preventDefault();let selected=[...document.querySelectorAll('[name=revProduct]:checked')];if(selected.length<1||selected.length>3){alert('Elige entre 1 y 3 productos.');return}try{let products=selected.map(x=>{let p=state.products.find(p=>p.id===Number(x.value));return p?p.name:''}).filter(Boolean);let d=await api('/api/reviews',{method:'POST',body:JSON.stringify({name:$('reviewName').value,rating:state.rating,products,comment:$('reviewComment').value,phone:$('reviewPhone').value})});alert(d.message);$('reviewForm').reset();state.rating=5;renderStars();let wants=confirm('¿Te gustaría dejar una propina para apoyar a VIANE Delicatessen?');if(wants){let tips=state.payments.filter(p=>p.tip_enabled);$('tipLinks').innerHTML=tips.length?tips.map(p=>`<div class="itemrow"><div><b>${esc(p.title)}</b><p class="muted">${esc(p.details||'')}</p></div><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Dar propina</a></div>`).join(''):'<p class="muted">Aún no hay métodos de propina configurados. Gracias por tu intención.</p>';$('tipModal').classList.remove('hidden')}}catch(err){alert(err.message)}});
@@ -489,7 +449,7 @@ $('mpClose').onclick=()=>{mp.closedUrl=mp.url;try{sessionStorage.setItem('vianeM
 
 /* ---------- Administrador ---------- */
 function openLogin(){$('loginModal').classList.remove('hidden')}function closeLogin(){$('loginModal').classList.add('hidden')}$('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/login',{method:'POST',body:JSON.stringify({email:$('loginEmail').value,password:$('loginPassword').value})});state.admin=true;closeLogin();go('admin');loadAdmin()}catch(err){$('loginError').textContent=err.message}});async function logout(){await api('/api/logout',{method:'POST'}).catch(()=>{});state.admin=false;go('catalog')}
-async function loadAdmin(){if(!state.admin)return;try{state.adminData=await api('/api/admin/data');adminTab(window.currentAdminTab||'orders')}catch(e){state.admin=false;openLogin()}}
+async function loadAdmin(){if(!state.admin)return;try{state.adminData=await api('/api/admin/data');adminTab(window.currentAdminTab||'orders')}catch(e){if(e.status===401){state.admin=false;openLogin()}else{$('adminContent').innerHTML='<div class="adminpanel"><p class="ex-err">No se pudo cargar el panel: '+esc(e.message)+'</p><button type="button" class="btn" onclick="loadAdmin()">Reintentar</button></div>'}}}
 function adminTab(tab){window.currentAdminTab=tab;let d=state.adminData;if(!d)return;let out='';if(tab==='orders'){out='<h3>Seguimiento de pedidos</h3><p class="muted">Al marcar un pedido como <b>Entregado</b> o <b>Terminado</b> pasa automáticamente a la sección Ventas.</p>'+d.orders.map(o=>`<div class="adminpanel"><div class="row"><b>${esc(o.code)} · ${esc(o.name)}</b><span>${money(o.total)}</span></div><p class="muted">${esc(o.phone)} · ${esc(o.sector||o.province)} · ${esc(o.delivery_date)}</p>${o.address?`<p class="muted">Dirección: ${esc(o.address)}</p>`:''}${o.reseller_name?`<p class="muted">Vendedor: <b>${esc(o.reseller_name)}</b> (${esc(o.reseller_code)}) · Descuento ${money(o.discount)} · Comisión ${money(o.commission)}</p>`:''}<p><b>Productos:</b> ${(()=>{try{return JSON.parse(o.items||'[]').map(i=>esc(i.name)).join(' · ')}catch(e){return ''}})()}</p>${Number(o.shipping)?`<p class="muted">Incluye envío de ${money(o.shipping)}</p>`:''}<div class="fields"><label class="field">Estado<select id="os${o.id}">${d.statuses.map(s=>`<option ${s===o.status?'selected':''}>${esc(s)}</option>`).join('')}</select></label><label class="field">Pago<select id="op${o.id}">${['Pago pendiente','Pago recibido','Pago confirmado','Reembolsado'].map(s=>`<option ${s===o.payment_status?'selected':''}>${esc(s)}</option>`).join('')}</select></label></div><label class="field">Observación / incidencia<textarea id="on${o.id}">${esc(o.incident||o.notes||'')}</textarea></label><button class="btn" onclick="saveOrder(${o.id})">Guardar estado</button></div>`).join('')||'<p class="muted">No hay pedidos pendientes.</p>'}
 
 if(tab==='sales'){
@@ -502,12 +462,12 @@ if(tab==='sales'){
 if(tab==='resellers'){
   const rs=d.resellers||[],ed=window.rvEdit||0,dd=d.reseller_discount!=null?d.reseller_discount:3,cc=d.reseller_commission!=null?d.reseller_commission:15;
   const trs=rs.map(r=>ed===r.id?
-    `<tr><td><input class="gi" id="rv_n${r.id}" value="${esc(r.name)}" maxlength="80" aria-label="Nombre"></td><td><input class="gi" id="rv_c${r.id}" value="${esc(r.code)}" maxlength="20" autocapitalize="characters" aria-label="Código"></td><td><input class="gi num" id="rv_d${r.id}" type="number" min="0" max="100" step="any" value="${Number(r.discount_pct)}" aria-label="Descuento al cliente %"></td><td><input class="gi num" id="rv_m${r.id}" type="number" min="0" max="100" step="any" value="${Number(r.commission_pct)}" aria-label="Comisión %"></td><td colspan="5"><div class="tbl-actions"><button type="button" class="btn" onclick="saveReseller(${r.id})">Guardar</button><button type="button" class="btn light" onclick="rvEditStart(0)">Cancelar</button></div></td></tr>`:
-    `<tr><td><b>${esc(r.name)}</b></td><td><code>${esc(r.code)}</code></td><td>${Number(r.discount_pct)}%</td><td>${Number(r.commission_pct)}%</td><td><span class="status">${r.active?'Activo':'Inactivo'}</span></td><td>${Number(r.orders_count)}</td><td>${money(r.earned)}</td><td>${money(r.pending)}</td><td><div class="tbl-actions"><button type="button" class="btn light" onclick="rvEditStart(${r.id})">Editar</button><button type="button" class="btn light" onclick="toggleReseller(${r.id},${r.active?0:1})">${r.active?'Desactivar':'Activar'}</button><button type="button" class="btn" onclick="deleteReseller(${r.id})">Eliminar</button></div></td></tr>`
-  ).join('')||'<tr><td colspan="9" class="muted">Aún no hay vendedores.</td></tr>';
-  out=`<h3>Vendedores y códigos de descuento</h3><p class="muted">Cada código es reutilizable y tiene sus propios porcentajes: el <b>descuento al cliente</b> y la <b>comisión del vendedor</b> (la comisión se calcula sobre los productos ya con descuento, sin envío). La ganancia pasa a «cobrable» cuando el pedido está en Ventas y no ha sido eliminado.</p>
+    `<tr><td><input class="gi" id="rv_n${r.id}" value="${esc(r.name)}" maxlength="80" aria-label="Nombre"></td><td><input class="gi" id="rv_c${r.id}" value="${esc(r.code)}" maxlength="20" autocapitalize="characters" aria-label="Código"></td><td><input class="gi num" id="rv_d${r.id}" type="number" min="0" max="100" step="any" value="${Number(r.discount_pct)}" aria-label="Descuento al cliente %"></td><td><input class="gi num" id="rv_m${r.id}" type="number" min="0" max="100" step="any" value="${Number(r.commission_pct)}" aria-label="Comisión %"></td><td colspan="7"><div class="tbl-actions"><button type="button" class="btn" onclick="saveReseller(${r.id})">Guardar</button><button type="button" class="btn light" onclick="rvEditStart(0)">Cancelar</button></div></td></tr>`:
+    `<tr><td><b>${esc(r.name)}</b></td><td><code>${esc(r.code)}</code></td><td>${Number(r.discount_pct)}%</td><td>${Number(r.commission_pct)}%</td><td><span class="status">${r.active?'Activo':'Inactivo'}</span></td><td>${Number(r.orders_count)}</td><td>${money(r.pending)}</td><td>${money(r.earned)}</td><td>${money(r.paid)}</td><td><b>${money(r.balance)}</b></td><td><div class="tbl-actions"><button type="button" class="btn" onclick="exPayOpen(${r.id})">Pagar</button><button type="button" class="btn light" onclick="rvEditStart(${r.id})">Editar</button><button type="button" class="btn light" onclick="toggleReseller(${r.id},${r.active?0:1})">${r.active?'Desactivar':'Activar'}</button><button type="button" class="btn" onclick="deleteReseller(${r.id})">Eliminar</button></div></td></tr>`
+  ).join('')||'<tr><td colspan="11" class="muted">Aún no hay vendedores.</td></tr>';
+  out=`<h3>Vendedores y códigos de descuento</h3><p class="muted">Cada código es reutilizable y tiene sus propios porcentajes: el <b>descuento al cliente</b> y la <b>comisión del vendedor</b> (la comisión se calcula sobre los productos ya con descuento, sin envío). <b>Generado</b> = comisión de pedidos ya entregados; <b>Pagado</b> = lo que ya le pagaste; <b>Por pagar</b> = generado − pagado. Con «Pagar» registras un pago y se descuenta de lo que le debes.</p>
   <form id="resellerForm" class="adminpanel"><div class="fields"><label class="field">Nombre del vendedor *<input id="rvName" maxlength="80" required></label><label class="field">Código (opcional, vacío = se genera solo)<input id="rvCode" maxlength="20" autocapitalize="characters" placeholder="Ej. MARIA10"></label><label class="field">Descuento al cliente (%)<input id="rvDisc" type="number" min="0" max="100" step="any" value="${dd}"></label><label class="field">Comisión del vendedor (%)<input id="rvComm" type="number" min="0" max="100" step="any" value="${cc}"></label></div><button class="btn" style="margin-top:12px">Agregar vendedor</button></form>
-  <div class="adminpanel"><div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>Vendedor</th><th>Código</th><th>Desc. cliente</th><th>Comisión</th><th>Estado</th><th>Pedidos</th><th>Cobrable</th><th>Pendiente</th><th>Acciones</th></tr></thead><tbody>${trs}</tbody></table></div></div>`;
+  <div class="adminpanel"><div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>Vendedor</th><th>Código</th><th>Desc. cliente</th><th>Comisión</th><th>Estado</th><th>Pedidos</th><th>En proceso</th><th>Generado</th><th>Pagado</th><th>Por pagar</th><th>Acciones</th></tr></thead><tbody>${trs}</tbody></table></div></div>`;
   setTimeout(()=>{const f=$('resellerForm');if(f)f.onsubmit=createReseller},0);
 }
 
@@ -533,7 +493,7 @@ if(tab==='brand'){let s=d.settings;out=`<h3>Logo, marca y redes</h3><form id="br
 if(tab==='payments'){out='<h3>Métodos de pago y propinas</h3><form id="paymentForm" class="adminpanel"><div class="fields"><label class="field">Nombre del botón<input id="payTitle" required placeholder="Banco Popular / Transferencia"></label><label class="field">Enlace o URL de pago<input id="payUrl" required placeholder="https://..."></label></div><label class="field">Instrucciones<input id="payDetails"></label><label><input id="payTip" type="checkbox" style="width:auto"> Mostrar también como opción de propina</label><button class="btn">Agregar método de pago</button></form>'+d.payments.map(p=>`<div class="itemrow"><div><b>${esc(p.title)}</b><div class="muted">${esc(p.url)} ${p.tip_enabled?'· Acepta propinas':''}</div></div><button class="btn light" onclick="togglePay(${p.id},${p.active?0:1},${p.tip_enabled})">${p.active?'Desactivar':'Activar'}</button><button class="btn" onclick="deletePay(${p.id})">Eliminar</button></div>`).join('');setTimeout(()=>{$('paymentForm').onsubmit=addPayment},0)}
 if(tab==='ads'){out='<h3>Publicidad y enlaces</h3><form id="adForm" class="adminpanel"><div class="fields"><label class="field">Título<input id="adTitle" required></label><label class="field">Enlace destino<input id="adUrl" type="url" required></label><label class="field">Imagen (URL opcional)<input id="adImage"></label></div><button class="btn">Agregar publicidad</button></form>'+d.ads.map(a=>`<div class="itemrow"><div><b>${esc(a.title)}</b><div class="muted">${esc(a.url)}</div></div><button class="btn light" onclick="toggleAd(${a.id},${a.active?0:1})">${a.active?'Ocultar':'Publicar'}</button><button class="btn" onclick="deleteAd(${a.id})">Eliminar</button></div>`).join('');setTimeout(()=>{$('adForm').onsubmit=addAd},0)}
 if(tab==='media'){const s=d.settings||{};out=`<h3>Subir multimedia</h3><p class="muted">Admite imágenes JPG, PNG, WEBP, GIF y archivos MP4, MP3, WAV, OGG, M4A (máximo 80 MB por archivo). Hasta 4 MB se guardan directo en el sitio; lo más grande se sube a Cloudinary.</p><div class="adminpanel"><label class="field">Selecciona archivo<input id="mediaFile" type="file" accept="image/*,video/mp4,audio/*"></label><button class="btn" onclick="uploadMedia()">Subir archivo</button><div id="mediaResult"></div></div><h3>Reproductor flotante</h3><form id="musicForm" class="adminpanel"><p class="muted">Se muestra en una esquina del sitio y suena ahí mismo, sin llevar al cliente a otra página. El cliente puede minimizarlo o cerrarlo. Sube el audio o video arriba, o pega su enlace aquí.</p><label class="field">Título que verá el cliente<input id="mu_title" value="${esc(s.music_title||'')}" placeholder="Ej. Nuestra música"></label><label class="field">Archivo (enlace)<input id="mu_url" value="${esc(s.music_url||'')}" placeholder="/media/12  o  https://..."></label><label class="field">Tipo<select id="mu_kind"><option value="audio" ${s.music_kind!=='video'?'selected':''}>Audio (solo música)</option><option value="video" ${s.music_kind==='video'?'selected':''}>Video (ventana pequeña con imagen)</option></select></label><div class="btn-stack"><button class="btn">Guardar reproductor</button><button type="button" class="btn light" onclick="clearMusic()">Quitar música</button></div></form>`;setTimeout(()=>{$('musicForm').onsubmit=saveMusic},0)}
-$('adminContent').innerHTML=out}
+$('adminContent').innerHTML=(d.warnings&&d.warnings.length?'<p class="ex-err">Algunas secciones no cargaron ('+esc(d.warnings.join(', '))+'). Revisa /api/health.</p>':'')+out}
 async function refreshAdmin(){state.adminData=await api('/api/admin/data');adminTab(window.currentAdminTab)}
 async function saveOrder(id){try{const st=$('os'+id).value;await api('/api/orders/'+id,{method:'PATCH',body:JSON.stringify({status:st,payment_status:$('op'+id).value,incident:$('on'+id).value})});await refreshAdmin();alert(['Entregado','Terminado'].includes(st)?'Pedido enviado a la sección Ventas.':'Pedido actualizado.')}catch(e){alert(e.message)}}
 
@@ -752,5 +712,397 @@ document.addEventListener('load',function(e){var t=e.target;if(t&&(t.id==='brand
 /* ---- Arranque: carga el catálogo y reintenta si la primera carga falla ---- */
 load();
 var _t=0,_iv=setInterval(function(){if(state.products.length||++_t>4){clearInterval(_iv);return}load()},3000);
-if(location.hash==='#productos')openLogin();
-</script></body></html>
+if(location.hash==='#productos'||location.hash==='#admin')openLogin();
+</script>
+<!-- ===================== MODULOS EXTRA (aislados) =====================
+     Afiliados, reembolsos, actualizar imagen de producto y pagos a vendedores.
+     Todo vive en este bloque: si lo quitas, el sitio queda como antes. -->
+<style id="extras-css">
+.termsbox{max-height:230px;overflow:auto;white-space:pre-wrap;background:#fffdf9;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;line-height:1.6;color:var(--ink)}
+.sigpad{display:block;width:100%;height:150px;border:1px dashed var(--goldDark);border-radius:12px;background:#fffdf9;touch-action:none;cursor:crosshair}
+.ex-err{color:var(--bright);font-weight:700;font-size:13px;min-height:18px;margin:8px 0 0}
+.ex-ok{color:#168653;font-weight:700}
+.ex-steps{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+.ex-steps .btn{flex:1 1 150px}
+.ex-pre{white-space:pre-line}
+.ex-prev{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#f5eee2}
+.ex-box{background:#fffdf9;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;font-size:13px;line-height:1.7}
+</style>
+
+<div id="affModal" class="modal hidden"><div class="modalbox">
+  <h2 style="color:var(--crimson);margin-top:0">Programa de afiliados</h2>
+  <div id="affFlow">
+    <div class="ex-steps"><button type="button" id="affT1" class="btn" onclick="exAffStep(1)">1. Solicitud</button><button type="button" id="affT2" class="btn light" onclick="exAffNext()">2. Términos y firma</button></div>
+    <div id="affStep1">
+      <div class="ex-box"><b>Requisitos:</b> ser mayor de edad y contar con un mínimo de <span id="affMinF">500</span> seguidores en tus redes sociales.</div>
+      <div class="fields">
+        <label class="field">Nombre completo *<input id="affName" maxlength="100" autocomplete="name"></label>
+        <label class="field">Correo electrónico *<input id="affEmail" type="email" maxlength="120" autocomplete="email"></label>
+        <label class="field">WhatsApp / teléfono *<input id="affPhone" type="tel" inputmode="tel" maxlength="40" autocomplete="tel"></label>
+        <label class="field">Fecha de nacimiento *<input id="affDob" type="date"></label>
+        <label class="field">Red social principal *<select id="affPlat"></select></label>
+        <label class="field">Enlace o @usuario *<input id="affProfile" maxlength="200" placeholder="@tuusuario"></label>
+        <label class="field">Número de seguidores *<input id="affFollowers" type="number" min="0" step="1" inputmode="numeric"></label>
+      </div>
+      <input id="affHp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+      <p id="affErr1" class="ex-err" role="alert"></p>
+      <div class="btn-stack"><button type="button" class="btn" onclick="exAffNext()">Continuar a términos y firma</button><button type="button" class="btn light" onclick="exAffClose()">Cancelar</button></div>
+    </div>
+    <div id="affStep2" class="hidden">
+      <div id="affTerms" class="termsbox">Cargando términos…</div>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:13px;font-weight:700;color:var(--crimson)"><input id="affAccept" type="checkbox" style="width:auto;margin-top:3px"> He leído y acepto los términos y condiciones del programa de afiliados.</label>
+      <label class="field" style="margin-top:12px">Firma: escribe tu nombre completo *<input id="affSigName" maxlength="100" autocomplete="off"></label>
+      <div class="field" style="margin-top:12px">Dibuja tu firma *<canvas id="affSig" class="sigpad" aria-label="Recuadro de firma"></canvas></div>
+      <button type="button" class="btn light" style="margin-top:8px" onclick="exAffClearSig()">Borrar firma</button>
+      <p id="affErr2" class="ex-err" role="alert"></p>
+      <div class="btn-stack"><button type="button" class="btn" id="affSend" onclick="exAffSubmit()">Firmar y enviar solicitud</button><button type="button" class="btn light" onclick="exAffStep(1)">Volver</button></div>
+    </div>
+  </div>
+  <div id="affDone" class="hidden">
+    <p id="affDoneMsg" class="ex-pre" style="line-height:1.7"></p>
+    <p id="affDoneSeal" class="muted"></p>
+    <div class="btn-stack"><button type="button" class="btn" onclick="exAffClose()">Cerrar</button></div>
+  </div>
+</div></div>
+
+<div id="payModal" class="modal hidden"><div class="modalbox">
+  <h2 style="color:var(--crimson);margin-top:0">Pagar a <span id="payName"></span></h2>
+  <div id="payInfo" class="ex-box">Cargando saldo…</div>
+  <div class="fields">
+    <label class="field">Forma de pago *<select id="payMethod" onchange="exPayMethod()"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option></select></label>
+    <label class="field">Monto a pagar (RD$) *<input id="payAmount" type="number" min="0" step="any" inputmode="decimal"></label>
+    <label class="field">Fecha del pago<input id="payDate" type="date"></label>
+    <label class="field" id="payAccF">Número de cuenta *<input id="payAcc" maxlength="40" inputmode="numeric"></label>
+    <label class="field">Nombre del titular <span id="payReq1">*</span><input id="payHolder" maxlength="100"></label>
+    <label class="field">Cédula <span id="payReq2">*</span><input id="payCed" maxlength="30"></label>
+  </div>
+  <p id="payErr" class="ex-err" role="alert"></p>
+  <div class="btn-stack"><button type="button" class="btn" id="paySave" onclick="exPaySave()">Registrar pago</button><button type="button" class="btn light" onclick="exPayClose()">Cancelar</button></div>
+</div></div>
+
+<div id="prodEditModal" class="modal hidden"><div class="modalbox">
+  <h2 style="color:var(--crimson);margin-top:0">Editar producto</h2>
+  <div class="fields">
+    <label class="field">Nombre *<input id="peName" maxlength="120"></label>
+    <label class="field">Categoría<input id="peCat" list="peCatList"></label><datalist id="peCatList"></datalist>
+    <label class="field">Precio RD$ *<input id="pePrice" type="number" min="0" step="0.01"></label>
+  </div>
+  <label class="field" style="margin-top:12px">Descripción *<textarea id="peDesc"></textarea></label>
+  <label class="field" style="margin-top:12px">Imagen (URL)<input id="peImg" placeholder="URL o usa «Actualizar imagen»"></label>
+  <div class="row" style="margin-top:8px;align-items:center"><img id="pePrev" class="ex-prev hidden" alt="Vista previa" style="flex:0 0 96px"><div class="btn-stack" style="margin:0;flex:1"><button type="button" class="btn light" id="peImgBtn" onclick="exImgPick('pe')">Actualizar imagen</button></div></div>
+  <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;font-weight:700;color:var(--crimson)"><input id="peActive" type="checkbox" style="width:auto"> Publicado</label>
+  <input id="exImgFile" type="file" accept="image/*" class="hidden">
+  <p id="peErr" class="ex-err" role="alert"></p>
+  <div class="btn-stack"><button type="button" class="btn" onclick="exProdSave()">Guardar cambios</button><button type="button" class="btn light" onclick="exProdClose()">Cancelar</button></div>
+</div></div>
+
+<script id="extras-js">
+(function(){
+'use strict';
+const AFF={terms:null,ink:false,id:0,done:false};
+const PROD={id:0};
+const PAY={rid:0};
+
+/* ---------------- utilidades ---------------- */
+function ageOf(iso){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');if(!m)return -1;const t=new Date(),b=new Date(+m[1],+m[2]-1,+m[3]);let a=t.getFullYear()-b.getFullYear();if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;return a}
+function ymdToday(){const t=new Date(),p=n=>String(n).padStart(2,'0');return t.getFullYear()+'-'+p(t.getMonth()+1)+'-'+p(t.getDate())}
+function setMsg(id,t){const e=$(id);if(e)e.textContent=t||''}
+function normName(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim()}
+function fmtD(iso){const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||'');return m?m[3]+'/'+m[2]+'/'+m[1]:(iso||'')}
+async function jpost(url,data,method){return api(url,{method:method||'POST',body:JSON.stringify(data||{})})}
+
+/* ================= A) AFILIADOS (público) ================= */
+async function loadTerms(){
+  if(AFF.terms)return;
+  try{
+    AFF.terms=await api('/api/affiliates/terms');
+    $('affTerms').textContent=AFF.terms.text;$('affMinF').textContent=AFF.terms.min_followers;
+    $('affPlat').innerHTML='<option value="">— elige —</option>'+AFF.terms.platforms.map(p=>`<option>${esc(p)}</option>`).join('');
+  }catch(e){$('affTerms').textContent='No se pudieron cargar los términos. Intenta de nuevo.'}
+}
+window.exAffOpen=function(){
+  $('affModal').classList.remove('hidden');
+  const t=new Date();t.setFullYear(t.getFullYear()-18);$('affDob').max=t.toISOString().slice(0,10);
+  if(AFF.done){$('affFlow').classList.add('hidden');$('affDone').classList.remove('hidden')}
+  loadTerms();
+};
+window.exAffClose=function(){$('affModal').classList.add('hidden')};
+window.exAffStep=function(n){
+  $('affStep1').classList.toggle('hidden',n!==1);$('affStep2').classList.toggle('hidden',n!==2);
+  $('affT1').className='btn'+(n===1?'':' light');$('affT2').className='btn'+(n===2?'':' light');
+  if(n===2)padInit();
+};
+function affVals(){return{full_name:$('affName').value.trim(),email:$('affEmail').value.trim(),phone:$('affPhone').value.trim(),birth_date:$('affDob').value,platform:$('affPlat').value,profile:$('affProfile').value.trim(),followers:$('affFollowers').value.trim()}}
+/* Validación de requisitos: mayor de edad y mínimo de seguidores (el servidor la repite) */
+function affValidate(v){
+  const minF=(AFF.terms&&AFF.terms.min_followers)||500;
+  if(v.full_name.length<5||!v.full_name.includes(' '))return 'Escribe tu nombre completo.';
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email))return 'Escribe un correo válido.';
+  if(v.phone.replace(/\D/g,'').length<7)return 'Escribe tu teléfono o WhatsApp.';
+  if(!v.birth_date)return 'Indica tu fecha de nacimiento.';
+  if(ageOf(v.birth_date)<18)return 'Debes ser mayor de edad (18 años o más) para ser afiliado.';
+  if(!v.platform||!v.profile)return 'Indica tu red social principal y el enlace o @usuario de tu perfil.';
+  const f=parseInt(String(v.followers).replace(/[.,\s]/g,''),10);
+  if(isNaN(f))return 'Indica cuántos seguidores tienes (solo números).';
+  if(f<minF)return 'Necesitas un mínimo de '+minF+' seguidores para solicitar la afiliación.';
+  return '';
+}
+window.exAffNext=function(){const e=affValidate(affVals());setMsg('affErr1',e);if(!e)exAffStep(2)};
+/* ---- recuadro de firma ---- */
+let sig={cv:null,g:null,w:0,h:0};
+function padInit(){
+  const cv=$('affSig');if(!cv)return;
+  const w=cv.clientWidth||400,h=cv.clientHeight||150;
+  if(sig.cv===cv&&sig.w===w)return;
+  const r=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(w*r);cv.height=Math.round(h*r);
+  const g=cv.getContext('2d');g.setTransform(r,0,0,r,0,0);g.lineWidth=2.2;g.lineCap='round';g.lineJoin='round';g.strokeStyle='#29252a';
+  sig={cv,g,w,h};AFF.ink=false;
+  let down=false,last=null;
+  const pos=e=>{const b=cv.getBoundingClientRect();return{x:e.clientX-b.left,y:e.clientY-b.top}};
+  cv.onpointerdown=e=>{down=true;last=pos(e);try{cv.setPointerCapture(e.pointerId)}catch(x){}g.beginPath();g.moveTo(last.x,last.y);g.lineTo(last.x+.1,last.y+.1);g.stroke();AFF.ink=true;e.preventDefault()};
+  cv.onpointermove=e=>{if(!down)return;const p=pos(e);g.beginPath();g.moveTo(last.x,last.y);g.lineTo(p.x,p.y);g.stroke();last=p;e.preventDefault()};
+  const end=()=>{down=false};cv.onpointerup=end;cv.onpointercancel=end;cv.onpointerleave=end;
+}
+window.exAffClearSig=function(){if(!sig.g)return;sig.g.clearRect(0,0,sig.w,sig.h);AFF.ink=false};
+window.exAffSubmit=async function(){
+  const v=affVals(),e1=affValidate(v);
+  if(e1){setMsg('affErr2',e1);return}
+  if(!$('affAccept').checked){setMsg('affErr2','Debes aceptar los términos y condiciones para continuar.');return}
+  if(normName($('affSigName').value)!==normName(v.full_name)){setMsg('affErr2','Escribe tu nombre completo, igual que en la solicitud, como firma.');return}
+  if(!AFF.ink){setMsg('affErr2','Dibuja tu firma en el recuadro.');return}
+  setMsg('affErr2','');const btn=$('affSend');btn.disabled=true;
+  try{
+    const d=await jpost('/api/affiliates',{...v,followers:v.followers,accepted:true,signature_name:$('affSigName').value.trim(),signature_png:$('affSig').toDataURL('image/png'),website:$('affHp').value});
+    AFF.done=true;$('affFlow').classList.add('hidden');$('affDone').classList.remove('hidden');
+    $('affDoneMsg').textContent=d.message;
+    $('affDoneSeal').textContent=(d.seal?'Contrato firmado y sellado. Código del sello: '+d.seal+'. ':'')+(d.mail_user?'Te enviamos un correo con una copia.':'Tu solicitud quedó registrada; no pudimos enviar el correo de confirmación en este momento.');
+  }catch(err){setMsg('affErr2',err.message)}
+  finally{btn.disabled=false}
+};
+
+/* ================= B) ACTUALIZAR IMAGEN / EDITAR PRODUCTO ================= */
+let imgTarget=null;
+window.exImgPick=function(which){imgTarget=which;const f=$('exImgFile');f.value='';f.click()};
+$('exImgFile').addEventListener('change',async()=>{
+  const f=$('exImgFile').files[0];if(!f)return;
+  const input=imgTarget==='pc'?$('pi'):$('peImg'),btn=imgTarget==='pc'?$('exPcBtn'):$('peImgBtn');
+  const old=btn?btn.textContent:'';if(btn){btn.disabled=true;btn.textContent='Subiendo…'}
+  try{
+    const url=await uploadFile(f);input.value=url;
+    if(imgTarget==='pe'){$('pePrev').src=url;$('pePrev').classList.remove('hidden');setMsg('peErr','')}
+    else if(btn)btn.textContent='✔ Imagen actualizada';
+  }catch(e){if(imgTarget==='pe')setMsg('peErr',e.message);else alert(e.message)}
+  finally{if(btn){btn.disabled=false;if(imgTarget==='pe')btn.textContent=old;else setTimeout(()=>btn.textContent=old,2200)}}
+});
+window.exProdEdit=function(id){
+  const p=((state.adminData||{}).products||[]).find(x=>x.id===id);if(!p)return;
+  PROD.id=id;
+  $('peName').value=p.name;$('peCat').value=p.category;$('pePrice').value=p.price;$('peDesc').value=p.description;
+  $('peImg').value=p.image||'';$('peActive').checked=!!p.active;setMsg('peErr','');
+  $('pePrev').classList.toggle('hidden',!p.image);if(p.image)$('pePrev').src=p.image;
+  const cats=[...new Set(((state.adminData||{}).categories||[]).map(c=>c.name))];
+  $('peCatList').innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join('');
+  $('prodEditModal').classList.remove('hidden');
+};
+window.exProdClose=function(){$('prodEditModal').classList.add('hidden')};
+$('peImg').addEventListener('input',()=>{const u=$('peImg').value.trim();$('pePrev').classList.toggle('hidden',!u);if(u)$('pePrev').src=u});
+window.exProdSave=async function(){
+  const p=((state.adminData||{}).products||[]).find(x=>x.id===PROD.id);if(!p)return;
+  const name=$('peName').value.trim(),desc=$('peDesc').value.trim(),image=$('peImg').value.trim(),price=Number($('pePrice').value);
+  if(!name||!desc||!image||!(price>=0)||$('pePrice').value===''){setMsg('peErr','Nombre, precio, descripción e imagen son obligatorios.');return}
+  try{
+    await jpost('/api/products/'+p.id,{...p,name,price,description:desc,image,category:$('peCat').value.trim()||p.category,active:$('peActive').checked},'PUT');
+    exProdClose();await load();await refreshAdmin();
+  }catch(e){setMsg('peErr',e.message)}
+};
+
+/* ================= C) PAGOS A VENDEDORES ================= */
+window.exPayOpen=async function(rid){
+  const r=((state.adminData||{}).resellers||[]).find(x=>x.id===rid);if(!r)return;
+  PAY.rid=rid;$('payName').textContent=r.name;$('payInfo').textContent='Cargando saldo…';setMsg('payErr','');
+  ['payAmount','payAcc','payHolder','payCed'].forEach(i=>$(i).value='');$('payDate').value=ymdToday();$('payMethod').value='transferencia';exPayMethod();
+  $('payModal').classList.remove('hidden');
+  try{
+    const b=await api('/api/payouts/balance/'+rid);
+    $('payInfo').innerHTML=`Generado (comisiones): <b>${money(b.earned)}</b> · Pagado: <b>${money(b.paid)}</b> · <b>Pendiente: ${money(b.pending)}</b><br><span class="muted tiny">Ingresos del mes ${esc(b.month)}: ${money(b.month_revenue)} · Pagos del mes: ${money(b.month_paid)}</span>`;
+    if(b.pending>0)$('payAmount').value=b.pending;
+  }catch(e){$('payInfo').textContent=e.message}
+};
+window.exPayClose=function(){$('payModal').classList.add('hidden')};
+window.exPayMethod=function(){
+  const t=$('payMethod').value==='transferencia';
+  $('payAccF').classList.toggle('hidden',!t);$('payReq1').textContent=t?'*':'(opcional)';$('payReq2').textContent=t?'*':'(opcional)';
+};
+window.exPaySave=async function(){
+  const btn=$('paySave');btn.disabled=true;setMsg('payErr','');
+  try{
+    const d=await jpost('/api/payouts',{reseller_id:PAY.rid,amount:$('payAmount').value,method:$('payMethod').value,account:$('payAcc').value,holder:$('payHolder').value,cedula:$('payCed').value,paid_on:$('payDate').value});
+    exPayClose();await refreshAdmin();alert('Pago registrado. Pendiente restante: '+money(d.pending_after));
+  }catch(e){setMsg('payErr','⛔ '+e.message);alert('⛔ '+e.message)}
+  finally{btn.disabled=false}
+};
+async function payoutsLoad(){
+  const box=$('exPayBody');if(!box)return;
+  const q=new URLSearchParams(),f=window.exPayFilter||{};
+  if(f.rid)q.set('reseller_id',f.rid);if(f.from)q.set('from',f.from);if(f.to)q.set('to',f.to);
+  try{
+    const d=await api('/api/payouts/report'+(q.toString()?'?'+q:''));
+    const t=d.totals;
+    const sum=[['Generado (comisiones)',t.generated],['Pagado',t.paid],['Pendiente',t.pending]].map(([k,v])=>`<div class="kpi"><span class="muted tiny">${k}</span><b>${money(v)}</b></div>`).join('');
+    const rows=d.rows.map(r=>`<tr><td><b>${esc(r.name)}</b></td><td>${money(r.generated)}</td><td>${money(r.paid)}</td><td>${money(r.pending)}</td><td>${money(r.balance)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Sin movimientos en este filtro.</td></tr>';
+    const pays=d.payments.map(p=>`<tr><td>${esc(fmtD(p.paid_on))}</td><td>${esc(p.reseller_name)}</td><td>${esc(p.method)}</td><td>${money(p.amount)}</td><td>${esc(p.holder||'—')}</td><td>${esc(p.account||'—')}</td><td>${esc(p.cedula||'—')}</td></tr>`).join('')||'<tr><td colspan="7" class="muted">Sin pagos en este filtro.</td></tr>';
+    box.innerHTML=`<div class="kpis">${sum}</div><div class="adminpanel"><h4 style="margin-top:0">Por vendedor</h4><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Vendedor</th><th>Generado</th><th>Pagado</th><th>Pendiente (filtro)</th><th>Saldo actual</th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="adminpanel"><h4 style="margin-top:0">Pagos registrados</h4><div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>Fecha</th><th>Vendedor</th><th>Forma</th><th>Monto</th><th>Titular</th><th>Cuenta</th><th>Cédula</th></tr></thead><tbody>${pays}</tbody></table></div></div>`;
+  }catch(e){box.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}
+}
+window.exPayFilterApply=function(){window.exPayFilter={rid:$('pfR').value,from:$('pfF').value,to:$('pfT').value};payoutsLoad()};
+
+/* ================= D) PESTAÑAS NUEVAS DEL PANEL ================= */
+const TABS={
+  affiliates(){
+    $('adminContent').innerHTML='<h3>Solicitudes de afiliados</h3><p class="muted">Plazo de respuesta: 1 a 30 días; si no hay respuesta la evaluación se extiende hasta 12 meses. Un afiliado aprobado sin ventas durante 90 días se cancela automáticamente.</p><div id="exAffBody"><p class="muted">Cargando…</p></div>';
+    affLoad();
+  },
+  refunds(){
+    $('adminContent').innerHTML='<h3>Pedidos reembolsados</h3><p class="muted">Los pedidos marcados como «Reembolsado» salen de la lista de Pedidos y quedan aquí como registro.</p><div id="exRefBody"><p class="muted">Cargando…</p></div>';
+    refLoad();
+  },
+  payouts(){
+    const f=window.exPayFilter||(window.exPayFilter={rid:'',from:'',to:''});
+    const opts='<option value="">Todos los vendedores</option>'+((state.adminData||{}).resellers||[]).map(r=>`<option value="${r.id}" ${String(r.id)===String(f.rid)?'selected':''}>${esc(r.name)}</option>`).join('');
+    $('adminContent').innerHTML=`<h3>Pagos a vendedores</h3><p class="muted">Para registrar un pago usa el botón «Pagar» en la pestaña Vendedores.</p><div class="adminpanel"><div class="fields"><label class="field">Vendedor<select id="pfR">${opts}</select></label><label class="field">Desde<input type="date" id="pfF" value="${esc(f.from)}"></label><label class="field">Hasta<input type="date" id="pfT" value="${esc(f.to)}"></label></div><div class="btn-stack"><button type="button" class="btn" onclick="exPayFilterApply()">Consultar</button></div></div><div id="exPayBody"><p class="muted">Cargando…</p></div>`;
+    payoutsLoad();
+  }
+};
+async function affLoad(){
+  const box=$('exAffBody');if(!box)return;
+  try{
+    const d=await api('/api/affiliates');
+    const st=a=>{
+      if(a.status==='pendiente')return a.phase==='inicial'?'Pendiente · plazo inicial hasta '+fmtD(a.deadline):a.phase==='extendida'?'Pendiente · evaluación extendida hasta '+fmtD(a.deadline):'Pendiente · plazo vencido';
+      if(a.status==='aprobado')return 'Aprobado · código '+(a.code||'—');
+      if(a.status==='cancelado')return 'Cancelado'+(a.cancel_reason?' · '+a.cancel_reason:'');
+      return 'Rechazado';
+    };
+    const mailBad=a=>a.mail_admin!=='enviado'||a.mail_user!=='enviado';
+    const rows=d.affiliates.map(a=>`<tr><td><b>${esc(a.full_name)}</b><br><span class="muted tiny">${esc(a.email)} · ${esc(a.phone)}</span></td><td>${esc(a.platform)}<br><span class="muted tiny">${esc(a.profile)} · ${Number(a.followers).toLocaleString('es-DO')} seg.</span></td><td>${a.age==null?'—':a.age}</td><td>${esc(fmtD((a.created_at||'').slice(0,10)))}</td><td><span class="status">${esc(st(a))}</span><br><span class="muted tiny" title="${esc((a.mail_admin||'')+' | '+(a.mail_user||''))}">Correos: negocio ${a.mail_admin==='enviado'?'✔':'✖'} · solicitante ${a.mail_user==='enviado'?'✔':'✖'}</span>${a.status==='aprobado'?`<br><span class="muted tiny">Desc. ${Number(a.discount_pct)}% · Com. ${Number(a.commission_pct)}%</span>`:''}</td><td><div class="tbl-actions">${a.status==='pendiente'?`<button type="button" class="btn" onclick="exAffApprove(${a.id})">Aprobar</button><button type="button" class="btn light" onclick="exAffReject(${a.id})">Rechazar</button>`:''}${(a.status==='aprobado'||a.status==='pendiente')?`<button type="button" class="btn light" onclick="exAffCancel(${a.id})">Cancelar</button>`:''}<button type="button" class="btn light" onclick="window.open('/api/affiliates/${a.id}/contract','_blank')">Contrato</button>${mailBad(a)?`<button type="button" class="btn light" onclick="exAffResend(${a.id})">Reenviar correos</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">Aún no hay solicitudes.</td></tr>';
+    box.innerHTML=(d.mail_configured?'':'<p class="ex-err">El correo no está configurado (SMTP_USER y SMTP_PASSWORD en Vercel). Las solicitudes se guardan igual; usa «Reenviar correos» cuando lo configures.</p>')+`<div class="btn-stack" style="margin:0 0 8px"><button type="button" class="btn light" onclick="exMailTest()">Enviar correo de prueba a ${esc(d.notify_email)}</button></div><div class="adminpanel"><div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>Solicitante</th><th>Red social</th><th>Edad</th><th>Recibida</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="muted tiny">Copia de cada contrato firmado → ${esc(d.notify_email)}</p>`;
+  }catch(e){box.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}
+}
+window.exMailTest=async function(){try{const d=await jpost('/api/affiliates/test-mail');alert(d.ok?'Correo de prueba enviado a '+d.to+'. Revisa la bandeja (y spam).':'No se pudo enviar el correo: '+d.status)}catch(e){alert(e.message)}};
+window.exAffApprove=async function(id){
+  const disc=prompt('Descuento para los clientes de este afiliado (%)','3');if(disc===null)return;
+  const comm=prompt('Comisión del afiliado sobre cada venta (%)','15');if(comm===null)return;
+  try{const d=await jpost('/api/affiliates/'+id+'/approve',{discount_pct:disc,commission_pct:comm});alert('Afiliado aprobado. Su código es: '+d.code+(d.mail==='enviado'?'\nSe le envió un correo.':'\n(No se pudo enviar el correo; compártele el código.)'));affLoad();load()}catch(e){alert(e.message)}
+};
+window.exAffReject=async function(id){const n=prompt('Motivo (opcional)','');if(n===null)return;try{await jpost('/api/affiliates/'+id+'/reject',{note:n});affLoad()}catch(e){alert(e.message)}};
+window.exAffCancel=async function(id){
+  const r=prompt('Motivo de la cancelación (infracción o motivo legal/operativo) *','');if(r===null)return;
+  if(!r.trim()){alert('El motivo es obligatorio.');return}
+  if(!confirm('⚠️ Se cancelará la afiliación, su código dejará de funcionar y se revocan sus derechos asociados. ¿Continuar?'))return;
+  try{await jpost('/api/affiliates/'+id+'/cancel',{reason:r.trim()});affLoad();refreshAdmin()}catch(e){alert(e.message)}
+};
+window.exAffResend=async function(id){try{const d=await jpost('/api/affiliates/'+id+'/resend');alert(d.ok?'Correos enviados.':'No se pudo enviar: '+d.mail_admin+' / '+d.mail_user);affLoad()}catch(e){alert(e.message)}};
+async function refLoad(){
+  const box=$('exRefBody');if(!box)return;
+  try{
+    const d=await api('/api/refunds');
+    const rows=d.refunds.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.phone)}</td><td>${esc(fmtD(r.order_date))}</td><td>${money(r.amount)}</td><td><button type="button" class="btn light" onclick="exRefUndo(${r.order_id})">Deshacer</button></td></tr>`).join('')||'<tr><td colspan="5" class="muted">No hay reembolsos registrados.</td></tr>';
+    box.innerHTML=`<div class="adminpanel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Fecha del pedido</th><th>Monto</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }catch(e){box.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}
+}
+window.exRefUndo=async function(oid){if(!confirm('¿Deshacer este reembolso? El pedido volverá a la lista de Pedidos como «Pago pendiente».'))return;try{await jpost('/api/refunds/'+oid+'/undo');await refreshAdmin()}catch(e){alert(e.message)}};
+
+/* ---- se engancha a adminTab sin modificarla ---- */
+const baseAdminTab=window.adminTab;
+window.adminTab=function(tab){
+  if(TABS[tab]){window.currentAdminTab=tab;if(!state.adminData)return;TABS[tab]();return}
+  const r=baseAdminTab.apply(this,arguments);
+  try{decorate(tab)}catch(e){console.error(e)}
+  return r;
+};
+function decorate(tab){
+  if(tab==='products'){    // «Editar» abre el formulario con «Actualizar imagen»; el alta también tiene el botón
+    document.querySelectorAll('#adminContent button[onclick^="editProduct("]').forEach(b=>{
+      const m=/editProduct\((\d+)\)/.exec(b.getAttribute('onclick'));if(m)b.setAttribute('onclick','exProdEdit('+m[1]+')');
+    });
+    const pi=$('pi');
+    if(pi&&!$('exPcBtn')){
+      const wrap=document.createElement('div');wrap.className='field';
+      wrap.innerHTML='<button type="button" id="exPcBtn" class="btn light">Actualizar imagen</button>';
+      pi.closest('label').insertAdjacentElement('afterend',wrap);
+      wrap.firstChild.onclick=()=>exImgPick('pc');
+    }
+  }
+}
+
+/* ---- botones nuevos: «Afiliados» en el sitio y las pestañas en el panel ---- */
+(function addButtons(){
+  const nav=document.querySelector('header.top nav');
+  if(nav&&!document.getElementById('exAffBtn')){
+    const b=document.createElement('button');b.id='exAffBtn';b.type='button';b.textContent='Afiliados';b.onclick=window.exAffOpen;
+    nav.insertBefore(b,nav.lastElementChild);
+  }
+  const act=document.querySelector('#hero .actions');
+  if(act&&!document.getElementById('exAffHero')){
+    const b=document.createElement('button');b.id='exAffHero';b.type='button';b.className='btn';b.textContent='Quiero ser afiliado';b.onclick=window.exAffOpen;act.appendChild(b);
+  }
+  const an=document.querySelector('.adminnav');
+  if(an&&!an.dataset.ex){
+    an.dataset.ex='1';
+    [['affiliates','Afiliados'],['refunds','Reembolsos'],['payouts','Pagos a vendedores']].forEach(([k,t])=>{
+      const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>window.adminTab(k);an.appendChild(b);
+    });
+  }
+})();
+})();
+</script>
+<!-- ===================== NIEVE DE NAVIDAD (5 segundos al pasar o tocar los botones) ===================== -->
+<script id="snow-fx">
+(function(){
+'use strict';
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;   // respeta "reducir movimiento"
+const DURATION=5000;                                   // la nevada dura 5 segundos
+const SEL='.btn,nav button,.pill,.floating';           // botones del sitio (no los del panel de administración)
+let cv=null,g=null,flakes=[],raf=0,t0=0,last=0,running=false,W=0,H=0;
+function setup(){
+  cv=document.createElement('canvas');cv.id='snowFx';cv.setAttribute('aria-hidden','true');
+  cv.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:4';
+  document.body.appendChild(cv);g=cv.getContext('2d');
+  const dpr=Math.min(window.devicePixelRatio||1,2);W=window.innerWidth;H=window.innerHeight;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);g.setTransform(dpr,0,0,dpr,0,0);
+}
+function spawn(n){
+  for(let i=0;i<n;i++)flakes.push({x:Math.random()*W,y:-8-Math.random()*60,r:1.4+Math.random()*3.4,vy:45+Math.random()*95,vx:-15+Math.random()*30,ph:Math.random()*6.28,sw:8+Math.random()*24});
+}
+function stop(){
+  cancelAnimationFrame(raf);running=false;flakes=[];
+  if(cv&&cv.parentNode)cv.parentNode.removeChild(cv);cv=null;g=null;
+}
+function frame(ts){
+  if(!running)return;
+  if(!t0){t0=ts;last=ts}
+  const el=ts-t0,dt=Math.min(.05,(ts-last)/1000);last=ts;
+  if(el>=DURATION){stop();return}
+  if(el<DURATION-1500&&flakes.length<230)spawn(3);      // sigue nevando hasta poco antes del final
+  const fade=el>DURATION-1000?Math.max(0,(DURATION-el)/1000):1;
+  g.clearRect(0,0,W,H);
+  g.globalAlpha=.92*fade;g.fillStyle='#fff';g.strokeStyle='rgba(110,140,190,.6)';g.lineWidth=.8;   // borde azulado: se ve sobre fondos claros
+  for(const f of flakes){
+    f.y+=f.vy*dt;f.ph+=dt*1.6;f.x+=(f.vx+Math.sin(f.ph)*f.sw)*dt;
+    g.beginPath();g.arc(f.x,f.y,f.r,0,6.2832);g.fill();g.stroke();
+  }
+  flakes=flakes.filter(f=>f.y<H+8);
+  raf=requestAnimationFrame(frame);
+}
+function start(){
+  if(running)return;
+  running=true;t0=0;last=0;flakes=[];setup();spawn(70);raf=requestAnimationFrame(frame);
+}
+function isFrontButton(t){const b=t&&t.closest&&t.closest(SEL);return b&&!b.closest('#admin')?b:null}
+document.addEventListener('mouseover',e=>{const b=isFrontButton(e.target);if(!b)return;if(e.relatedTarget&&b.contains(e.relatedTarget))return;start()},true);
+document.addEventListener('pointerdown',e=>{if(isFrontButton(e.target))start()},true);
+window.addEventListener('resize',()=>{if(running){stop();start()}});
+})();
+</script>
+</body></html>
