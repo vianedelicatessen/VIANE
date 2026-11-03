@@ -24,6 +24,7 @@ Novedades de esta version (esquema v3, se migra solo, sin perder datos):
 - Vendedores (esquema v4): codigo multiuso, descuento al cliente y comision del vendedor.
 - Modulos AISLADOS en viane_extras.py (afiliados, reembolsos, pagos a vendedores); aqui solo hay
   los ganchos minimos (ORDER_HOOKS, estado 'Reembolsado' y el registro al final del archivo).
+- Esquema v7: correo opcional del cliente y envio gratis desde un monto (Panel -> Tienda).
 - Esquema v5: % de descuento y de comision EDITABLES por vendedor, ventas con borrado
   logico (papelera de 12 meses, reactivables) y control de costos (insumos, recetas, ganancia neta).
 """
@@ -281,7 +282,7 @@ SCHEMA = [
 
 # Migracion v3: columnas nuevas. Se aplican UNA sola vez (marca "_schema_version" en settings)
 # y son seguras de repetir (IF NOT EXISTS), asi que no se pierde ningun dato existente.
-SCHEMA_VERSION = '6'
+SCHEMA_VERSION = '7'
 MIGRATIONS = [
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT ''",
@@ -316,6 +317,8 @@ MIGRATIONS = [
         qty DOUBLE PRECISION NOT NULL)''',
     "ALTER TABLE recipe_items ENABLE ROW LEVEL SECURITY",
     "CREATE INDEX IF NOT EXISTS recipe_items_pid_idx ON recipe_items(product_id)",
+    # v7: correo opcional del cliente (para pedirle una resena cuando le entreguen el pedido)
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email TEXT NOT NULL DEFAULT ''",
 ]
 
 _schema_ready = False
@@ -438,7 +441,8 @@ def setting_map(c):
 
 def public_settings(c):
     """Ajustes visibles al navegador: sin las claves internas (empiezan con _)."""
-    return {k: v for k, v in setting_map(c).items() if not k.startswith('_')}
+    # los textos legales son largos y se piden aparte (/api/store/legal): no viajan con cada visita
+    return {k: v for k, v in setting_map(c).items() if not k.startswith('_') and not k.startswith('legal_')}
 
 
 def rows(c, sql, params=()):
@@ -905,6 +909,9 @@ def create_order():
     method = method_from(str(d.get('delivery_method', '')).strip(), d.get('province', ''))
     delivery = DELIVERY[method]
     address = str(d.get('address', '')).strip()[:300]
+    email = str(d.get('email', '')).strip().lower()[:120]
+    if email and not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email):
+        return jsonify({'error': 'Escribe un correo válido o déjalo vacío.'}), 400
     raw_code = str(d.get('reseller_code', '')).strip()
 
     with db() as c:
@@ -929,19 +936,22 @@ def create_order():
         disc_pct, comm_pct = reseller_pcts(reseller)  # porcentajes propios de ese vendedor
         discount = round(subtotal * disc_pct / 100, 2) if reseller else 0.0
         net = subtotal - discount
+        free_min = num(setting_map(c).get('free_ship_min'))  # envio gratis desde X (se decide aqui, no en el navegador)
+        if free_min and free_min > 0 and net >= free_min:
+            shipping = 0.0
         commission = round(net * comm_pct / 100, 2) if reseller else 0.0
         total = net + shipping
         code = 'VIA-' + secrets.token_hex(4).upper()
         c.execute(
             'INSERT INTO orders(code,name,phone,province,delivery_date,items,total,payment_status,status,'
             'notes,created_at,updated_at,delivery_method,sector,address,shipping,'
-            'reseller_id,reseller_name,reseller_code,discount,commission) '
-            'VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+            'reseller_id,reseller_name,reseller_code,discount,commission,customer_email) '
+            'VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
             (code, name, phone, delivery['label'], str(d.get('delivery_date', ''))[:100],
              json.dumps(clean, ensure_ascii=False), total, 'Pago pendiente', 'Pago pendiente',
              str(d.get('notes', ''))[:2000], now(), now(), method, delivery['sector'], address, shipping,
              reseller['id'] if reseller else None, reseller['name'] if reseller else '',
-             reseller['code'] if reseller else '', discount, commission))
+             reseller['code'] if reseller else '', discount, commission, email))
         s = setting_map(c)
     return jsonify({'ok': True, 'code': code, 'subtotal': subtotal, 'discount': discount,
                     'reseller_code': reseller['code'] if reseller else '',
@@ -1277,7 +1287,27 @@ def update_settings():
     d = body()
     allowed = {'brand_name', 'logo', 'whatsapp', 'instagram', 'background_type',
                'background_value', 'review_url', 'tips_message',
-               'music_url', 'music_title', 'music_kind'}
+               'music_url', 'music_title', 'music_kind', 'paypal_rate',
+               'free_ship_min', 'delivery_note', 'returns_note', 'size_guide', 'ga_id',
+               'legal_terms', 'legal_privacy', 'legal_returns'}
+    if 'paypal_rate' in d:  # tasa para cobrar en US$ con PayPal (pesos por 1 dolar)
+        x = to_float(str(d['paypal_rate']).replace(',', '.'))
+        if x is None or not 1 <= x <= 100000:
+            return jsonify({'error': 'La tasa debe ser un número mayor que 1 (pesos dominicanos por 1 dólar).'}), 400
+        d['paypal_rate'] = str(round(x, 4))
+    if 'free_ship_min' in d:  # envio gratis desde X (RD$); vacio = desactivado
+        raw = str(d['free_ship_min'] or '').strip().replace(',', '.')
+        if raw:
+            x = to_float(raw)
+            if x is None or not 0 <= x <= 10_000_000:
+                return jsonify({'error': 'El monto de envío gratis debe ser un número (RD$) o quedar vacío.'}), 400
+            raw = str(round(x, 2))
+        d['free_ship_min'] = raw
+    if 'ga_id' in d:  # ID de Google Analytics 4, por ejemplo G-ABC123XYZ
+        g = str(d['ga_id'] or '').strip().upper()
+        if g and not re.fullmatch(r'(G|GT|AW)-[A-Z0-9]{4,20}', g):
+            return jsonify({'error': 'El ID de Google Analytics no es válido (ejemplo: G-ABC123XYZ).'}), 400
+        d['ga_id'] = g
     with db() as c:
         for k, v in d.items():
             if k not in allowed:
