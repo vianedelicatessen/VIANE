@@ -19,10 +19,14 @@ Correo (opcional, variables de entorno en Vercel):
   SMTP_USER, SMTP_PASSWORD   (Gmail: usa una "contrasena de aplicacion")
   SMTP_HOST (smtp.gmail.com), SMTP_PORT (465), MAIL_FROM (= SMTP_USER)
   AFFILIATE_NOTIFY_EMAIL     (por defecto vianedelicatessen@gmail.com)
+  PAYPAL_CLIENT_ID (o PAYPAL_CLIENTID), PAYPAL_CLIENT_SECRET   (credenciales REST de PayPal)
+  PAYPAL_ENV = live | sandbox (por defecto live), SITE_URL (por defecto https://www.vianedelicatessen.com)
+  PAYPAL_DOP_PER_USD         (tasa de respaldo; la tasa normal se cambia en Panel -> PayPal)
 Si no estan configuradas, las solicitudes se guardan igual y el panel permite "Reenviar correos".
 """
 import base64
 import hashlib
+import json
 import html
 import os
 import re
@@ -31,11 +35,15 @@ import smtplib
 import ssl
 import threading
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 
-from flask import Response, jsonify, request
+from flask import Response, jsonify, redirect, request
+from xml.sax.saxutils import escape as xml_escape
 
 # ---------------------------------------------------------------------------
 # Reglas del programa de afiliados
@@ -47,6 +55,8 @@ REVIEW_DAYS = 30              # plazo inicial de respuesta (1 a 30 dias)
 EXTENDED_DAYS = 365           # si no hay respuesta: evaluacion extendida hasta 12 meses
 TERMS_VERSION = '2026-10'
 NOTIFY_EMAIL = os.environ.get('AFFILIATE_NOTIFY_EMAIL') or 'vianedelicatessen@gmail.com'
+SITE_URL = (os.environ.get('SITE_URL') or 'https://www.vianedelicatessen.com').strip().rstrip('/')
+PAID_STATES = ('Pago recibido', 'Pago confirmado', 'Reembolsado')
 PLATFORMS = ['Instagram', 'TikTok', 'Facebook', 'YouTube', 'X (Twitter)', 'Otra']
 
 TERMS_TEXT = f"""CONTRATO Y TÉRMINOS DEL PROGRAMA DE AFILIADOS — VIANE DELICATESSEN
@@ -112,6 +122,17 @@ DDL = [
     'ALTER TABLE reseller_payouts ENABLE ROW LEVEL SECURITY',
     'CREATE INDEX IF NOT EXISTS payouts_reseller_idx ON reseller_payouts(reseller_id)',
     'CREATE INDEX IF NOT EXISTS payouts_paid_on_idx ON reseller_payouts(paid_on)',
+    '''CREATE TABLE IF NOT EXISTS paypal_payments(
+        id BIGSERIAL PRIMARY KEY, order_code TEXT NOT NULL, paypal_order_id TEXT UNIQUE NOT NULL,
+        usd_amount DOUBLE PRECISION NOT NULL, rate DOUBLE PRECISION NOT NULL,
+        status TEXT NOT NULL DEFAULT 'creado', capture_id TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL, paid_at TEXT)''',
+    'ALTER TABLE paypal_payments ENABLE ROW LEVEL SECURITY',
+    '''CREATE TABLE IF NOT EXISTS order_notices(
+        id BIGSERIAL PRIMARY KEY, order_code TEXT NOT NULL, kind TEXT NOT NULL, sent_at TEXT NOT NULL,
+        UNIQUE(order_code, kind))''',
+    'ALTER TABLE order_notices ENABLE ROW LEVEL SECURITY',
+    'CREATE INDEX IF NOT EXISTS paypal_code_idx ON paypal_payments(order_code)',
 ]
 
 H = {}
@@ -336,6 +357,240 @@ def refund_hook(c, oid, status, payment):
 
 
 # ---------------------------------------------------------------------------
+# PayPal: SDK v6 en el navegador + Orders API v2 en el servidor
+# (PayPal NO acepta pesos dominicanos: se cobra en US$ con la tasa que pongas en Panel -> PayPal)
+# ---------------------------------------------------------------------------
+PP_TOKEN = {'v': '', 'exp': 0.0}
+
+
+def env_first(*names):
+    for n in names:
+        v = (os.environ.get(n) or '').strip()
+        if v:
+            return v
+    return ''
+
+
+def pp_conf():
+    sandbox = env_first('PAYPAL_ENV').lower() == 'sandbox'
+    return {
+        'id': env_first('PAYPAL_CLIENT_ID', 'PAYPAL_CLIENTID'),
+        'secret': env_first('PAYPAL_CLIENT_SECRET', 'PAYPAL_SECRET'),
+        'env': 'sandbox' if sandbox else 'live',
+        'api': 'https://api-m.sandbox.paypal.com' if sandbox else 'https://api-m.paypal.com',
+        'sdk': ('https://www.sandbox.paypal.com/web-sdk/v6/core' if sandbox
+                else 'https://www.paypal.com/web-sdk/v6/core'),
+    }
+
+
+def pp_has_keys():
+    cf = pp_conf()
+    return bool(cf['id'] and cf['secret'])
+
+
+def pp_http(method, url, headers, data=None):
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw, code = r.read().decode('utf-8', 'replace'), r.status
+    except urllib.error.HTTPError as e:
+        raw, code = e.read().decode('utf-8', 'replace'), e.code
+    try:
+        return code, json.loads(raw or '{}')
+    except ValueError:
+        return code, {'raw': raw[:200]}
+
+
+def pp_token():
+    """Token de acceso de PayPal (se reutiliza hasta que caduca). Devuelve (token, error)."""
+    if PP_TOKEN['v'] and time.time() < PP_TOKEN['exp']:
+        return PP_TOKEN['v'], ''
+    cf = pp_conf()
+    if not (cf['id'] and cf['secret']):
+        return '', 'Faltan PAYPAL_CLIENT_ID y PAYPAL_CLIENT_SECRET en Vercel.'
+    auth = base64.b64encode(f"{cf['id']}:{cf['secret']}".encode()).decode()
+    try:
+        code, res = pp_http('POST', cf['api'] + '/v1/oauth2/token',
+                            {'Authorization': 'Basic ' + auth, 'Accept': 'application/json',
+                             'Content-Type': 'application/x-www-form-urlencoded'},
+                            b'grant_type=client_credentials')
+    except Exception as exc:
+        return '', 'No se pudo conectar con PayPal (' + type(exc).__name__ + ').'
+    if code == 200 and res.get('access_token'):
+        PP_TOKEN['v'] = res['access_token']
+        PP_TOKEN['exp'] = time.time() + max(60, int(res.get('expires_in', 300)) - 120)
+        return PP_TOKEN['v'], ''
+    if code in (400, 401):
+        return '', ('PayPal rechazó las credenciales: revisa PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET y que '
+                    'PAYPAL_ENV (' + cf['env'] + ') sea el modo de esas credenciales.')
+    return '', f'PayPal respondió con el error {code}.'
+
+
+def pp_api(method, path, payload=None):
+    """Llamada autenticada a la API de PayPal. Devuelve (codigo_http, json); codigo 0 = no se pudo llamar."""
+    tok, err = pp_token()
+    if err:
+        return 0, {'error': err}
+    headers = {'Authorization': 'Bearer ' + tok, 'Accept': 'application/json',
+               'Content-Type': 'application/json', 'PayPal-Request-Id': secrets.token_hex(12)}
+    data = None if method == 'GET' else json.dumps(payload if payload is not None else {}).encode('utf-8')
+    try:
+        return pp_http(method, pp_conf()['api'] + path, headers, data)
+    except Exception as exc:
+        return 0, {'error': 'No se pudo conectar con PayPal (' + type(exc).__name__ + ').'}
+
+
+def pp_rate(c):
+    """Pesos dominicanos por 1 US$: primero la que pones en el panel, luego la variable de respaldo."""
+    row = c.execute("SELECT value FROM settings WHERE key='paypal_rate'").fetchone()
+    for v in ((row or {}).get('value'), os.environ.get('PAYPAL_DOP_PER_USD')):
+        x = num(v)
+        if x and x > 0:
+            return float(x)
+    return 0.0
+
+
+def pp_finish(token):
+    """Captura el pago de PayPal y marca el pedido como pagado. Devuelve (estado, codigo_pedido)."""
+    with xdb() as c:
+        row = c.execute('SELECT * FROM paypal_payments WHERE paypal_order_id=%s', (token,)).fetchone()
+    if not row:
+        return 'error', ''
+    code = row['order_code']
+    if row['status'] == 'paid':
+        return 'ok', code
+    status, res = pp_api('POST', f'/v2/checkout/orders/{token}/capture', {})
+    if status == 422 and any(d.get('issue') == 'ORDER_ALREADY_CAPTURED' for d in (res.get('details') or [])):
+        status, res = pp_api('GET', f'/v2/checkout/orders/{token}')
+    cap = {}
+    try:
+        cap = res['purchase_units'][0]['payments']['captures'][0]
+    except (KeyError, IndexError, TypeError):
+        pass
+    amt = cap.get('amount') or {}
+    try:
+        same_amount = abs(float(amt.get('value') or 0) - float(row['usd_amount'])) < 0.011
+    except ValueError:
+        same_amount = False
+    paid = (res.get('status') == 'COMPLETED' and cap.get('status') == 'COMPLETED'
+            and amt.get('currency_code') == 'USD' and same_amount)
+    state = 'ok' if paid else ('pending' if cap.get('status') == 'PENDING' else 'error')
+    with xdb() as c:
+        if paid:
+            c.execute("UPDATE paypal_payments SET status='paid', capture_id=%s, paid_at=%s WHERE paypal_order_id=%s",
+                      (str(cap.get('id') or '')[:60], H['now'](), token))
+            c.execute("UPDATE orders SET payment_status='Pago recibido', "
+                      "status=CASE WHEN status='Pago pendiente' THEN 'Pago recibido' ELSE status END, "
+                      "updated_at=%s WHERE code=%s", (H['now'](), code))
+        else:
+            c.execute('UPDATE paypal_payments SET status=%s WHERE paypal_order_id=%s', (state, token))
+    if not paid:
+        print(f'[VIANE] PayPal no confirmo el pago ({state}): http {status} {str(res)[:200]}')
+    return state, code
+
+
+# ---------------------------------------------------------------------------
+# Textos de la tienda (borradores editables desde Panel -> Tienda; revisalos con un abogado)
+# ---------------------------------------------------------------------------
+LEGAL_DEFAULT = {
+    'terms': """TÉRMINOS Y CONDICIONES — VIANE Delicatessen
+
+1. Quiénes somos. VIANE Delicatessen elabora y vende bandejas decorativas, desayunos, picaderas y regalos personalizados en República Dominicana. Contacto: WhatsApp 829-675-9640.
+
+2. Pedidos. Todos los pedidos deben realizarse con un mínimo de 24 horas de anticipación. Un pedido queda confirmado cuando recibimos el pago o lo acordamos contigo por WhatsApp.
+
+3. Precios. Los precios se muestran en pesos dominicanos (RD$). El envío se suma según la zona elegida. Podemos corregir errores evidentes de precio antes de confirmar tu pedido.
+
+4. Formas de pago. Aceptamos PayPal (el cobro se hace en dólares al cambio indicado al momento de pagar), transferencia bancaria y efectivo. El pedido se prepara cuando el pago está confirmado.
+
+5. Entrega. La fecha y la zona las eliges al hacer el pedido. Debe haber una persona disponible para recibirlo; si no se puede entregar por causas del cliente, podemos cobrar un nuevo envío.
+
+6. Productos personalizados y perecederos. Por su naturaleza no admiten cambio ni devolución, salvo error nuestro o daño ocurrido durante la entrega (ver «Envíos y devoluciones»).
+
+7. Imágenes. Las fotos son referenciales. El diseño final puede variar levemente según la disponibilidad de insumos, manteniendo la calidad y el valor del pedido.
+
+8. Códigos de descuento y afiliados. Los códigos son personales, no acumulables y pueden desactivarse en cualquier momento. El programa de afiliados se rige por su contrato firmado.
+
+9. Cambios. Podemos actualizar estos términos; aplican los vigentes al momento de tu pedido.
+
+10. Ley aplicable. Estos términos se rigen por las leyes de la República Dominicana.""",
+    'privacy': """POLÍTICA DE PRIVACIDAD — VIANE Delicatessen
+
+1. Datos que recopilamos. Nombre, teléfono o WhatsApp, dirección de entrega, correo electrónico (opcional) y los detalles de tu pedido. Si solicitas ser afiliado, también los datos de tu solicitud y tu firma.
+
+2. Para qué los usamos. Preparar y entregar tu pedido, contactarte sobre él, confirmar pagos, atender reclamos y, si dejaste tu correo, pedirte una reseña cuando tu pedido sea entregado.
+
+3. Con quién los compartimos. Solo con quienes hacen posible el servicio: la plataforma de pago (PayPal, si eliges ese método), el servicio de correo y los proveedores técnicos del sitio. No vendemos tus datos.
+
+4. Cookies y publicidad. El sitio puede mostrar anuncios de Google y usar herramientas de analítica que emplean cookies. Puedes administrar tu consentimiento en el aviso que aparece en el sitio y en la configuración de tu navegador.
+
+5. Conservación. Guardamos la información mientras sea necesaria para atender tu pedido y cumplir obligaciones legales o contables.
+
+6. Tus derechos. Puedes pedirnos acceder a tus datos, corregirlos o eliminarlos escribiéndonos por WhatsApp al 829-675-9640.
+
+7. Seguridad. Usamos conexiones cifradas y acceso restringido a la información. Ningún sistema es 100% infalible, pero trabajamos para protegerla.""",
+    'returns': """ENVÍOS Y DEVOLUCIONES — VIANE Delicatessen
+
+ENVÍOS
+• Puedes recoger tu pedido en el local o recibirlo en Puerto Plata (ciudad), Santiago o Santo Domingo. El costo de cada zona se muestra en la página y al crear tu pedido.
+• Entregamos en la fecha que eliges. Los pedidos requieren un mínimo de 24 horas de anticipación.
+• Si te damos un envío gratis desde cierto monto, se aplica automáticamente al llegar a ese monto.
+
+REVISA TU PEDIDO AL RECIBIRLO
+Por tratarse de productos frescos y personalizados, revisa tu pedido en el momento de la entrega.
+
+DEVOLUCIONES Y SOLUCIONES
+• Si hay un error nuestro, falta algún producto o llega dañado, escríbenos por WhatsApp (829-675-9640) el mismo día con fotos y tu código de pedido.
+• Lo resolvemos con una reposición o con el reembolso de lo afectado, según el caso.
+• No aceptamos devoluciones de productos perecederos o personalizados por cambio de opinión.
+
+REEMBOLSOS
+Los reembolsos se hacen por el mismo medio de pago: a tu cuenta de PayPal o por transferencia, normalmente en 3 a 5 días hábiles.""",
+    'size_guide': """GUÍA DE TAMAÑOS
+
+¿Para cuántas personas es tu pedido? Cuéntanos cuántas personas serán y la ocasión (cumpleaños, boda, aniversario, sorpresa...) y te recomendamos el tamaño ideal.
+
+• Detalle individual o para 1 a 2 personas.
+• Bandejas para compartir en familia.
+• Bandejas para eventos: cumpleaños de 25 personas en adelante.
+
+Si tienes dudas, escríbenos por WhatsApp al 829-675-9640 y armamos la opción perfecta para ti.""",
+}
+LEGAL_KEYS = {'terms': 'legal_terms', 'privacy': 'legal_privacy', 'returns': 'legal_returns', 'size_guide': 'size_guide'}
+
+
+def effective_legal(c):
+    """Texto vigente: el que escribas en el panel o, si lo dejas vacio, el borrador de arriba."""
+    rows_ = c.execute('SELECT key,value FROM settings WHERE key = ANY(%s)', (list(LEGAL_KEYS.values()),)).fetchall()
+    cur = {r['key']: r['value'] for r in rows_}
+    return {k: (cur.get(v) or '').strip() or LEGAL_DEFAULT[k] for k, v in LEGAL_KEYS.items()}
+
+
+def review_hook(c, oid, status, payment):
+    """Cuando un pedido pasa a Entregado/Terminado y el cliente dejo su correo, se le pide una resena (una sola vez)."""
+    if status not in ('Entregado', 'Terminado') or payment == 'Reembolsado' or not smtp_configured():
+        return
+    ensure()
+    o = c.execute('SELECT code,name,customer_email FROM orders WHERE id=%s', (oid,)).fetchone()
+    if not o or not o.get('customer_email'):
+        return
+    cur = c.execute('INSERT INTO order_notices(order_code,kind,sent_at) VALUES(%s,%s,%s) '
+                    'ON CONFLICT (order_code,kind) DO NOTHING', (o['code'], 'review', H['now']()))
+    if cur.rowcount != 1:  # ya se le pidio antes
+        return
+    row = c.execute("SELECT value FROM settings WHERE key='review_url'").fetchone()
+    link = row['value'] if row and str(row['value']).lower().startswith('http') else SITE_URL + '/#reviews'
+    first = (o['name'] or '').split(' ')[0] or 'hola'
+    ok, _ = send_mail(o['customer_email'], '¿Cómo te fue con tu pedido? — VIANE Delicatessen',
+                      f"Hola {first},\n\n¡Gracias por tu compra! Esperamos que hayas disfrutado tu pedido {o['code']}.\n\n"
+                      f"¿Nos cuentas cómo te fue? Tu opinión ayuda a otras personas y nos ayuda a mejorar:\n{link}\n\n"
+                      f"Si algo no salió como esperabas, responde este correo o escríbenos por WhatsApp al 829-675-9640.\n\n"
+                      f"VIANE Delicatessen")
+    if not ok:  # si no salio, que se pueda intentar de nuevo
+        c.execute('DELETE FROM order_notices WHERE order_code=%s AND kind=%s', (o['code'], 'review'))
+
+
+# ---------------------------------------------------------------------------
 # Registro de rutas
 # ---------------------------------------------------------------------------
 def register(app, **h):
@@ -344,6 +599,7 @@ def register(app, **h):
     parse_pct, norm = h['parse_pct'], h['norm']
     DEF_DISC, DEF_COMM = h['reseller_defaults']
     h['order_hooks'].append(refund_hook)
+    h['order_hooks'].append(review_hook)
     mig = h.get('migrations')
     if mig is not None:  # las tablas de este modulo se crean junto con las migraciones del sitio
         for stmt in DDL:
@@ -600,6 +856,187 @@ def register(app, **h):
         if not a:
             return jsonify({'error': 'Solicitud no encontrada'}), 404
         return Response(contract_html(a), mimetype='text/html')
+
+    # ---------- PAYPAL ----------
+    @app.get('/api/paypal/config')
+    def paypal_config():
+        """Datos publicos para el boton «Pagar aquí» (el client id de PayPal es publico por diseño)."""
+        cf = pp_conf()
+        out = {'enabled': False, 'client_id': '', 'sdk_url': cf['sdk'], 'currency': 'USD', 'rate': 0}
+        if pp_has_keys():
+            try:
+                with xdb() as c:
+                    out['rate'] = pp_rate(c)
+            except Exception as exc:
+                print(f'[VIANE] PayPal config: {exc!r}')
+            out['enabled'] = out['rate'] > 0
+            out['client_id'] = cf['id'] if out['enabled'] else ''
+        return jsonify(out)
+
+    @app.post('/api/paypal/create')
+    def paypal_create():
+        """Crea la orden de PayPal con el total REAL del pedido guardado en la base de datos."""
+        code = str(body().get('code') or '').strip().upper()
+        if not pp_has_keys():
+            return jsonify({'error': 'El pago con PayPal todavía no está disponible.'}), 503
+        with xdb() as c:
+            o = c.execute('SELECT code,total,payment_status FROM orders WHERE code=%s', (code,)).fetchone()
+            if not o:
+                return jsonify({'error': 'No encontramos ese pedido.'}), 404
+            if o['payment_status'] in PAID_STATES:
+                return jsonify({'error': 'Este pedido ya está pagado.'}), 400
+            rate = pp_rate(c)
+        if rate <= 0:
+            return jsonify({'error': 'PayPal aún no tiene la tasa del dólar configurada.'}), 503
+        usd = round(float(o['total']) / rate, 2)
+        if usd < 0.01:
+            return jsonify({'error': 'El monto del pedido es demasiado pequeño para PayPal.'}), 400
+        status, res = pp_api('POST', '/v2/checkout/orders', {
+            'intent': 'CAPTURE',
+            'purchase_units': [{
+                'reference_id': code, 'custom_id': code,
+                'description': f'Pedido {code} - VIANE Delicatessen',
+                'amount': {'currency_code': 'USD', 'value': f'{usd:.2f}'},
+            }],
+            'payment_source': {'paypal': {'experience_context': {
+                'brand_name': 'VIANE Delicatessen', 'locale': 'es-ES', 'user_action': 'PAY_NOW',
+                'shipping_preference': 'NO_SHIPPING',
+                'return_url': SITE_URL + '/api/paypal/return',
+                'cancel_url': f'{SITE_URL}/?paypal=cancel&code={code}',
+            }}},
+        })
+        order_id = res.get('id') if status in (200, 201) else ''
+        if not order_id:
+            print(f'[VIANE] PayPal no creo la orden: http {status} {str(res)[:300]}')
+            return jsonify({'error': res.get('error') or 'PayPal no pudo crear el pago. Intenta de nuevo.'}), 502
+        link = next((l.get('href') for l in (res.get('links') or []) if l.get('rel') in ('payer-action', 'approve')), '')
+        with xdb() as c:
+            c.execute('INSERT INTO paypal_payments(order_code,paypal_order_id,usd_amount,rate,status,created_at) '
+                      'VALUES(%s,%s,%s,%s,%s,%s)', (code, order_id, usd, rate, 'creado', now()))
+        return jsonify({'ok': True, 'orderId': order_id, 'approve_url': link, 'usd': usd})
+
+    @app.post('/api/paypal/capture')
+    def paypal_capture():
+        """El navegador avisa que el cliente aprobó el pago; el servidor lo captura y lo verifica."""
+        token = re.sub(r'[^A-Za-z0-9_-]', '', str(body().get('orderId') or ''))[:64]
+        if not token:
+            return jsonify({'error': 'Pago inválido.'}), 400
+        state, code = pp_finish(token)
+        return jsonify({'ok': state in ('ok', 'pending'), 'state': state, 'code': code})
+
+    @app.get('/api/paypal/return')
+    def paypal_return():
+        """Respaldo: si el cliente paga por redireccion (sin ventana emergente) vuelve aqui."""
+        token = re.sub(r'[^A-Za-z0-9_-]', '', request.args.get('token', ''))[:64]
+        state, code = pp_finish(token) if token else ('error', '')
+        return redirect(f'{SITE_URL}/?paypal={state}&code={code}#track')
+
+    @app.get('/api/paypal/test')
+    @admin_required
+    def paypal_test():
+        """Diagnostico para el panel: credenciales, modo, conexion real con PayPal y tasa."""
+        cf = pp_conf()
+        with xdb() as c:
+            rate = pp_rate(c)
+        out = {'configured': pp_has_keys(), 'env': cf['env'], 'rate': rate, 'site_url': SITE_URL,
+               'connection': None, 'message': ''}
+        if out['configured']:
+            PP_TOKEN['exp'] = 0.0  # fuerza una prueba real
+            tok, err = pp_token()
+            out['connection'], out['message'] = bool(tok), err
+        return jsonify(out)
+
+    # ---------- TIENDA: textos legales, analitica, Google Shopping y SEO ----------
+    @app.get('/api/store/legal')
+    def store_legal():
+        with xdb() as c:
+            return jsonify(effective_legal(c))
+
+    @app.get('/api/analytics')
+    @admin_required
+    def analytics():
+        """Ventas por mes (12 meses), productos mas vendidos y clientes recurrentes (solo ventas activas)."""
+        with xdb() as c:
+            data = rows(c, 'SELECT s.amount,s.sold_date,s.contact,o.items FROM sales s '
+                           'LEFT JOIN orders o ON o.id=s.order_id WHERE s.deleted_at IS NULL '
+                           'ORDER BY s.sold_date DESC LIMIT 5000')
+        today = today_dr()
+        keys, y, m = [], today.year, today.month
+        for _ in range(12):
+            keys.append(f'{y:04d}-{m:02d}')
+            m -= 1
+            if m == 0:
+                m, y = 12, y - 1
+        months = {k: {'month': k, 'amount': 0.0, 'count': 0} for k in reversed(keys)}
+        prods, phones, total = {}, {}, 0.0
+        for r in data:
+            amt = float(r['amount'] or 0)
+            total += amt
+            mk = (r['sold_date'] or '')[:7]
+            if mk in months:
+                months[mk]['amount'] += amt
+                months[mk]['count'] += 1
+            ph = re.sub(r'\D', '', r['contact'] or '')[-10:]
+            if ph:
+                phones[ph] = phones.get(ph, 0) + 1
+            try:
+                items = json.loads(r['items'] or '[]')
+            except ValueError:
+                items = []
+            for it in (items if isinstance(items, list) else []):
+                if isinstance(it, dict) and it.get('name'):
+                    p = prods.setdefault(str(it['name']), {'name': str(it['name']), 'qty': 0, 'revenue': 0.0})
+                    p['qty'] += 1
+                    p['revenue'] += float(it.get('price') or 0)
+        top = sorted(prods.values(), key=lambda p: (-p['qty'], -p['revenue']))[:10]
+        for p in top:
+            p['revenue'] = round(p['revenue'], 2)
+        n = len(data)
+        return jsonify({'months': [{**v, 'amount': round(v['amount'], 2)} for v in months.values()], 'top': top,
+                        'sales': n, 'revenue': round(total, 2), 'average': round(total / n, 2) if n else 0.0,
+                        'customers': len(phones), 'repeat': sum(1 for v in phones.values() if v > 1)})
+
+    @app.get('/feed/google.xml')
+    def google_feed():
+        """Catalogo para Google Merchant Center (Google Shopping / fichas gratuitas)."""
+        with xdb() as c:
+            items = rows(c, 'SELECT p.id,p.name,p.description,p.price,p.image,p.category FROM products p '
+                            'WHERE p.active=1 AND NOT EXISTS (SELECT 1 FROM categories k WHERE k.name=p.category '
+                            'AND k.active=0) ORDER BY p.id')
+        e = xml_escape
+        out = ['<?xml version="1.0" encoding="UTF-8"?>',
+               '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel>',
+               '<title>Viane Delicatessen</title>', f'<link>{SITE_URL}/</link>',
+               '<description>Bandejas decorativas, desayunos, picaderas y regalos</description>']
+        for p in items:
+            img = p['image'] or ''
+            img = SITE_URL + img if img.startswith('/') else img
+            if not img.lower().startswith('https://') or float(p['price'] or 0) <= 0:
+                continue  # Google exige imagen y precio
+            out.append(
+                '<item>'
+                f'<g:id>VIA-{p["id"]}</g:id><title>{e(str(p["name"])[:150])}</title>'
+                f'<description>{e(str(p["description"] or p["name"])[:4900])}</description>'
+                f'<link>{SITE_URL}/?p={p["id"]}</link><g:image_link>{e(img)}</g:image_link>'
+                f'<g:availability>in stock</g:availability><g:price>{float(p["price"]):.2f} DOP</g:price>'
+                '<g:condition>new</g:condition><g:brand>Viane Delicatessen</g:brand>'
+                f'<g:identifier_exists>no</g:identifier_exists><g:product_type>{e(str(p["category"]))}</g:product_type>'
+                '</item>')
+        out.append('</channel></rss>')
+        resp = Response('\n'.join(out), mimetype='application/xml')
+        resp.headers['Cache-Control'] = 'public, max-age=3600'
+        return resp
+
+    @app.get('/robots.txt')
+    def robots_txt():
+        return Response(f'User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: {SITE_URL}/sitemap.xml\n', mimetype='text/plain')
+
+    @app.get('/sitemap.xml')
+    def sitemap_xml():
+        today = today_dr().isoformat()
+        return Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+                        f'<url><loc>{SITE_URL}/</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq></url></urlset>',
+                        mimetype='application/xml')
 
     # ---------- REEMBOLSOS ----------
     @app.get('/api/refunds')
