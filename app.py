@@ -56,7 +56,6 @@ try:  # solo para desarrollo local (archivo .env); en Vercel no hace nada
 except ImportError:
     pass
 
-
 def _limpiar_cloudinary_url():
     """Arregla errores comunes al pegar CLOUDINARY_URL en Vercel: comillas, el texto
     'CLOUDINARY_URL=' delante, o los signos < > de los ejemplos."""
