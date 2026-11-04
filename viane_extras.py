@@ -334,7 +334,7 @@ def send_application_mails(a):
         f"Sello de tu contrato: {seal}\nAdjuntamos una copia para tus registros.\n\n"
         f"VIANE Delicatessen · WhatsApp 829-675-9640"
     )
-    ok_u, st_u = send_mail(a['email'], 'Gracias por tu solicitud de afiliación — VIANE Delicatessen', user_text, atts)
+    ok_u, st_u = send_mail(a['email'], 'Gracias por tu solicitud de afiliación — VIANEDELICATESSEN', user_text, atts)
     return st_a, st_u
 
 
@@ -493,9 +493,9 @@ def pp_finish(token):
 # Textos de la tienda (borradores editables desde Panel -> Tienda; revisalos con un abogado)
 # ---------------------------------------------------------------------------
 LEGAL_DEFAULT = {
-    'terms': """TÉRMINOS Y CONDICIONES — VIANE Delicatessen
+    'terms': """TÉRMINOS Y CONDICIONES — VIANE DELICATESSEN
 
-1. Quiénes somos. VIANE Delicatessen elabora y vende bandejas decorativas, desayunos, picaderas y regalos personalizados en República Dominicana. Contacto: WhatsApp 829-675-9640.
+1. Quiénes somos. VIANE DELICATESSEN elabora y vende bandejas decorativas, desayunos, picaderas y regalos personalizados en República Dominicana. Contacto: WhatsApp 829-675-9640.
 
 2. Pedidos. Todos los pedidos deben realizarse con un mínimo de 24 horas de anticipación. Un pedido queda confirmado cuando recibimos el pago o lo acordamos contigo por WhatsApp.
 
@@ -514,7 +514,7 @@ LEGAL_DEFAULT = {
 9. Cambios. Podemos actualizar estos términos; aplican los vigentes al momento de tu pedido.
 
 10. Ley aplicable. Estos términos se rigen por las leyes de la República Dominicana.""",
-    'privacy': """POLÍTICA DE PRIVACIDAD — VIANE Delicatessen
+    'privacy': """POLÍTICA DE PRIVACIDAD — VIANE DELICATENSSEN 
 
 1. Datos que recopilamos. Nombre, teléfono o WhatsApp, dirección de entrega, correo electrónico (opcional) y los detalles de tu pedido. Si solicitas ser afiliado, también los datos de tu solicitud y tu firma.
 
@@ -529,7 +529,7 @@ LEGAL_DEFAULT = {
 6. Tus derechos. Puedes pedirnos acceder a tus datos, corregirlos o eliminarlos escribiéndonos por WhatsApp al 829-675-9640.
 
 7. Seguridad. Usamos conexiones cifradas y acceso restringido a la información. Ningún sistema es 100% infalible, pero trabajamos para protegerla.""",
-    'returns': """ENVÍOS Y DEVOLUCIONES — VIANE Delicatessen
+    'returns': """ENVÍOS Y DEVOLUCIONES — VIANE DELICATESSEN
 
 ENVÍOS
 • Puedes recoger tu pedido en el local o recibirlo en Puerto Plata (ciudad), Santiago o Santo Domingo. El costo de cada zona se muestra en la página y al crear tu pedido.
@@ -581,11 +581,11 @@ def review_hook(c, oid, status, payment):
     row = c.execute("SELECT value FROM settings WHERE key='review_url'").fetchone()
     link = row['value'] if row and str(row['value']).lower().startswith('http') else SITE_URL + '/#reviews'
     first = (o['name'] or '').split(' ')[0] or 'hola'
-    ok, _ = send_mail(o['customer_email'], '¿Cómo te fue con tu pedido? — VIANE Delicatessen',
+    ok, _ = send_mail(o['customer_email'], '¿Cómo te fue con tu pedido? — VIANE DELICATESSEN',
                       f"Hola {first},\n\n¡Gracias por tu compra! Esperamos que hayas disfrutado tu pedido {o['code']}.\n\n"
                       f"¿Nos cuentas cómo te fue? Tu opinión ayuda a otras personas y nos ayuda a mejorar:\n{link}\n\n"
                       f"Si algo no salió como esperabas, responde este correo o escríbenos por WhatsApp al 829-675-9640.\n\n"
-                      f"VIANE Delicatessen")
+                      f"VIANE DELICATESSEN")
     if not ok:  # si no salio, que se pueda intentar de nuevo
         c.execute('DELETE FROM order_notices WHERE order_code=%s AND kind=%s', (o['code'], 'review'))
 
@@ -610,7 +610,7 @@ def register(app, **h):
     @admin_required
     def affiliate_test_mail():
         """Envia un correo de prueba al correo del negocio y dice exactamente que falla si no llega."""
-        ok, st = send_mail(NOTIFY_EMAIL, 'Prueba de correo — VIANE Delicatessen',
+        ok, st = send_mail(NOTIFY_EMAIL, 'Prueba de correo — VIANEDELICATESSEN ',
                            'Si lees esto, el correo del sistema de afiliados está bien configurado.')
         return jsonify({'ok': ok, 'status': st, 'to': NOTIFY_EMAIL})
 
@@ -794,12 +794,12 @@ def register(app, **h):
             c.execute("UPDATE affiliates SET status='aprobado', decided_at=%s, reseller_id=%s WHERE id=%s",
                       (now(), r['id'], aid))
         ok, st = send_mail(
-            a['email'], '¡Tu afiliación a VIANE Delicatessen fue aprobada!',
+            a['email'], '¡Tu afiliación a VIANEDELICATESSEN fue aprobada!',
             f"Hola {a['full_name']},\n\n¡Felicidades! Tu solicitud de afiliación fue aprobada.\n\n"
             f"Tu código de afiliado: {code}\nTus clientes reciben {disc:g}% de descuento al usarlo y tú ganas "
             f"{comm:g}% de comisión sobre el valor de cada venta.\n\nRecuerda: si pasan {INACTIVITY_DAYS} días "
             f"consecutivos sin ventas, la afiliación se cancela automáticamente (ver contrato firmado).\n\n"
-            f"VIANE Delicatessen · WhatsApp 829-675-9640")
+            f"VIANEDELICATESSEN · WhatsApp 829-675-9640")
         return jsonify({'ok': True, 'code': code, 'mail': st})
 
     @app.post('/api/affiliates/<int:aid>/reject')
@@ -815,9 +815,9 @@ def register(app, **h):
             c.execute("UPDATE affiliates SET status='rechazado', decided_at=%s, decision_note=%s WHERE id=%s",
                       (now(), note, aid))
         ok, st = send_mail(
-            a['email'], 'Sobre tu solicitud de afiliación — VIANE Delicatessen',
+            a['email'], 'Sobre tu solicitud de afiliación — VIANE DELICATESSEN',
             f"Hola {a['full_name']},\n\nGracias por tu interés en el programa de afiliados. En esta ocasión no "
-            f"podremos continuar con tu solicitud.{(' ' + note) if note else ''}\n\nVIANE Delicatessen")
+            f"podremos continuar con tu solicitud.{(' ' + note) if note else ''}\n\nVIANE DELICATESSEN")
         return jsonify({'ok': True, 'mail': st})
 
     @app.post('/api/affiliates/<int:aid>/cancel')
@@ -895,11 +895,11 @@ def register(app, **h):
             'intent': 'CAPTURE',
             'purchase_units': [{
                 'reference_id': code, 'custom_id': code,
-                'description': f'Pedido {code} - VIANE Delicatessen',
+                'description': f'Pedido {code} - VIANE DELICATESSEN',
                 'amount': {'currency_code': 'USD', 'value': f'{usd:.2f}'},
             }],
             'payment_source': {'paypal': {'experience_context': {
-                'brand_name': 'VIANE Delicatessen', 'locale': 'es-ES', 'user_action': 'PAY_NOW',
+                'brand_name': 'VIANE DELICATESSEN', 'locale': 'es-ES', 'user_action': 'PAY_NOW',
                 'shipping_preference': 'NO_SHIPPING',
                 'return_url': SITE_URL + '/api/paypal/return',
                 'cancel_url': f'{SITE_URL}/?paypal=cancel&code={code}',
@@ -1006,7 +1006,7 @@ def register(app, **h):
         e = xml_escape
         out = ['<?xml version="1.0" encoding="UTF-8"?>',
                '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel>',
-               '<title>Viane Delicatessen</title>', f'<link>{SITE_URL}/</link>',
+               '<title>VIANE DELICATESSEN</title>', f'<link>{SITE_URL}/</link>',
                '<description>Bandejas decorativas, desayunos, picaderas y regalos</description>']
         for p in items:
             img = p['image'] or ''
@@ -1019,7 +1019,7 @@ def register(app, **h):
                 f'<description>{e(str(p["description"] or p["name"])[:4900])}</description>'
                 f'<link>{SITE_URL}/?p={p["id"]}</link><g:image_link>{e(img)}</g:image_link>'
                 f'<g:availability>in stock</g:availability><g:price>{float(p["price"]):.2f} DOP</g:price>'
-                '<g:condition>new</g:condition><g:brand>Viane Delicatessen</g:brand>'
+                '<g:condition>new</g:condition><g:brand>VIANE DELICATESSEN</g:brand>'
                 f'<g:identifier_exists>no</g:identifier_exists><g:product_type>{e(str(p["category"]))}</g:product_type>'
                 '</item>')
         out.append('</channel></rss>')
