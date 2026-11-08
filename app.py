@@ -56,6 +56,7 @@ try:  # solo para desarrollo local (archivo .env); en Vercel no hace nada
 except ImportError:
     pass
 
+
 def _limpiar_cloudinary_url():
     """Arregla errores comunes al pegar CLOUDINARY_URL en Vercel: comillas, el texto
     'CLOUDINARY_URL=' delante, o los signos < > de los ejemplos."""
@@ -326,7 +327,7 @@ _schema_lock = Lock()
 DEFAULT_SETTINGS = {
     'brand_name': 'VIANE DELICATESSEN', 'logo': '', 'whatsapp': '18296759640',
     'instagram': 'vianedelicatessen', 'background_type': 'color', 'background_value': '#FFFDF5',
-    'review_url': '', 'tips_message': '¡Gracias por apoyar a VIANE Delicatessen!',
+    'review_url': '', 'tips_message': '¡Gracias por apoyar a VIANE DELICATESSEN!',
     'music_url': '', 'music_title': '', 'music_kind': 'audio',
 }
 
