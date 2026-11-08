@@ -324,7 +324,7 @@ def send_application_mails(a):
     ok_a, st_a = send_mail(NOTIFY_EMAIL, f"Nueva solicitud de afiliado: {a['full_name']}", admin_text, atts)
     user_text = (
         f"Hola {a['full_name']},\n\n"
-        f"¡Gracias por solicitar entrar al esquema de afiliados de VIANE Delicatessen!\n\n"
+        f"¡Gracias por solicitar entrar al esquema de afiliados de VIANE DELICATESSEN!\n\n"
         f"Hemos recibido tu solicitud y tu contrato firmado. Tu afiliación está PENDIENTE DE APROBACIÓN: por "
         f"favor espera nuestra respuesta, todavía no puedes usar un código de afiliado.\n\n"
         f"Estaremos revisando tu perfil y te daremos una respuesta en un plazo de 1 a 30 días. En caso de no "
@@ -332,9 +332,9 @@ def send_application_mails(a):
         f"un período de 30 días a 12 meses mientras validamos la disponibilidad y el cumplimiento de nuestros "
         f"criterios.\n\n"
         f"Sello de tu contrato: {seal}\nAdjuntamos una copia para tus registros.\n\n"
-        f"VIANE Delicatessen · WhatsApp 829-675-9640"
+        f"VIANE DELICATESSEN · WhatsApp 829-675-9640"
     )
-    ok_u, st_u = send_mail(a['email'], 'Gracias por tu solicitud de afiliación — VIANE Delicatessen', user_text, atts)
+    ok_u, st_u = send_mail(a['email'], 'Gracias por tu solicitud de afiliación — VIANE DELICATESSEN', user_text, atts)
     return st_a, st_u
 
 
@@ -493,9 +493,9 @@ def pp_finish(token):
 # Textos de la tienda (borradores editables desde Panel -> Tienda; revisalos con un abogado)
 # ---------------------------------------------------------------------------
 LEGAL_DEFAULT = {
-    'terms': """TÉRMINOS Y CONDICIONES — VIANE Delicatessen
+    'terms': """TÉRMINOS Y CONDICIONES — VIANE DELICATESSEN
 
-1. Quiénes somos. VIANE Delicatessen elabora y vende bandejas decorativas, desayunos, picaderas y regalos personalizados en República Dominicana. Contacto: WhatsApp 829-675-9640.
+1. Quiénes somos. VIANE DELICATESSEN elabora y vende bandejas decorativas, desayunos, picaderas y regalos personalizados en República Dominicana. Contacto: WhatsApp 829-675-9640.
 
 2. Pedidos. Todos los pedidos deben realizarse con un mínimo de 24 horas de anticipación. Un pedido queda confirmado cuando recibimos el pago o lo acordamos contigo por WhatsApp.
 
@@ -514,7 +514,7 @@ LEGAL_DEFAULT = {
 9. Cambios. Podemos actualizar estos términos; aplican los vigentes al momento de tu pedido.
 
 10. Ley aplicable. Estos términos se rigen por las leyes de la República Dominicana.""",
-    'privacy': """POLÍTICA DE PRIVACIDAD — VIANE Delicatessen
+    'privacy': """POLÍTICA DE PRIVACIDAD — VIANE DELICATESSEN
 
 1. Datos que recopilamos. Nombre, teléfono o WhatsApp, dirección de entrega, correo electrónico (opcional) y los detalles de tu pedido. Si solicitas ser afiliado, también los datos de tu solicitud y tu firma.
 
@@ -529,7 +529,7 @@ LEGAL_DEFAULT = {
 6. Tus derechos. Puedes pedirnos acceder a tus datos, corregirlos o eliminarlos escribiéndonos por WhatsApp al 829-675-9640.
 
 7. Seguridad. Usamos conexiones cifradas y acceso restringido a la información. Ningún sistema es 100% infalible, pero trabajamos para protegerla.""",
-    'returns': """ENVÍOS Y DEVOLUCIONES — VIANE Delicatessen
+    'returns': """ENVÍOS Y DEVOLUCIONES — VIANE DELICATESSEN
 
 ENVÍOS
 • Puedes recoger tu pedido en el local o recibirlo en Puerto Plata (ciudad), Santiago o Santo Domingo. El costo de cada zona se muestra en la página y al crear tu pedido.
@@ -581,13 +581,131 @@ def review_hook(c, oid, status, payment):
     row = c.execute("SELECT value FROM settings WHERE key='review_url'").fetchone()
     link = row['value'] if row and str(row['value']).lower().startswith('http') else SITE_URL + '/#reviews'
     first = (o['name'] or '').split(' ')[0] or 'hola'
-    ok, _ = send_mail(o['customer_email'], '¿Cómo te fue con tu pedido? — VIANE Delicatessen',
+    ok, _ = send_mail(o['customer_email'], '¿Cómo te fue con tu pedido? — VIANE DELICATESSEN',
                       f"Hola {first},\n\n¡Gracias por tu compra! Esperamos que hayas disfrutado tu pedido {o['code']}.\n\n"
                       f"¿Nos cuentas cómo te fue? Tu opinión ayuda a otras personas y nos ayuda a mejorar:\n{link}\n\n"
                       f"Si algo no salió como esperabas, responde este correo o escríbenos por WhatsApp al 829-675-9640.\n\n"
-                      f"VIANE Delicatessen")
+                      f"VIANE DELICATESSEN")
     if not ok:  # si no salio, que se pueda intentar de nuevo
         c.execute('DELETE FROM order_notices WHERE order_code=%s AND kind=%s', (o['code'], 'review'))
+
+
+# ---------------------------------------------------------------------------
+# Factura / cotizacion imprimible (se abre desde Pedidos y Ventas; "Imprimir" -> Guardar como PDF)
+# ---------------------------------------------------------------------------
+INVOICE_CSS = """
+*{box-sizing:border-box}body{margin:0;background:#f3efe8;font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#29252a}
+.tools{max-width:800px;margin:14px auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:0 12px}
+.tools label{font-size:12px;font-weight:700;color:#7A0C16;display:flex;gap:6px;align-items:center}
+.tools select,.tools button{font:inherit;padding:8px 12px;border-radius:10px;border:1px solid #d9cdb8;background:#fff}
+.tools button{background:#7A0C16;color:#fff;border:0;font-weight:800;cursor:pointer}
+.page{max-width:800px;margin:0 auto 24px;background:#fff;border-top:6px solid #B8323A;border-bottom:6px solid #B8323A;padding:26px 30px;box-shadow:0 8px 30px #0002}
+.head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+h1{margin:0;font-family:Georgia,serif;font-size:30px;letter-spacing:3px;color:#7A0C16}
+.meta{margin-top:6px;font-size:13px;line-height:1.7}.meta b{color:#7A0C16}
+.logo{max-width:210px;max-height:150px;object-fit:contain}
+.brand{font-family:Georgia,serif;font-size:22px;font-weight:700;color:#7A0C16;letter-spacing:2px;text-align:right}
+.client{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0;border:1px solid #eadfcd;border-radius:12px;padding:12px;font-size:13px}
+.client b{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#9A7B1C;margin-bottom:2px}
+table{width:100%;border-collapse:collapse}
+.items th{background:#B8323A;color:#fff;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:9px 10px;text-align:left}
+.items td{padding:9px 10px;border-bottom:1px solid #efe6d6;font-size:13px;vertical-align:top}
+.items tbody tr:nth-child(even){background:#fcf9f3}
+.c{text-align:center;width:70px}.r{text-align:right;white-space:nowrap}
+.bottom{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin-top:18px;align-items:start}
+.terms{font-size:11.5px;line-height:1.65;border:1px solid #eadfcd;border-radius:12px;padding:12px 14px;background:#fffdf7}
+.terms b{color:#7A0C16}.terms ul{margin:6px 0 8px;padding-left:18px}
+.totals td{padding:7px 10px;font-size:13px;border-bottom:1px solid #efe6d6}
+.totals td:last-child{text-align:right;font-weight:700;white-space:nowrap}
+.totals tr.big td{font-size:17px;color:#7A0C16;border-top:2px solid #B8323A;font-weight:800}
+.totals tr.pay td{background:#f7e7a9;font-weight:800}
+.strip{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;padding:11px 14px;background:#f7efe0;border-radius:10px;font-size:13px}
+.strip b{color:#7A0C16}.foot{text-align:center;margin-top:12px;font-size:11px;color:#77717a}
+@media(max-width:640px){.client{grid-template-columns:1fr}.bottom{grid-template-columns:1fr}.head{flex-direction:column-reverse}.brand{text-align:left}}
+@page{size:A4;margin:10mm}
+@media print{body{background:#fff}.tools{display:none}.page{box-shadow:none;margin:0;max-width:none}}
+"""
+INVOICE_JS = """
+const money=n=>'RD$ '+Number(n||0).toLocaleString('es-DO',{minimumFractionDigits:2,maximumFractionDigits:2});
+function render(){
+  const kind=document.getElementById('kind').value,mode=document.getElementById('itbis').value,adv=document.getElementById('adv').checked;
+  document.getElementById('docTitle').textContent=kind==='factura'?'FACTURA':'COTIZACIÓN';
+  document.title=(kind==='factura'?'Factura ':'Cotización ')+D.code;
+  const sub=D.lines.reduce((s,l)=>s+l.q*l.p,0);
+  document.getElementById('rows').innerHTML=D.lines.map(l=>'<tr><td class="c">'+l.q+'</td><td>'+esc(l.n)+'</td><td class="r">'+money(l.p)+'</td><td class="r">'+money(l.q*l.p)+'</td></tr>').join('');
+  const base=D.total;let rows='<tr><td>Subtotal</td><td>'+money(sub)+'</td></tr>';
+  if(D.discount>0)rows+='<tr><td>Descuento aplicado</td><td>-'+money(D.discount)+'</td></tr>';
+  rows+='<tr><td>Envío</td><td>'+(D.shipping>0?money(D.shipping):'Gratis')+'</td></tr>';
+  let total=base;
+  if(mode==='add'){const t=base*0.18;rows+='<tr><td>ITBIS 18%</td><td>'+money(t)+'</td></tr>';total=base+t}
+  else if(mode==='incl'){rows+='<tr><td>ITBIS 18% (incluido)</td><td>'+money(base-base/1.18)+'</td></tr>'}
+  rows+='<tr class="big"><td>TOTAL</td><td>'+money(total)+'</td></tr>';
+  if(adv){rows+='<tr class="pay"><td>Anticipo 50%</td><td>'+money(total/2)+'</td></tr><tr><td>Saldo pendiente</td><td>'+money(total/2)+'</td></tr>'}
+  document.getElementById('tot').innerHTML=rows;
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+['kind','itbis','adv'].forEach(i=>document.getElementById(i).addEventListener('change',render));render();
+"""
+
+
+def _fmt_date(iso):
+    m = re.match(r'(\d{4})-(\d{2})-(\d{2})', str(iso or ''))
+    return f'{m.group(3)}/{m.group(2)}/{m.group(1)}' if m else str(iso or '')
+
+
+def invoice_html(o, logo, whatsapp, instagram, created):
+    e = html.escape
+    try:
+        items = json.loads(o.get('items') or '[]')
+    except ValueError:
+        items = []
+    agg = {}
+    for it in (items if isinstance(items, list) else []):
+        if isinstance(it, dict) and it.get('name'):
+            key = (str(it['name']), float(it.get('price') or 0))
+            agg[key] = agg.get(key, 0) + 1
+    data = {'code': o['code'], 'lines': [{'q': q, 'n': n, 'p': p} for (n, p), q in agg.items()],
+            'discount': float(o.get('discount') or 0), 'shipping': float(o.get('shipping') or 0),
+            'total': float(o['total'])}
+    data_js = json.dumps(data, ensure_ascii=False).replace('</', '<\\/')
+    if logo and logo.startswith('/'):
+        logo_url = logo
+    else:
+        logo_url = logo or (SITE_URL + '/static/logo-viane.png')
+    wa = re.sub(r'\\D', '', whatsapp or '18296759640')
+    wa_show = f'{wa[-10:-7]}-{wa[-7:-4]}-{wa[-4:]}' if len(wa) >= 10 else wa
+    deliver = f"{e(str(o.get('province') or ''))}" + (f" · {e(str(o['sector']))}" if o.get('sector') else '')
+    return (
+        '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<title>Factura {e(o["code"])}</title><style>{INVOICE_CSS}</style></head><body>'
+        '<div class="tools"><label>Documento <select id="kind"><option value="cotizacion">Cotización</option>'
+        '<option value="factura">Factura</option></select></label>'
+        '<label>ITBIS <select id="itbis"><option value="add">Sumar 18%</option><option value="incl">Incluido en el precio</option>'
+        '<option value="none">Sin ITBIS</option></select></label>'
+        '<label><input type="checkbox" id="adv" checked> Mostrar anticipo 50%</label>'
+        '<button onclick="window.print()">Imprimir / Guardar PDF</button></div>'
+        '<div class="page"><div class="head"><div><h1 id="docTitle">COTIZACIÓN</h1>'
+        f'<div class="meta"><b>No.</b> {e(o["code"])}<br><b>Fecha</b> {e(_fmt_date(created))}<br>'
+        f'<b>WhatsApp</b> {e(wa_show)} · <b>Instagram</b> @{e(instagram or "vianedelicatessen")}</div></div>'
+        f'<div><img class="logo" src="{e(logo_url, quote=True)}" alt="VIANE DELICATESSEN" onerror="this.outerHTML=\'<div class=brand>VIANE<br>DELICATESSEN</div>\'"></div></div>'
+        '<div class="client">'
+        f'<div><b>Cliente</b>{e(str(o["name"]))}</div><div><b>Dirección</b>{e(str(o.get("address") or "—"))}</div>'
+        f'<div><b>Contacto</b>{e(str(o["phone"]))}</div></div>'
+        '<table class="items"><thead><tr><th class="c">Cant.</th><th>Descripción</th><th class="r">Precio</th>'
+        '<th class="r">Total</th></tr></thead><tbody id="rows"></tbody></table>'
+        '<div class="bottom"><div class="terms"><b>Para brindarte el mejor servicio, en VIANE DELICATESSEN trabajamos '
+        'únicamente bajo reserva confirmada:</b><ul><li><b>Anticipo:</b> 50% al ordenar.</li>'
+        '<li><b>Saldo:</b> 50% a más tardar un día antes del envío. Una vez recibido el segundo pago, te enviaremos la '
+        'confirmación final de ruta de entrega.</li></ul>'
+        'Por seguridad de nuestros repartidores y para agilizar las entregas, preferimos el pago total previo vía '
+        'transferencia 24 horas antes. Así la persona que recibe la sorpresa solo tiene que disfrutarla sin preocuparse '
+        'por cobros.<br><br>En VIANE DELICATESSEN comenzamos a gestionar tu pedido inmediatamente para garantizar la '
+        'máxima frescura.</div><table class="totals" id="tot"></table></div>'
+        f'<div class="strip"><span><b>Fecha de entrega:</b> {e(_fmt_date(o.get("delivery_date")) or "Por confirmar")}</span>'
+        f'<span><b>Condición:</b> {deliver}</span></div>'
+        '<div class="foot">VIANE DELICATESSEN · Detalles que se convierten en recuerdos</div></div>'
+        f'<script>const D={data_js};{INVOICE_JS}</script></body></html>'
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -610,7 +728,7 @@ def register(app, **h):
     @admin_required
     def affiliate_test_mail():
         """Envia un correo de prueba al correo del negocio y dice exactamente que falla si no llega."""
-        ok, st = send_mail(NOTIFY_EMAIL, 'Prueba de correo — VIANE Delicatessen',
+        ok, st = send_mail(NOTIFY_EMAIL, 'Prueba de correo — VIANE DELICATESSEN',
                            'Si lees esto, el correo del sistema de afiliados está bien configurado.')
         return jsonify({'ok': ok, 'status': st, 'to': NOTIFY_EMAIL})
 
@@ -794,12 +912,12 @@ def register(app, **h):
             c.execute("UPDATE affiliates SET status='aprobado', decided_at=%s, reseller_id=%s WHERE id=%s",
                       (now(), r['id'], aid))
         ok, st = send_mail(
-            a['email'], '¡Tu afiliación a VIANE Delicatessen fue aprobada!',
+            a['email'], '¡Tu afiliación a VIANE DELICATESSEN fue aprobada!',
             f"Hola {a['full_name']},\n\n¡Felicidades! Tu solicitud de afiliación fue aprobada.\n\n"
             f"Tu código de afiliado: {code}\nTus clientes reciben {disc:g}% de descuento al usarlo y tú ganas "
             f"{comm:g}% de comisión sobre el valor de cada venta.\n\nRecuerda: si pasan {INACTIVITY_DAYS} días "
             f"consecutivos sin ventas, la afiliación se cancela automáticamente (ver contrato firmado).\n\n"
-            f"VIANE Delicatessen · WhatsApp 829-675-9640")
+            f"VIANE DELICATESSEN · WhatsApp 829-675-9640")
         return jsonify({'ok': True, 'code': code, 'mail': st})
 
     @app.post('/api/affiliates/<int:aid>/reject')
@@ -815,9 +933,9 @@ def register(app, **h):
             c.execute("UPDATE affiliates SET status='rechazado', decided_at=%s, decision_note=%s WHERE id=%s",
                       (now(), note, aid))
         ok, st = send_mail(
-            a['email'], 'Sobre tu solicitud de afiliación — VIANE Delicatessen',
+            a['email'], 'Sobre tu solicitud de afiliación — VIANE DELICATESSEN',
             f"Hola {a['full_name']},\n\nGracias por tu interés en el programa de afiliados. En esta ocasión no "
-            f"podremos continuar con tu solicitud.{(' ' + note) if note else ''}\n\nVIANE Delicatessen")
+            f"podremos continuar con tu solicitud.{(' ' + note) if note else ''}\n\nVIANE DELICATESSEN")
         return jsonify({'ok': True, 'mail': st})
 
     @app.post('/api/affiliates/<int:aid>/cancel')
@@ -895,11 +1013,11 @@ def register(app, **h):
             'intent': 'CAPTURE',
             'purchase_units': [{
                 'reference_id': code, 'custom_id': code,
-                'description': f'Pedido {code} - VIANE Delicatessen',
+                'description': f'Pedido {code} - VIANE DELICATESSEN',
                 'amount': {'currency_code': 'USD', 'value': f'{usd:.2f}'},
             }],
             'payment_source': {'paypal': {'experience_context': {
-                'brand_name': 'VIANE Delicatessen', 'locale': 'es-ES', 'user_action': 'PAY_NOW',
+                'brand_name': 'VIANE DELICATESSEN', 'locale': 'es-ES', 'user_action': 'PAY_NOW',
                 'shipping_preference': 'NO_SHIPPING',
                 'return_url': SITE_URL + '/api/paypal/return',
                 'cancel_url': f'{SITE_URL}/?paypal=cancel&code={code}',
@@ -1006,7 +1124,7 @@ def register(app, **h):
         e = xml_escape
         out = ['<?xml version="1.0" encoding="UTF-8"?>',
                '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel>',
-               '<title>Viane Delicatessen</title>', f'<link>{SITE_URL}/</link>',
+               '<title>VIANE DELICATESSEN</title>', f'<link>{SITE_URL}/</link>',
                '<description>Bandejas decorativas, desayunos, picaderas y regalos</description>']
         for p in items:
             img = p['image'] or ''
@@ -1019,7 +1137,7 @@ def register(app, **h):
                 f'<description>{e(str(p["description"] or p["name"])[:4900])}</description>'
                 f'<link>{SITE_URL}/?p={p["id"]}</link><g:image_link>{e(img)}</g:image_link>'
                 f'<g:availability>in stock</g:availability><g:price>{float(p["price"]):.2f} DOP</g:price>'
-                '<g:condition>new</g:condition><g:brand>Viane Delicatessen</g:brand>'
+                '<g:condition>new</g:condition><g:brand>VIANE DELICATESSEN</g:brand>'
                 f'<g:identifier_exists>no</g:identifier_exists><g:product_type>{e(str(p["category"]))}</g:product_type>'
                 '</item>')
         out.append('</channel></rss>')
@@ -1037,6 +1155,29 @@ def register(app, **h):
         return Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
                         f'<url><loc>{SITE_URL}/</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq></url></urlset>',
                         mimetype='application/xml')
+
+    # ---------- FACTURA / COTIZACION y archivos para Google ----------
+    @app.get('/api/invoice')
+    @admin_required
+    def invoice_page():
+        """Factura o cotizacion de un pedido (?order=ID) o de una venta (?sale=ID)."""
+        oid, sid = request.args.get('order', ''), request.args.get('sale', '')
+        with xdb() as c:
+            if sid.isdigit():
+                r = c.execute('SELECT order_id FROM sales WHERE id=%s', (int(sid),)).fetchone()
+                oid = str(r['order_id']) if r and r['order_id'] else ''
+            o = c.execute('SELECT * FROM orders WHERE id=%s', (int(oid),)).fetchone() if oid.isdigit() else None
+            st = {r['key']: r['value'] for r in rows(c, "SELECT key,value FROM settings WHERE key IN ('logo','whatsapp','instagram')")}
+        if not o:
+            return jsonify({'error': 'No encontramos ese pedido.'}), 404
+        created = h['dr_date'](o['created_at'])
+        return Response(invoice_html(o, st.get('logo', ''), st.get('whatsapp', ''), st.get('instagram', ''), created),
+                        mimetype='text/html')
+
+    @app.get('/ads.txt')
+    def ads_txt():
+        """Archivo que Google AdSense pide en la raiz del sitio para autorizar la venta de anuncios."""
+        return Response('google.com, pub-9219772512761077, DIRECT, f08c47fec0942fa0\n', mimetype='text/plain')
 
     # ---------- REEMBOLSOS ----------
     @app.get('/api/refunds')
