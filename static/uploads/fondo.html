@@ -9,9 +9,10 @@
     --page: #fff;
     --pill: rgba(122,16,32,.92);
     --pill-ink: #fff;
+  }
+
+  *, *::before, *::after {
     box-sizing: border-box;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -28,8 +29,17 @@
     --pill-ink: #5a0f1b;
   }
 
-  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
-  body { margin: 0; background: var(--page); overflow-x: hidden; }
+  html { 
+    scroll-padding-top: env(safe-area-inset-top, 0px); 
+  }
+  
+  body { 
+    margin: 0; 
+    background: var(--page); 
+    overflow-x: hidden; 
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 
   .stage {
     position: relative;
@@ -77,8 +87,8 @@
 <body>
 
   <main class="stage">
-    <!-- Imagen de fondo con soporte base64 -->
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABMQAUUJCAIAAAAAU0hzAABVeWNhQlgAAFV5anVtYgAAAB5qdW1kYzJwYQARABCAAACqADibcQNjMnBhAAAAVVNqdW1iAAAAR2p1bWRjMm1hABEAEIAAAKoAOJtxA3VybjpjMnBhOjU0NWFiYjM1LTg5ZjgtNDRmNy04ZjA1LTYwMmFhZGFmZWQ3NQAAAAx8anVtYgAAAClqdW1kYzJhcwARABCAAACqADibcQNjMnBhLmFzc2VydGlvbnMAAAAJ0Wp1bWIAAAA7anVtZEDLDDK7ikidpwsq1vR/Q2kTYzJwYS5pY29uAAAAABhjMnNo3EVl+Nur3XAmEI7bNIamyAAAABdiZmRiAGltYWdlL3N2Zyt4bWwAAAAJd2JpZGI8c3ZnIHdpZHRoPSI3MTYiIGhlaWdodD0iNzE2IiB2aWV3Qm94PSIwIDAgNzE2IDcxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTUwOC43NDkgMzE3LjM5OUM1MT==[BASE64_TRUNCATED]..." alt="Viane Delicatessen - Fondo Navideño">
+    <!-- Usamos la ruta directa del archivo de imagen para evitar errores de renderizado -->
+    <img src="fondo.webp" alt="Viane Delicatessen - Fondo Navideño">
     
     <!-- Canvas para efectos de luces -->
     <canvas id="c"></canvas>
@@ -88,7 +98,7 @@
   <div id="hint">Desliza o arrastra la página</div>
 
   <script>
-    // Lógica optimizada para ocultar la pista visual al interactuar
+    // 1. Lógica para ocultar la pista visual al interactuar
     const hint = document.getElementById('hint');
     let interacted = false;
 
@@ -104,17 +114,31 @@
     window.addEventListener('scroll', dismissHint, { passive: true });
     window.addEventListener('pointerdown', dismissHint, { passive: true });
 
-    // Inicialización del Canvas por seguridad técnica
+    // 2. Inicialización y sincronización robusta del Canvas
     const canvas = document.getElementById('c');
     const ctx = canvas.getContext('2d');
-    
+    const stageImg = document.querySelector('.stage img');
+
     function resizeCanvas() {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      const dpr = window.devicePixelRatio || 1;
+      const displayWidth = canvas.offsetWidth;
+      const displayHeight = canvas.offsetHeight;
+
+      if (displayWidth === 0 || displayHeight === 0) return;
+
+      canvas.width = displayWidth * dpr;
+      canvas.height = displayHeight * dpr;
+
+      ctx.scale(dpr, dpr);
     }
-    
+
+    if (stageImg.complete) {
+      resizeCanvas();
+    } else {
+      stageImg.addEventListener('load', resizeCanvas);
+    }
+
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
   </script>
 
 </body>
