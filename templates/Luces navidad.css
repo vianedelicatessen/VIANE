@@ -1,9 +1,0 @@
-/* Luces navideñas Viane Delicatessen */
-:root{--luces-pill:rgba(122,16,32,.92);--luces-pill-ink:#fff}
-
-.luces-stage{position:relative;max-width:1220px;margin:0 auto;line-height:0}
-.luces-stage img{width:100%;height:auto;display:block}
-#luces-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-
-#luces-hint{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px 16px;border-radius:99px;background:var(--luces-pill);color:var(--luces-pill-ink);font:600 13px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif;white-space:nowrap;pointer-events:none;transition:opacity .8s;z-index:8}
-#luces-hint.off{opacity:0}
