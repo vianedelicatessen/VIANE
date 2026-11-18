@@ -171,7 +171,8 @@
 .tbl-actions{display:flex;gap:6px;flex-wrap:wrap}
 .tbl code{background:#f5eee2;padding:2px 6px;border-radius:6px;font-weight:700;color:var(--crimson)}
 #resellerMsg{min-height:18px;font-weight:700}
-</style><!-- Favicon: la miniatura que muestran Google y Bing -->
+</style><link rel="stylesheet" href="/static/luces-navidad.css">
+<!-- Favicon: la miniatura que muestran Google y Bing -->
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="48x48" href="/static/favicon-48x48.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192x192.png">
@@ -210,6 +211,11 @@
 </head><body>
 <header class="top"><div class="brand"><img id="brandLogo" class="logo" src="" alt="VIANE" onerror="this.style.display='none'"><div><div style="font-family:'Playfair Display';font-size:22px">VIANE</div><small style="color:var(--goldDark);letter-spacing:3px">DELICATESSEN</small></div></div><nav><button onclick="go('catalog')">Menú</button><button onclick="go('reviews')">Reseñas</button><button onclick="go('track')">Seguir pedido</button><button onclick="openCart()" class="primary">Pedido <span id="cartCount">0</span></button></nav>
 </header>
+<div class="luces-stage">
+  <img src="/static/fondo-navidad.webp" width="1220" height="1289" alt="Fondo navideño de Viane Delicatessen con adornos, regalos y muñeco de nieve">
+  <canvas id="luces-canvas" aria-hidden="true"></canvas>
+</div>
+<div id="luces-hint">Desliza o arrastra la página</div>
 <section class="hero" id="hero"><img id="heroLogo" class="logo" src="" alt="Logo" onerror="this.style.display='none'"><div class="eyebrow">DETALLES QUE SE CONVIERTEN EN RECUERDOS</div><h1>Un detalle especial, hecho para ti</h1><p>Desayunos, bandejas personalizadas, picaderas y regalos con el sello de VIANE DELICATESSEN.</p><div class="actions" style="margin-top:22px"><button class="btn goldbtn" onclick="go('catalog')">Explorar productos</button><button class="btn" onclick="go('reviews')">Compartir mi experiencia</button></div></section>
 <main class="wrap"><section id="catalog"><h2 class="section-title">Nuestro catálogo</h2><div class="filters" id="filters"></div><div class="grid" id="products"></div><div id="ads" class="grid" style="margin-top:20px"></div><aside class="adbox" aria-label="Publicidad"><small>Publicidad</small><ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="-fb+5w+4e-db+86" data-ad-client="ca-pub-9219772512761077" data-ad-slot="5310818725"></ins></aside></section>
 <section id="reviews" class="hidden"><h2 class="section-title">Tu experiencia nos inspira</h2><div class="formbox"><form id="reviewForm"><div class="field">Tu calificación *<div class="stars" id="starButtons"></div></div><div class="fields"><label class="field">Nombre completo *<input id="reviewName" required maxlength="120"></label><label class="field"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp (opcional)<input id="reviewPhone" placeholder="829-000-0000"></label></div><div class="field" style="margin-top:12px">Productos recibidos (elige de 1 a 3) *<div id="reviewProductChoices" class="fields"></div></div><label class="field" style="margin-top:12px">Tu comentario *<textarea id="reviewComment" required maxlength="2000" placeholder="Cuéntanos cómo fue tu experiencia..."></textarea></label><button class="btn" style="width:100%;margin-top:12px">Enviar reseña</button></form><p class="muted">Las reseñas se revisan antes de aparecer públicamente.</p></div><h3 class="section-title" style="margin-top:30px">Lo que dicen nuestros clientes</h3><div id="reviewsFeed"></div><aside class="adbox" aria-label="Publicidad"><small>Publicidad</small><ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="-fb+5w+4e-db+86" data-ad-client="ca-pub-9219772512761077" data-ad-slot="5310818725"></ins></aside></section>
@@ -1537,4 +1543,6 @@ footerLinks();searchBox();cartUI();adminButtons();ads();
 let tries=0;const iv=setInterval(()=>{if(state.delivery||++tries>40){clearInterval(iv);onLoaded()}},250);
 })();
 </script>
+<script src="/static/luces-navidad.js" defer></script>
 </body></html>
+
