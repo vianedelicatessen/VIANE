@@ -67,10 +67,10 @@
 
 /* ...y los copos caen y se desvanecen en el fondo de la página */
 :is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::before{
-  animation:snowFallA 3.9s ease-in infinite;
+  animation:snowFallA 0.1s ease-in infinite;
 }
 :is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::after{
-  animation:snowFallB 3.5s ease-in .6s infinite;
+  animation:snowFallB 0.2s ease-in .6s infinite;
 }
 
 @keyframes goldShine{
@@ -78,14 +78,14 @@
   to{background-position:200% 50%}
 }
 @keyframes snowFallA{
-  0%{opacity:0;transform:translate(-50%,-4px) rotate(0deg) scale(.6)}
+  0%{opacity:0;transform:translate(-50%,-4px) rotate(0deg) scale(4.6)}
   15%{opacity:1}
   100%{opacity:0;transform:translate(-50%,90px) rotate(200deg) scale(1)}
 }
 @keyframes snowFallB{
-  0%{opacity:0;transform:translate(-50%,-8px) rotate(0deg) scale(.5)}
+  0%{opacity:0;transform:translate(-50%,-8px) rotate(0deg) scale(4.5)}
   20%{opacity:1}
-  100%{opacity:0;transform:translate(calc(-50% + 16px),115px) rotate(-240deg) scale(.9)}
+  100%{opacity:0;transform:translate(calc(-50% + 16px),115px) rotate(-240deg) scale(1.9)}
 }
 
 /* Dentro de las ventanas emergentes solo brillo dorado, sin copos (evita barras de desplazamiento) */
