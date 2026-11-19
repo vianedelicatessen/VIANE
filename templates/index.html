@@ -62,15 +62,15 @@
   color:var(--dark)!important;
   box-shadow:0 0 0 1px var(--goldLight),0 8px 20px #d4af3766;
   transform:translateY(-2px);
-  animation:goldShine 1.6s linear infinite;
+  animation:goldShine 5.6s linear infinite;
 }
 
 /* ...y los copos caen y se desvanecen en el fondo de la página */
 :is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::before{
-  animation:snowFallA 1.9s ease-in infinite;
+  animation:snowFallA 3.9s ease-in infinite;
 }
 :is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::after{
-  animation:snowFallB 2.5s ease-in .6s infinite;
+  animation:snowFallB 3.5s ease-in .6s infinite;
 }
 
 @keyframes goldShine{
