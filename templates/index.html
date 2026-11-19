@@ -62,15 +62,15 @@
   color:var(--dark)!important;
   box-shadow:0 0 0 1px var(--goldLight),0 8px 20px #d4af3766;
   transform:translateY(-2px);
-  animation:goldShine 5.6s linear infinite;
+  animation:goldShine .6s linear infinite;
 }
 
 /* ...y los copos caen y se desvanecen en el fondo de la página */
 :is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::before{
-  animation:snowFallA 0.1s ease-in infinite;
+  animation:snowFallA 3.1s ease-in .5s infinite;
 }
 :is(.btn,nav button,.pill,.adminnav button):is(:hover,:focus-visible,:active)::after{
-  animation:snowFallB 0.2s ease-in .6s infinite;
+  animation:snowFallB 10.2s ease-in .6s infinite;
 }
 
 @keyframes goldShine{
@@ -78,14 +78,14 @@
   to{background-position:200% 50%}
 }
 @keyframes snowFallA{
-  0%{opacity:0;transform:translate(-50%,-4px) rotate(0deg) scale(4.6)}
+  0%{opacity:0;transform:translate(-50%,-4px) rotate(0deg) scale(.6)}
   15%{opacity:1}
   100%{opacity:0;transform:translate(-50%,90px) rotate(200deg) scale(1)}
 }
 @keyframes snowFallB{
-  0%{opacity:0;transform:translate(-50%,-8px) rotate(0deg) scale(4.5)}
+  0%{opacity:0;transform:translate(-50%,-8px) rotate(0deg) scale(.5)}
   20%{opacity:1}
-  100%{opacity:0;transform:translate(calc(-50% + 16px),115px) rotate(-240deg) scale(1.9)}
+  100%{opacity:0;transform:translate(calc(-50% + 16px),115px) rotate(-240deg) scale(.9)}
 }
 
 /* Dentro de las ventanas emergentes solo brillo dorado, sin copos (evita barras de desplazamiento) */
@@ -101,7 +101,7 @@
 /* ===== Botones que se ajustan al tamaño del dispositivo ===== */
 .btn,nav button,.pill,.adminnav button{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  min-height:44px;                                  /* tamaño cómodo para el dedo */
+  min-height:40px;                                  /* tamaño cómodo para el dedo */
   font-size:clamp(12px,.72rem + .3vw,15px);
   padding:clamp(10px,.55rem + .5vw,15px) clamp(12px,.7rem + 1vw,22px);
   line-height:1.2;text-align:center;text-decoration:none;
