@@ -1,0 +1,22 @@
+{% extends 'afiliados/base.html' %}
+{% block title %}Retiros de afiliados{% endblock %}
+{% block nav %}<a href="/#admin">Panel</a>{% endblock %}
+{% block css %}.st{font-weight:800}.st.pagado{color:var(--ok)}.st.rechazado{color:#b3261e}.st.pendiente{color:#9a6b00}.acts{display:flex;gap:6px;flex-wrap:wrap}.acts .btn{min-height:34px;padding:6px 14px;font-size:13px}{% endblock %}
+{% block body %}
+<section class="card"><h1>Solicitudes de retiro</h1>
+<p class="muted">Al marcar «Pagado» se registra el pago en el panel de vendedores, para que el saldo del afiliado cuadre.</p>
+<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Afiliado</th><th>Monto</th><th>Método y cuenta</th><th>Estado</th><th></th></tr></thead><tbody id="rows"><tr><td colspan="6" class="muted">Cargando…</td></tr></tbody></table></div></section>
+{% endblock %}
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id),money=n=>'RD$ '+Number(n||0).toLocaleString('es-DO',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function call(url,body){const o={credentials:'same-origin',headers:{'Content-Type':'application/json'}};if(body!==undefined){o.method='POST';o.body=JSON.stringify(body)}const r=await fetch(url,o);let d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.error||'Error');return d}
+async function load(){try{const d=await call('/afiliados/api/admin/retiros');
+  $('rows').innerHTML=d.retiros.length?d.retiros.map(w=>'<tr><td>'+esc((w.created_at||'').slice(0,10))+'</td><td><b>'+esc(w.afiliado)+'</b></td><td>'+money(w.amount)+'</td><td>'+esc(w.method)+(w.bank?' · '+esc(w.bank):'')+'<br><span class="muted tiny">'+esc(w.account)+' — '+esc(w.holder)+(w.cedula?' · '+esc(w.cedula):'')+'</span></td><td class="st '+esc(w.status)+'">'+esc(w.status)+'</td><td>'+(w.status==='pendiente'?'<div class="acts"><button class="btn" onclick="pay('+w.id+')">Pagado</button><button class="btn light" onclick="rej('+w.id+')">Rechazar</button></div>':'')+'</td></tr>').join(''):'<tr><td colspan="6" class="muted">No hay solicitudes.</td></tr>'}
+  catch(e){$('rows').innerHTML='<tr><td colspan="6" class="muted">'+esc(e.message)+'</td></tr>'}}
+async function pay(id){if(!confirm('¿Ya transferiste este retiro? Se registrará como pagado.'))return;try{await call('/afiliados/api/admin/retiros/'+id+'/pagar',{});load()}catch(e){alert(e.message)}}
+async function rej(id){const note=prompt('Motivo (opcional):');if(note===null)return;try{await call('/afiliados/api/admin/retiros/'+id+'/rechazar',{note});load()}catch(e){alert(e.message)}}
+load();
+</script>
+{% endblock %}
