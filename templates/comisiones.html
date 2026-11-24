@@ -1,0 +1,25 @@
+{% extends 'afiliados/base.html' %}
+{% block robots %}<meta name="robots" content="index,follow"><meta name="description" content="Tabla de comisiones y coronas del programa de afiliados de VIANE DELICATESSEN.">{% endblock %}
+{% block title %}Tabla de comisiones{% endblock %}
+{% block css %}.crw{display:inline-block;width:26px;height:16px;vertical-align:-2px}.pct{font-weight:800;color:var(--red);font-size:16px}{% endblock %}
+{% block body %}
+<section class="card">
+  <h1>Comisiones y coronas</h1>
+  <p class="muted">Tu nivel depende de las <b>ventas del mes</b> hechas con tu código de afiliado. Cada mes se reinicia el contador, y tu comisión se actualiza sola al nivel en el que estés.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Corona</th><th>Ventas del mes</th><th>Comisión</th><th>Regalos</th></tr></thead>
+    <tbody>
+    {% for n in niveles %}
+      <tr>
+        <td><svg class="crw" viewBox="0 0 64 40" aria-hidden="true"><path d="M4 34 L8 10 L22 22 L32 4 L42 22 L56 10 L60 34 Z" fill="{{ n.color }}" stroke="#0003" stroke-width="2" stroke-linejoin="round"/><rect x="4" y="34" width="56" height="6" rx="3" fill="{{ n.color }}"/></svg> <b>{{ n.nombre }}</b> {{ n.emoji }}</td>
+        <td>{% if n.hasta %}{{ n.desde }} a {{ n.hasta }}{% else %}Más de 500{% endif %}</td>
+        <td><span class="pct">{{ '%g'|format(n.pct) }} %</span>{% if n.extra %}<br><span class="muted tiny">{{ n.extra }}</span>{% endif %}</td>
+        <td>{{ n.regalos }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="muted tiny" style="margin-top:12px">Los retiros se solicitan desde tu panel y se transfieren dentro de las próximas 72 horas laborables. La administración puede ajustar este programa; te avisaremos de cualquier cambio.</p>
+  <p class="center" style="margin-top:16px"><a class="btn gold" href="/#afiliado">Quiero ser afiliado</a> <a class="btn light" href="/afiliados/login">Entrar a mi portal</a></p>
+</section>
+{% endblock %}
