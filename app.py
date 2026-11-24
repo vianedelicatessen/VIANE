@@ -32,6 +32,7 @@ import io
 import os
 import json
 import hmac
+import time
 import secrets
 import re
 import unicodedata
@@ -45,6 +46,9 @@ from pathlib import Path
 from flask import Flask, request, jsonify, session, send_from_directory, send_file
 from werkzeug.exceptions import HTTPException, NotFound, RequestEntityTooLarge
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash
+
+import infra  # cache, replica de lectura, cola de trabajos y mantenimiento
 
 # Vercel busca esta variable "app" al nivel principal del archivo.
 app = Flask(__name__)
@@ -101,7 +105,8 @@ MEDIA_TYPES = {
     'ogg': 'audio/ogg', 'm4a': 'audio/mp4',
 }
 STATUSES = ['Pago pendiente', 'Pago recibido', 'Pedido confirmado', 'En preparación',
-            'En creación', 'Enviado', 'En camino', 'Entregado', 'Terminado', 'Reembolsado', 'Incidencia']
+            'En creación', 'Listo para recoger en local', 'Enviado', 'En camino', 'Entregado', 'Terminado',
+            'Reembolsado', 'Incidencia']
 # Los pedidos con alguno de estos estados salen de "Pedidos" y pasan a "Ventas".
 SALE_STATUSES = ('Entregado', 'Terminado')
 # Funciones extra que se ejecutan al guardar un pedido: hook(conexion, id_pedido, estado, pago).
@@ -147,6 +152,46 @@ app.secret_key = _secret
 
 ADMIN_EMAIL = (os.environ.get('ADMIN_EMAIL') or '').strip().lower()
 ADMIN_PASSWORD = (os.environ.get('ADMIN_PASSWORD') or '').strip()
+
+# --- Roles y activacion de usuarios (la tabla "users" la crean las migraciones de viane_extras.py) ---
+OWNER_EMAIL = (os.environ.get('OWNER_EMAIL') or 'vianedelicatessen@gmail.com').strip().lower()  # cuenta principal
+PENDING_MSG = 'Tu cuenta está pendiente de aprobación por la administración.'
+ROLE_HOME = {'admin': 'panel', 'secretaria': 'panel', 'afiliado': 'afiliados', 'cliente': 'tienda'}
+_STAFF_CACHE = {}  # id -> (vence, rol, activo); evita consultar la base de datos en cada clic
+
+
+def staff_state(uid):
+    """(rol, activo) del usuario guardado en la tabla users. Se cachea 15 s: desactivar a alguien
+    corta su sesion casi al instante."""
+    hit = _STAFF_CACHE.get(uid)
+    if hit and hit[0] > time.time():
+        return hit[1], hit[2]
+    role, active = None, False
+    try:
+        with db() as c:
+            r = c.execute('SELECT role,is_active FROM users WHERE id=%s', (uid,)).fetchone()
+        if r:
+            role, active = r['role'], bool(r['is_active'])
+    except Exception:
+        app.logger.exception('No se pudo leer el usuario de la sesion')
+    _STAFF_CACHE[uid] = (time.time() + 15, role, active)
+    return role, active
+
+
+def is_admin_session():
+    """Cuenta principal (variables de entorno) o usuario ACTIVO con rol admin / secretaria."""
+    if ADMIN_EMAIL and session.get('admin') and session.get('email') == ADMIN_EMAIL:
+        return True
+    uid = session.get('uid')
+    if uid:
+        role, active = staff_state(uid)
+        return bool(active and role in ('admin', 'secretaria'))
+    return False
+
+
+def is_owner_session():
+    """Solo la cuenta principal (OWNER_EMAIL = Vianedelicatessen@gmail.com)."""
+    return is_admin_session() and session.get('email') == OWNER_EMAIL and session.get('role', 'admin') == 'admin'
 
 # Cloudinary (opcional) lee CLOUDINARY_URL automaticamente. Respaldo con variables sueltas.
 if cloudinary is not None:
@@ -232,6 +277,20 @@ def connect():
     return psycopg.connect(DSN, row_factory=dict_row, prepare_threshold=None, connect_timeout=10)
 
 
+REPLICA_DSN = ''
+if os.environ.get('DATABASE_REPLICA_URL'):  # opcional: réplica de LECTURA (Supabase Read Replica)
+    try:
+        REPLICA_DSN = _clean_dsn(os.environ.get('DATABASE_REPLICA_URL'))
+    except Exception as exc:
+        print(f'[VIANE] DATABASE_REPLICA_URL invalida, se leera del principal: {type(exc).__name__}')
+
+
+def connect_replica():
+    con = psycopg.connect(REPLICA_DSN, row_factory=dict_row, prepare_threshold=None, connect_timeout=5)
+    con.read_only = True  # la réplica nunca recibe INSERT / UPDATE / DELETE
+    return con
+
+
 SCHEMA = [
     '''CREATE TABLE IF NOT EXISTS products(
         id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'bandejas',
@@ -282,7 +341,7 @@ SCHEMA = [
 
 # Migracion v3: columnas nuevas. Se aplican UNA sola vez (marca "_schema_version" en settings)
 # y son seguras de repetir (IF NOT EXISTS), asi que no se pierde ningun dato existente.
-SCHEMA_VERSION = '7'
+SCHEMA_VERSION = '10'
 MIGRATIONS = [
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT ''",
@@ -427,6 +486,10 @@ def db():
         con.close()
 
 
+# Lecturas -> rdb() (réplica si existe, si no el principal). Escrituras -> SIEMPRE db() (nodo principal).
+rdb = infra.make_rdb(lambda: db(), lambda: ensure_schema(), connect_replica if REPLICA_DSN else None)   # (lambda: siempre usa el db() vigente)
+
+
 # ---------------------------------------------------------------------------
 # Utilidades
 # ---------------------------------------------------------------------------
@@ -442,7 +505,7 @@ def setting_map(c):
 def public_settings(c):
     """Ajustes visibles al navegador: sin las claves internas (empiezan con _)."""
     # los textos legales son largos y se piden aparte (/api/store/legal): no viajan con cada visita
-    return {k: v for k, v in setting_map(c).items() if not k.startswith('_') and not k.startswith('legal_')}
+    return {k: v for k, v in setting_map(c).items() if not k.startswith('_') and not k.startswith('legal_') and k != 'apple_pay_file'}
 
 
 def rows(c, sql, params=()):
@@ -452,7 +515,7 @@ def rows(c, sql, params=()):
 def admin_required(fn):
     @wraps(fn)
     def wrapped(*args, **kwargs):
-        if not ADMIN_EMAIL or not session.get('admin') or session.get('email') != ADMIN_EMAIL:
+        if not is_admin_session():
             return jsonify({'error': 'Acceso administrativo requerido'}), 401
         return fn(*args, **kwargs)
     return wrapped
@@ -756,7 +819,7 @@ def save_sale(c, o, sold_date=None):
 
 @app.after_request
 def no_cache_api(resp):
-    if request.path.startswith('/api/'):
+    if request.path.startswith('/api/') and request.path not in app.config.get('PUBLIC_CACHE', ()):
         resp.headers['Cache-Control'] = 'no-store'
     # Cabeceras de seguridad basicas (no incluyen CSP para no romper los scripts de la pagina).
     resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
@@ -846,24 +909,26 @@ def health():
 # ---------------------------------------------------------------------------
 @app.get('/api/public')
 def public_data():
-    with db() as c:
-        products = rows(c, 'SELECT p.* FROM products p WHERE p.active=1 AND NOT EXISTS '
-                           '(SELECT 1 FROM categories k WHERE k.name=p.category AND k.active=0) '
-                           'ORDER BY p.id DESC')
-        categories = [r['name'] for r in rows(
-            c, 'SELECT k.name FROM categories k WHERE k.active=1 AND EXISTS '
-               '(SELECT 1 FROM products p WHERE p.category=k.name AND p.active=1) ORDER BY k.id')]
-        # Botones de la barra del catalogo: todas las categorias visibles (aunque esten vacias).
-        category_list = [r['name'] for r in rows(c, 'SELECT name FROM categories WHERE active=1 ORDER BY id')]
-        reviews = rows(c, 'SELECT id,name,rating,products,comment,admin_reply,created_at '
-                          'FROM reviews WHERE approved=1 ORDER BY id DESC')
-        ads = rows(c, 'SELECT * FROM ads WHERE active=1 ORDER BY id')
-        payments = rows(c, 'SELECT id,title,url,details,tip_enabled FROM payments WHERE active=1 ORDER BY id')
-        settings = public_settings(c)
-    return jsonify({'products': products, 'categories': categories, 'category_list': category_list,
-                    'reviews': reviews, 'ads': ads,
-                    'payments': payments, 'settings': settings, 'statuses': STATUSES,
-                    'delivery': DELIVERY, 'reseller_discount': RESELLER_DISCOUNT_PCT})
+    def load():  # lectura en la réplica; se recalcula como máximo cada 30 s (y al instante tras un cambio del panel)
+        with rdb() as c:
+            products = rows(c, 'SELECT p.* FROM products p WHERE p.active=1 AND NOT EXISTS '
+                               '(SELECT 1 FROM categories k WHERE k.name=p.category AND k.active=0) '
+                               'ORDER BY p.id DESC')
+            categories = [r['name'] for r in rows(
+                c, 'SELECT k.name FROM categories k WHERE k.active=1 AND EXISTS '
+                   '(SELECT 1 FROM products p WHERE p.category=k.name AND p.active=1) ORDER BY k.id')]
+            # Botones de la barra del catalogo: todas las categorias visibles (aunque esten vacias).
+            category_list = [r['name'] for r in rows(c, 'SELECT name FROM categories WHERE active=1 ORDER BY id')]
+            reviews = rows(c, 'SELECT id,name,rating,products,comment,admin_reply,created_at '
+                              'FROM reviews WHERE approved=1 ORDER BY id DESC')
+            ads = rows(c, 'SELECT * FROM ads WHERE active=1 ORDER BY id')
+            payments = rows(c, 'SELECT id,title,url,details,tip_enabled FROM payments WHERE active=1 ORDER BY id')
+            settings = public_settings(c)
+        return {'products': products, 'categories': categories, 'category_list': category_list,
+                'reviews': reviews, 'ads': ads,
+                'payments': payments, 'settings': settings, 'statuses': STATUSES,
+                'delivery': DELIVERY, 'reseller_discount': RESELLER_DISCOUNT_PCT}
+    return infra.cached_json('data', 'public', 30, load)
 
 
 @app.post('/api/reviews')
@@ -936,12 +1001,16 @@ def create_order():
         disc_pct, comm_pct = reseller_pcts(reseller)  # porcentajes propios de ese vendedor
         discount = round(subtotal * disc_pct / 100, 2) if reseller else 0.0
         net = subtotal - discount
-        free_min = num(setting_map(c).get('free_ship_min'))  # envio gratis desde X (se decide aqui, no en el navegador)
+        s = setting_map(c)
+        free_min = num(s.get('free_ship_min'))  # envio gratis desde X (se decide aqui, no en el navegador)
         if free_min and free_min > 0 and net >= free_min:
             shipping = 0.0
         commission = round(net * comm_pct / 100, 2) if reseller else 0.0
         total = net + shipping
-        code = 'VIA-' + secrets.token_hex(4).upper()
+        for _ in range(5):  # codigo aleatorio, verificado: al particionar pedidos la restriccion UNIQUE ya no es global
+            code = 'VIA-' + secrets.token_hex(4).upper()
+            if not c.execute('SELECT 1 FROM orders WHERE code=%s', (code,)).fetchone():
+                break
         c.execute(
             'INSERT INTO orders(code,name,phone,province,delivery_date,items,total,payment_status,status,'
             'notes,created_at,updated_at,delivery_method,sector,address,shipping,'
@@ -952,7 +1021,6 @@ def create_order():
              str(d.get('notes', ''))[:2000], now(), now(), method, delivery['sector'], address, shipping,
              reseller['id'] if reseller else None, reseller['name'] if reseller else '',
              reseller['code'] if reseller else '', discount, commission, email))
-        s = setting_map(c)
     return jsonify({'ok': True, 'code': code, 'subtotal': subtotal, 'discount': discount,
                     'reseller_code': reseller['code'] if reseller else '',
                     'shipping': shipping, 'total': total,
@@ -973,22 +1041,32 @@ def validate_reseller():
     return jsonify({'valid': True, 'code': r['code'], 'discount_pct': reseller_pcts(r)[0]})
 
 
+def _find_order(c, key):
+    cols = 'code,status,payment_status,delivery_date,updated_at,incident'
+    # 1) Busqueda exacta (usa el indice de la columna code).
+    row = c.execute(f'SELECT {cols} FROM orders WHERE code=%s', ('VIA-' + key,)).fetchone()
+    # 2) Respaldo: compara sin guiones ni espacios y sin importar mayusculas, por si el
+    #    codigo guardado trae algun caracter distinto al que escribe el cliente.
+    if not row:
+        row = c.execute(
+            f"SELECT {cols} FROM orders WHERE REGEXP_REPLACE(UPPER(code),'[^A-Z0-9]','','g')=%s "
+            'ORDER BY id DESC LIMIT 1', ('VIA' + key,)).fetchone()
+    return row
+
+
 @app.get('/api/track/<code>')
 def track_order(code):
     key = normalize_code(code)
     if len(key) < 4:
         return jsonify({'error': 'Escribe el código completo de tu pedido (ejemplo: VIA-A1B2C3D4).'}), 404
-    cols = 'code,status,payment_status,delivery_date,updated_at,incident'
     try:
-        with db() as c:
-            # 1) Busqueda exacta (usa el indice de la columna code).
-            row = c.execute(f'SELECT {cols} FROM orders WHERE code=%s', ('VIA-' + key,)).fetchone()
-            # 2) Respaldo: compara sin guiones ni espacios y sin importar mayusculas, por si el
-            #    codigo guardado trae algun caracter distinto al que escribe el cliente.
-            if not row:
-                row = c.execute(
-                    f"SELECT {cols} FROM orders WHERE REGEXP_REPLACE(UPPER(code),'[^A-Z0-9]','','g')=%s "
-                    'ORDER BY id DESC LIMIT 1', ('VIA' + key,)).fetchone()
+        row = None
+        # La réplica puede ir unos segundos atrasada: si no ve el pedido (recién creado), pregunta al principal.
+        for source in ((rdb, db) if REPLICA_DSN else (db,)):
+            with source() as c:
+                row = _find_order(c, key)
+            if row:
+                break
     except Exception:
         # Un fallo de conexion YA NO se disfraza de "pedido no existe".
         app.logger.exception('Seguimiento: fallo al consultar la base de datos')
@@ -1027,28 +1105,65 @@ def login():
         data = request.form
     email = str(data.get('email', '')).strip().lower()
     password = str(data.get('password', '')).strip()
-
-    if not ADMIN_EMAIL or not ADMIN_PASSWORD:
-        return jsonify({'error': 'El administrador debe configurar ADMIN_EMAIL y ADMIN_PASSWORD en el servidor.'}), 503
     ip = _login_ip()
     if _login_blocked(ip):
         return jsonify({'error': 'Demasiados intentos fallidos. Espera 15 minutos e inténtalo de nuevo.'}), 429
-    ok_email = hmac.compare_digest(email.encode('utf-8'), ADMIN_EMAIL.encode('utf-8'))
-    ok_pass = hmac.compare_digest(password.encode('utf-8'), ADMIN_PASSWORD.encode('utf-8'))
-    if not (ok_email and ok_pass):
-        _LOGIN_FAILS.setdefault(ip, []).append(datetime.now(timezone.utc).timestamp())
-        return jsonify({'error': 'Correo o contraseña incorrectos'}), 401
 
-    _LOGIN_FAILS.pop(ip, None)
-    session.clear()
-    session.permanent = True
-    session['admin'] = True
-    session['email'] = ADMIN_EMAIL
-    return jsonify({'ok': True, 'email': ADMIN_EMAIL})
+    # 1) Cuenta principal (variables de entorno): funciona exactamente igual que antes.
+    if ADMIN_EMAIL and ADMIN_PASSWORD:
+        ok_email = hmac.compare_digest(email.encode('utf-8'), ADMIN_EMAIL.encode('utf-8'))
+        ok_pass = hmac.compare_digest(password.encode('utf-8'), ADMIN_PASSWORD.encode('utf-8'))
+        if ok_email and ok_pass:
+            _LOGIN_FAILS.pop(ip, None)
+            session.clear()
+            session.permanent = True
+            session['admin'] = True
+            session['email'] = ADMIN_EMAIL
+            session['role'] = 'admin'
+            return jsonify({'ok': True, 'email': ADMIN_EMAIL, 'role': 'admin', 'redirect': 'panel',
+                            'owner': ADMIN_EMAIL == OWNER_EMAIL})
+
+    # 2) Usuarios de la tabla users (secretaria, afiliado, cliente...).
+    user = None
+    try:
+        with db() as c:
+            user = c.execute('SELECT id,email,role,is_active,password_hash FROM users WHERE lower(email)=%s',
+                             (email,)).fetchone()
+    except Exception:
+        app.logger.exception('Login: no se pudo consultar la tabla users')
+    if user and user['password_hash'] and check_password_hash(user['password_hash'], password):
+        if not user['is_active']:  # clave correcta pero la administracion aun no la aprueba
+            return jsonify({'error': PENDING_MSG, 'pending': True}), 403
+        _LOGIN_FAILS.pop(ip, None)
+        _STAFF_CACHE.pop(user['id'], None)
+        session.clear()
+        session.permanent = True
+        session['uid'] = user['id']
+        session['email'] = str(user['email']).lower()
+        session['role'] = user['role']
+        resp = jsonify({'ok': True, 'email': session['email'], 'role': user['role'],
+                        'redirect': ROLE_HOME.get(user['role'], 'tienda'), 'owner': session['email'] == OWNER_EMAIL})
+        if user['role'] == 'afiliado':  # access + refresh token (sesión de 7 días) para el portal de afiliados
+            try:
+                import afiliados_bp
+                resp = afiliados_bp.adjuntar_sesion(resp, user['id'])
+            except Exception:
+                app.logger.exception('No se pudo abrir la sesión con tokens del afiliado')
+        return resp
+
+    if not (ADMIN_EMAIL and ADMIN_PASSWORD) and not user:
+        return jsonify({'error': 'El administrador debe configurar ADMIN_EMAIL y ADMIN_PASSWORD en el servidor.'}), 503
+    _LOGIN_FAILS.setdefault(ip, []).append(datetime.now(timezone.utc).timestamp())
+    return jsonify({'error': 'Correo o contraseña incorrectos'}), 401
 
 
 @app.post('/api/logout')
 def logout():
+    try:
+        import afiliados_bp
+        afiliados_bp.cerrar_sesion_actual()
+    except Exception:
+        pass
     session.clear()
     return jsonify({'ok': True})
 
@@ -1289,12 +1404,29 @@ def update_settings():
                'background_value', 'review_url', 'tips_message',
                'music_url', 'music_title', 'music_kind', 'paypal_rate',
                'free_ship_min', 'delivery_note', 'returns_note', 'size_guide', 'ga_id',
+               'paypal_wallets', 'apple_pay_file', 'xmas_hat', 'theme_bg_url', 'theme_bg_on', 'theme_sticker',
                'legal_terms', 'legal_privacy', 'legal_returns'}
     if 'paypal_rate' in d:  # tasa para cobrar en US$ con PayPal (pesos por 1 dolar)
         x = to_float(str(d['paypal_rate']).replace(',', '.'))
         if x is None or not 1 <= x <= 100000:
             return jsonify({'error': 'La tasa debe ser un número mayor que 1 (pesos dominicanos por 1 dólar).'}), 400
         d['paypal_rate'] = str(round(x, 4))
+    if 'theme_bg_on' in d:  # fondo de temporada activo ('1') o no ('0')
+        d['theme_bg_on'] = '1' if str(d['theme_bg_on']).strip() == '1' else '0'
+    if 'theme_bg_url' in d:  # solo rutas del sitio o https (nada de javascript: ni data:)
+        v = str(d['theme_bg_url'] or '').strip()[:500]
+        if v and not re.match(r'^(/|https://)', v):
+            return jsonify({'error': 'La imagen de fondo debe ser un archivo subido o un enlace https.'}), 400
+        d['theme_bg_url'] = v
+    if 'theme_sticker' in d:  # '' = gorro navideño incluido; o un emoji corto; o una imagen/GIF subido
+        v = str(d['theme_sticker'] or '').strip()[:500]
+        if v and not re.match(r'^(/|https://)', v) and len(v) > 8:
+            return jsonify({'error': 'El sticker debe ser un emoji, un archivo subido o un enlace https.'}), 400
+        d['theme_sticker'] = v
+    if 'xmas_hat' in d:  # gorro navideño sobre el logo: '0' = oculto
+        d['xmas_hat'] = '0' if str(d['xmas_hat']).strip() in ('0', 'false', 'False', '') else '1'
+    if 'paypal_wallets' in d:  # Apple Pay / Google Pay: '1' = activado
+        d['paypal_wallets'] = '1' if str(d['paypal_wallets']).strip() in ('1', 'true', 'True') else ''
     if 'free_ship_min' in d:  # envio gratis desde X (RD$); vacio = desactivado
         raw = str(d['free_ship_min'] or '').strip().replace(',', '.')
         if raw:
@@ -1318,7 +1450,7 @@ def update_settings():
             elif k == 'music_kind':
                 v = v if v in ('audio', 'video') else 'audio'
             c.execute('INSERT INTO settings(key,value) VALUES(%s,%s) '
-                      'ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value', (k, v[:4000]))
+                      'ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value', (k, v[:(20000 if k == 'apple_pay_file' else 4000)]))
     return jsonify({'ok': True})
 
 
@@ -1741,10 +1873,29 @@ try:
     viane_extras.register(
         app, db=db, connect=connect, ensure_schema=ensure_schema, admin_required=admin_required,
         body=body, rows=rows, now=now, dr_date=_dr_date, norm=_norm, parse_pct=parse_pct,
-        order_hooks=ORDER_HOOKS, migrations=MIGRATIONS,
+        order_hooks=ORDER_HOOKS, migrations=MIGRATIONS, rdb=rdb,
+        is_owner=is_owner_session, is_admin=is_admin_session, owner_email=OWNER_EMAIL,
+        staff_cache=_STAFF_CACHE, staff_state=staff_state,
         reseller_defaults=(RESELLER_DISCOUNT_PCT, RESELLER_COMMISSION_PCT))
 except Exception as exc:
     print(f'[VIANE] Modulos extra no disponibles: {exc!r}')
+
+# --- Portal de afiliados (Blueprint independiente: afiliados_bp.py + templates/afiliados/) ---
+try:
+    import afiliados_bp
+    afiliados_bp.init_afiliados(app, db=db, rdb=rdb, migrations=MIGRATIONS, is_admin=is_admin_session)
+except Exception as exc:  # si falla, el resto del sitio sigue igual
+    print(f'[VIANE] Portal de afiliados no disponible: {exc!r}')
+
+# --- Inventario (en «Gastos y costos») y Pérdidas: módulo independiente inventario.py ---
+try:
+    import inventario
+    inventario.init_inventario(app, db=lambda: db(), migrations=MIGRATIONS, is_admin=is_admin_session, skey=supply_key)
+except Exception as exc:
+    print(f'[VIANE] Inventario/Pérdidas no disponible: {exc!r}')
+
+# --- Infraestructura: cola de trabajos (tabla jobs), indices, invalidación de caché, /api/worker/run y /api/maintenance/run ---
+infra.init_infra(app, db=lambda: db(), migrations=MIGRATIONS, is_admin=is_admin_session)
 
 
 if __name__ == '__main__':
