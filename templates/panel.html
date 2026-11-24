@@ -1,0 +1,173 @@
+{% extends 'afiliados/base.html' %}
+{% block title %}Mi panel de afiliado{% endblock %}
+{% block nav %}<a href="#" id="salir">Salir</a>{% endblock %}
+{% block css %}
+.hero{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.avwrap{position:relative;width:112px;height:112px;margin:38px 8px 0 4px;flex:0 0 112px}
+.avwrap img,.avwrap .ph{width:112px;height:112px;border-radius:50%;object-fit:cover;border:4px solid var(--gold);background:#f5eee2;display:grid;place-items:center;font:700 40px 'Playfair Display',serif;color:var(--crimson);cursor:pointer}
+.crown{position:absolute;top:-36px;left:50%;transform:translateX(-50%) rotate(-4deg);width:78px;filter:drop-shadow(0 3px 3px #0004);pointer-events:none}
+.cam{position:absolute;right:-2px;bottom:-2px;background:var(--red-grad);color:#fff;border-radius:50%;width:32px;height:32px;display:grid;place-items:center;border:2px solid #fff;font-size:15px;cursor:pointer}
+.who h1{margin:0}.badge{display:inline-block;margin-top:6px;padding:6px 14px;border-radius:30px;font-weight:800;background:linear-gradient(135deg,#FFF6D6,#FFE9A6);border:1px solid var(--gold);color:#5b4600}
+.code{display:inline-flex;gap:8px;align-items:center;margin-top:10px;background:#fff7da;border:1px dashed var(--gold);border-radius:12px;padding:8px 12px;font-weight:800;letter-spacing:1px;color:var(--red-d)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}.kpi span{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}.kpi b{font-size:20px;color:var(--crimson);white-space:nowrap}
+.kpi.main{grid-column:span 2;background:linear-gradient(135deg,#FFF3C4,#fff);border-color:var(--gold);box-shadow:0 8px 22px #c9a22733}.kpi.main b{font-size:26px;color:var(--red)}
+.bar{height:12px;border-radius:10px;background:#f0e6d4;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--red));transform-origin:left;animation:grow 1.1s ease-out}@keyframes grow{from{transform:scaleX(0)}}
+.crw{display:inline-block;width:26px;height:16px;vertical-align:-2px}
+.modal{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:16px;z-index:20}.modal[hidden]{display:none}
+.modal .box{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:440px;max-height:92vh;overflow:auto}
+.st{font-weight:800}
+@media(max-width:560px){.kpi.main{grid-column:1/-1}}.st.pagado{color:var(--ok)}.st.rechazado{color:#b3261e}.st.pendiente{color:#9a6b00}
+.catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:14px}
+.pcard{border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px;background:#fff}
+.pimg{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#f5eee2}.pimg img{width:100%;height:100%;object-fit:cover;display:block}
+.new{position:absolute;top:6px;left:6px;background:var(--bright);color:#fff;font:800 10px Inter,sans-serif;letter-spacing:.8px;padding:3px 8px;border-radius:20px}
+.pbtn{display:grid;gap:6px;margin-top:auto}.pbtn .btn{min-height:38px;padding:8px 10px;font-size:13px}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translate(-50%,30px);opacity:0;pointer-events:none;background:#fff;color:var(--ink);border:1.5px solid var(--gold);box-shadow:0 12px 30px #c9a22744;border-radius:30px;padding:12px 18px;font-weight:700;font-size:14px;max-width:92vw;text-align:center;transition:.25s;z-index:40}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+{% endblock %}
+{% block body %}
+<div id="app"><p class="muted">Cargando…</p></div>
+<div id="wModal" class="modal" hidden>
+  <div class="box">
+    <h2 style="margin-top:0">Solicitar retiro</h2>
+    <p class="muted">Monto a retirar: <b id="wMonto"></b> (todo tu saldo disponible).</p>
+    <form id="wForm" novalidate>
+      <label for="wMethod">Método</label><select id="wMethod"></select>
+      <label for="wBank">Banco (si aplica)</label><input id="wBank" maxlength="80">
+      <label for="wAccount">Cuenta o correo de PayPal</label><input id="wAccount" maxlength="120" required>
+      <label for="wHolder">Nombre del titular</label><input id="wHolder" maxlength="100" required>
+      <label for="wCedula">Cédula (opcional)</label><input id="wCedula" maxlength="30">
+      <p id="wMsg" class="msg" role="alert"></p>
+      <button class="btn block">Enviar solicitud</button>
+      <button class="btn light block" type="button" id="wCancel">Cancelar</button>
+    </form>
+  </div>
+</div>
+<input type="file" id="file" accept="image/*" hidden>
+{% endblock %}
+{% block scripts %}
+<script>
+const $=id=>document.getElementById(id);
+const money=n=>'RD$ '+Number(n||0).toLocaleString('es-DO',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* Sesión de 7 días: el access token (15 min) se renueva solo con el refresh token (cookie httpOnly); si la sesión ya terminó, vuelve al login */
+let _refresh=null;
+function renovarSesion(){
+  if(!_refresh)_refresh=fetch('/afiliados/api/refresh',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:'{}'})
+    .then(async r=>{if(!r.ok)throw new Error('sesión');const d=await r.json();programarRenovacion(d.expires_in)}).finally(()=>{_refresh=null});
+  return _refresh;
+}
+function programarRenovacion(seg){clearTimeout(window._rt);window._rt=setTimeout(()=>renovarSesion().catch(()=>{}),Math.max(seg-60,30)*1000)}
+async function api(url,body,reintento){
+  const o={credentials:'same-origin',headers:{'Content-Type':'application/json'}};if(body!==undefined){o.method='POST';o.body=JSON.stringify(body)}
+  const r=await fetch(url,o);let d={};try{d=await r.json()}catch(e){}
+  if(r.status===401&&!reintento){
+    try{await renovarSesion();return api(url,body,true)}catch(e){location.href='/afiliados/login';throw new Error('sesión')}
+  }
+  if(r.status===401){location.href='/afiliados/login';throw new Error('sesión')}
+  if(!r.ok)throw Object.assign(new Error(d.error||'Error'),{data:d});return d}
+function crown(c){return '<svg class="crown" viewBox="0 0 64 40" aria-hidden="true"><defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><path d="M4 34 L8 10 L22 22 L32 4 L42 22 L56 10 L60 34 Z" fill="'+c+'" stroke="#0004" stroke-width="2" stroke-linejoin="round"/><path d="M4 34 L8 10 L22 22 L32 4 L42 22 L56 10 L60 34 Z" fill="url(#cg)"/><rect x="4" y="34" width="56" height="6" rx="3" fill="'+c+'" stroke="#0004" stroke-width="1.5"/><circle cx="8" cy="10" r="3.6" fill="#fff"/><circle cx="32" cy="4" r="3.6" fill="#fff"/><circle cx="56" cy="10" r="3.6" fill="#fff"/></svg>'}
+let D=null;
+function render(d){
+  D=d;const u=d.usuario;
+  if(!d.activo){$('app').innerHTML='<section class="card"><h1>Mi panel</h1><p>'+esc(d.mensaje)+'</p></section>';return}
+  const n=d.nivel,sig=d.siguiente,prog=sig?Math.min(100,Math.round(d.ventas_mes/sig.desde*100)):100;
+  const av=u.avatar?'<img id="av" src="'+esc(u.avatar)+'" alt="Mi foto">':'<div class="ph" id="av">'+esc((u.nombre||'?').trim().charAt(0).toUpperCase())+'</div>';
+  const crownHtml=n.key==='inicio'?'':crown(n.color);
+  const tabla=d.niveles.map(x=>'<tr'+(x.key===n.key?' class="me"':'')+'><td><svg class="crw" viewBox="0 0 64 40"><path d="M4 34 L8 10 L22 22 L32 4 L42 22 L56 10 L60 34 Z" fill="'+x.color+'" stroke="#0003" stroke-width="2"/><rect x="4" y="34" width="56" height="6" rx="3" fill="'+x.color+'"/></svg> '+esc(x.nombre)+' '+x.emoji+'</td><td>'+(x.hasta?x.desde+' a '+x.hasta:'Más de 500')+'</td><td>'+x.pct+' %'+(x.extra?'<br><span class="muted tiny">'+esc(x.extra)+'</span>':'')+'</td><td>'+esc(x.regalos)+'</td></tr>').join('');
+  const ret=d.retiros.length?d.retiros.map(r=>'<tr><td>'+esc((r.created_at||'').slice(0,10))+'</td><td>'+money(r.amount)+'</td><td>'+esc(r.method)+'</td><td class="st '+esc(r.status)+'">'+esc(r.status)+'</td></tr>').join(''):'<tr><td colspan="4" class="muted">Aún no has solicitado retiros.</td></tr>';
+  $('app').innerHTML=
+   '<section class="card hero"><div class="avwrap">'+crownHtml+av+'<span class="cam" id="cam" title="Cambiar foto">📷</span></div>'+
+   '<div class="who"><h1>'+esc(u.nombre)+'</h1><span class="badge">'+n.emoji+' '+esc(n.nombre)+' · '+n.pct+' % de comisión</span><br>'+
+   '<span class="code">Tu código: <span id="cod">'+esc(d.codigo)+'</span> <button class="btn light" style="min-height:32px;padding:4px 12px" id="copiar" type="button">Copiar</button></span>'+
+   '<div class="muted tiny" style="margin-top:6px">Quien compre con tu código recibe '+esc(d.descuento_pct)+' % de descuento.</div></div></section>'+
+   '<div class="kpis"><div class="kpi main"><span>Saldo disponible</span><b>'+money(d.disponible)+'</b></div>'+
+   '<div class="kpi"><span>Ventas del mes</span><b>'+d.ventas_mes+'</b></div>'+
+   '<div class="kpi"><span>Comisión del mes</span><b>'+money(d.comision_mes)+'</b></div>'+
+   '<div class="kpi"><span>En proceso de pago</span><b>'+money(d.en_proceso)+'</b></div>'+
+   '<div class="kpi"><span>Ganado en total</span><b>'+money(d.ganado)+'</b></div>'+
+   '<div class="kpi"><span>Ya pagado</span><b>'+money(d.pagado)+'</b></div></div>'+
+   '<section class="card"><h3>Tu progreso</h3>'+(sig?'<p>Te faltan <b>'+sig.faltan+'</b> venta'+(sig.faltan===1?'':'s')+' este mes para la <b>'+esc(sig.nombre)+'</b> '+sig.emoji+' ('+sig.pct+' %).</p><div class="bar"><i style="width:'+prog+'%"></i></div>':'<p>🎉 ¡Estás en la corona más alta! Gracias por ser parte de VIANE DELICATESSEN.</p>')+
+   '<button class="btn gold" id="retiro" type="button">💸 Solicitar retiro</button></section>'+
+   '<section class="card"><h3>📦 Catálogo para compartir</h3><p class="muted tiny">Los productos nuevos aparecen aquí al instante. Elige un mensaje, copia la imagen con tu código y compártela.</p><label for="tplSel">Mensaje</label><select id="tplSel"></select><div class="catgrid" id="catGrid"><p class="muted">Cargando productos…</p></div></section>'+
+   '<section class="card"><h3>Tabla de comisiones</h3><div class="tbl-wrap"><table><thead><tr><th>Corona</th><th>Ventas del mes</th><th>Comisión</th><th>Regalos</th></tr></thead><tbody>'+tabla+'</tbody></table></div></section>'+
+   '<section class="card"><h3>Mis retiros</h3><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Estado</th></tr></thead><tbody>'+ret+'</tbody></table></div></section>';
+  $('copiar').onclick=async()=>{try{await navigator.clipboard.writeText(d.codigo);$('copiar').textContent='¡Copiado!'}catch(e){}};
+  $('retiro').onclick=openWithdraw;
+  const pick=()=>$('file').click();$('cam').onclick=pick;$('av').onclick=pick;
+  fillTemplates();renderCatalog();
+}
+function openWithdraw(){
+  if(!D||D.disponible<=0){alert('🚨 No tienes fondos disponibles. ¡Motívate a seguir publicando más imágenes con tu código de afiliado!');return}
+  $('wMonto').textContent=money(D.disponible);$('wMethod').innerHTML=D.metodos.map(m=>'<option>'+esc(m)+'</option>').join('');$('wMsg').textContent='';$('wModal').hidden=false;
+}
+$('wCancel').onclick=()=>{$('wModal').hidden=true};
+$('wForm').onsubmit=async e=>{e.preventDefault();$('wMsg').textContent='';
+  try{const r=await api('/afiliados/api/retiro',{method:$('wMethod').value,bank:$('wBank').value,account:$('wAccount').value,holder:$('wHolder').value,cedula:$('wCedula').value});
+    $('wModal').hidden=true;alert(r.mensaje);load()}
+  catch(x){if(x.data&&x.data.sin_fondos){$('wModal').hidden=true;alert(x.message)}else{$('wMsg').className='msg err';$('wMsg').textContent=x.message}}};
+$('file').onchange=()=>{const f=$('file').files[0];if(!f)return;const img=new Image(),url=URL.createObjectURL(f);
+  img.onload=async()=>{const s=256,cv=document.createElement('canvas');cv.width=cv.height=s;const k=Math.max(s/img.width,s/img.height),w=img.width*k,h=img.height*k;cv.getContext('2d').drawImage(img,(s-w)/2,(s-h)/2,w,h);URL.revokeObjectURL(url);
+    try{await api('/afiliados/api/avatar',{avatar:cv.toDataURL('image/jpeg',.82)});load()}catch(x){alert(x.message)}};img.src=url};
+$('salir').onclick=async e=>{e.preventDefault();await api('/afiliados/api/logout',{}).catch(()=>{});location.href='/afiliados/login'};
+/* ===== Catálogo en vivo + copiar / compartir (portapapeles tipo Amazon) ===== */
+let CAT={items:[],version:'',fresh:new Set()},TPL=[];
+function toast(t){let e=$('toast');if(!e){e=document.createElement('div');e.id='toast';e.setAttribute('role','status');document.body.appendChild(e)}e.textContent=t;e.className='show';clearTimeout(e._t);e._t=setTimeout(()=>{e.className=''},4200)}
+async function loadTemplates(){try{TPL=(await api('/afiliados/api/plantillas')).plantillas;fillTemplates()}catch(e){}}
+function fillTemplates(){const s=$('tplSel');if(!s)return;const cur=s.value;s.innerHTML=TPL.map(t=>'<option value="'+t.id+'">'+esc(t.title)+'</option>').join('');if(cur)s.value=cur}
+async function loadCatalog(){
+  try{
+    const d=await api('/afiliados/api/productos?v='+encodeURIComponent(CAT.version||''));if(!d.cambio)return;
+    const antes=new Set(CAT.items.map(p=>p.id));
+    CAT.fresh=CAT.version?new Set(d.productos.filter(p=>!antes.has(p.id)).map(p=>p.id)):new Set();   // productos que acaban de publicarse
+    CAT.items=d.productos;CAT.version=d.version;renderCatalog();
+    if(CAT.fresh.size)toast('🆕 '+CAT.fresh.size+' producto'+(CAT.fresh.size===1?'':'s')+' nuevo'+(CAT.fresh.size===1?'':'s')+' en el catálogo');
+  }catch(e){}
+}
+function renderCatalog(){
+  const g=$('catGrid');if(!g)return;
+  g.innerHTML=CAT.items.length?CAT.items.map(p=>'<article class="pcard"><div class="pimg"><img src="'+esc(p.imagen)+'" alt="'+esc(p.nombre)+'" loading="lazy" decoding="async">'+((p.nuevo||CAT.fresh.has(p.id))?'<span class="new">NUEVO</span>':'')+'</div><b>'+esc(p.nombre)+'</b><span class="muted tiny">'+money(p.precio)+'</span><div class="pbtn"><button type="button" class="btn" data-copy="'+p.id+'">📋 Copiar imagen y enlace</button><button type="button" class="btn light" data-share="'+p.id+'">📤 Compartir</button></div></article>').join(''):'<p class="muted">Aún no hay productos publicados.</p>';
+}
+function msgFor(){const t=TPL.find(x=>String(x.id)===(($('tplSel')||{}).value))||TPL[0]||{body:''};return t.body.split('{codigo_afiliado}').join(D?D.codigo:'')}   // inyecta SU código
+function productText(p){return msgFor()+'\n\n🛍️ '+p.nombre+' — '+money(p.precio)+'\n'+p.url+'&ref='+encodeURIComponent(D?D.codigo:'')}
+async function pngBlob(url){
+  const r=await fetch(url,{mode:'cors',credentials:'omit'});if(!r.ok)throw new Error('imagen');
+  const b=await r.blob();if(b.type==='image/png')return b;                 // el portapapeles solo acepta PNG
+  const bmp=await createImageBitmap(b),c=document.createElement('canvas');c.width=bmp.width;c.height=bmp.height;c.getContext('2d').drawImage(bmp,0,0);
+  return new Promise((ok,no)=>c.toBlob(x=>x?ok(x):no(new Error('png')),'image/png'));
+}
+function legacyCopy(t){const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('✅ Copiado.')}catch(e){toast('No se pudo copiar automáticamente.')}a.remove()}
+async function copyProduct(p){
+  const text=productText(p);
+  try{   // 1) imagen + texto/enlace a la vez (como Amazon)
+    await navigator.clipboard.write([new ClipboardItem({'image/png':pngBlob(p.imagen),'text/plain':new Blob([text],{type:'text/plain'})})]);
+    toast('✅ Imagen y enlace copiados. ¡Pégalos donde quieras!');return;
+  }catch(e){}
+  try{   // 2) si el navegador no deja copiar la imagen: enlace + mensaje
+    await navigator.clipboard.writeText(text+'\n\n📷 '+p.imagen);
+    toast('✅ Enlace y mensaje copiados. Para enviar también la foto usa «Compartir».');return;
+  }catch(e){}
+  legacyCopy(text+'\n\n📷 '+p.imagen);   // 3) navegadores muy viejos
+}
+async function shareProduct(p){
+  const text=productText(p);
+  try{
+    const png=await pngBlob(p.imagen),file=new File([png],'viane-'+p.id+'.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text});return}   // WhatsApp / Instagram con foto
+  }catch(e){if(e&&e.name==='AbortError')return}
+  if(navigator.share){try{await navigator.share({text,url:p.url});return}catch(e){if(e&&e.name==='AbortError')return}}
+  copyProduct(p);
+}
+document.addEventListener('click',e=>{
+  const c=e.target.closest&&e.target.closest('[data-copy],[data-share]');if(!c)return;
+  const id=Number(c.dataset.copy||c.dataset.share),p=CAT.items.find(x=>x.id===id);if(!p)return;
+  if(c.dataset.copy)copyProduct(p);else shareProduct(p);
+});
+setInterval(()=>{if(!document.hidden&&D&&D.activo)loadCatalog()},20000);   // catálogo en vivo: se revisa cada 20 s
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&D&&D.activo)loadCatalog()});
+
+async function load(){try{render(await api('/afiliados/api/panel'))}catch(e){if(e.message!=='sesión')$('app').innerHTML='<section class="card"><p class="msg err">'+esc(e.message)+'</p></section>'}}
+programarRenovacion(900);load();loadTemplates();loadCatalog();
+</script>
+{% endblock %}
